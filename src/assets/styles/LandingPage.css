@@ -1,0 +1,868 @@
+/* src/assets/styles/LandingPage.css - Enhanced Design with Improved Layout */
+
+:root {
+  --primary-color: #007bff;
+  --primary-hover: #0056b3;
+  --secondary-color: #6c757d;
+  --accent-color: #00bfa5;
+  --text-primary: #2c3e50;
+  --text-secondary: #6c757d;
+  --text-light: #95a5a6;
+  --background: #ffffff;
+  --surface: #f8f9fa;
+  --border: #e9ecef;
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.12);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.16);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --gradient-primary: linear-gradient(135deg, #007bff 0%, #00bfa5 100%);
+  --gradient-hero: linear-gradient(135deg, rgba(0,123,255,0.1) 0%, rgba(0,191,165,0.1) 100%);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* SCROLLBAR FORCE - Ensure scrollbar appears without excess scrolling */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 1rem;
+  height: 100%;
+  overflow-y: scroll !important; /* Force scrollbar to always show */
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--background);
+  margin: 0;
+  padding: 0;
+  height: auto;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: scroll !important; /* Force scrollbar to always show */
+}
+
+/* Remove the artificial height extension */
+
+.landing-page {
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Updated Container - Full width sections with contained content */
+.container {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.content-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  width: 100%;
+}
+
+/* Hero Section - Original wide layout restored */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+  min-height: 85vh; /* Slightly less than full viewport */
+  padding: 3rem 0;
+  background: var(--gradient-hero);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0,123,255,0.05) 0%, transparent 70%);
+  animation: float 20s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(180deg); }
+}
+
+.hero-text {
+  z-index: 2;
+  position: relative;
+}
+
+.hero-branding {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Logo Container - Improved visibility */
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.logo-container:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: var(--shadow-lg);
+}
+
+.logo-image {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.logo-container:hover .logo-image {
+  transform: scale(1.1);
+}
+
+/* Fallback styling if logo fails to load */
+.logo-container::after {
+  content: 'S';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  z-index: -1;
+}
+
+.hero-branding h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.hero-text p {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem; /* Reduced margin */
+  max-width: 500px;
+  line-height: 1.7;
+}
+
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  background: var(--gradient-primary);
+  color: white;
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.cta-button:hover::before {
+  left: 100%;
+}
+
+.cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.hero-img {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-img img {
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.3s ease;
+}
+
+.hero-img:hover img {
+  transform: scale(1.02);
+}
+
+/* Features Section - High contrast design */
+.features {
+  padding: 4rem 0; /* Reasonable padding */
+  background: #ffffff; /* Pure white background */
+  scroll-margin-top: 1rem;
+  width: 100%;
+  min-height: 50vh; /* Reasonable height */
+  border-top: 1px solid #dee2e6;
+}
+
+.features h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #1a1a1a; /* Much darker text */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.features h2::after {
+  content: '';
+  display: block;
+  width: 80px;
+  height: 4px;
+  background: var(--gradient-primary);
+  margin: 1rem auto;
+  border-radius: 2px;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem; /* Reduced gap */
+  margin-top: 3rem; /* Reduced margin */
+}
+
+.feature {
+  background: white;
+  padding: 2.5rem 2rem; /* Reduced padding */
+  border-radius: var(--radius-lg);
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1); /* Enhanced shadow for definition */
+  transition: all 0.3s ease;
+  border: 1px solid #e0e0e0; /* More visible border */
+  position: relative;
+  overflow: hidden;
+  min-height: 350px; /* Reduced height */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.feature::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-primary);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.feature:hover::before {
+  transform: scaleX(1);
+}
+
+.feature:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15); /* Enhanced hover shadow */
+}
+
+.feature img {
+  width: 140px; /* Reduced size */
+  height: 140px;
+  margin-bottom: 1.5rem;
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* Enhanced shadow */
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.feature:hover img {
+  transform: scale(1.05);
+}
+
+.feature h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1a1a1a; /* Much darker heading text */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.feature p {
+  color: #2c3e50; /* Much darker body text */
+  line-height: 1.6;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+/* Try Now Section - High contrast design */
+.try-now {
+  padding: 4rem 0; /* Reasonable padding */
+  text-align: center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); /* Light solid background */
+  position: relative;
+  scroll-margin-top: 1rem;
+  width: 100%;
+  min-height: 30vh; /* Reasonable height */
+  border-top: 1px solid #dee2e6;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.try-now h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #1a1a1a; /* Much darker text */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.try-now p {
+  font-size: 1.2rem;
+  color: #2c3e50; /* Darker secondary text */
+  max-width: 600px;
+  margin: 0 auto 2rem;
+  line-height: 1.7;
+  font-weight: 500; /* Slightly bolder */
+}
+
+/* Footer - High contrast dark footer */
+.site-footer {
+  background: #1a1a1a; /* Darker background for better contrast */
+  color: #ffffff; /* Pure white text */
+  padding: 3rem 0 2rem; /* Natural padding */
+  scroll-margin-top: 1rem;
+  width: 100%;
+  border-top: 3px solid var(--primary-color); /* Add accent border */
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 2rem; /* Reduced gap */
+  margin-bottom: 2rem; /* Reduced margin */
+}
+
+.footer-logo {
+  max-width: 400px;
+}
+
+.footer-branding {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.footer-branding .logo-container {
+  width: 48px;
+  height: 48px;
+  background: var(--gradient-primary);
+  box-shadow: 0 2px 8px rgba(0,123,255,0.3); /* Enhanced shadow */
+}
+
+.footer-branding .logo-image {
+  width: 28px;
+  height: 28px;
+}
+
+.footer-branding h3 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0;
+  color: #ffffff; /* Pure white */
+}
+
+.footer-logo p {
+  color: #e0e0e0; /* Lighter gray but still readable */
+  line-height: 1.6;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.footer-column h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #ffffff; /* Pure white headers */
+}
+
+.footer-column ul {
+  list-style: none;
+}
+
+.footer-column li {
+  margin-bottom: 0.5rem;
+}
+
+.footer-column a {
+  color: #d0d0d0; /* Light gray links */
+  text-decoration: none;
+  transition: color 0.3s ease;
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+.footer-column a:hover {
+  color: var(--accent-color);
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1.5rem; /* Reduced padding */
+  border-top: 1px solid #333333; /* Darker border */
+}
+
+.footer-bottom p {
+  color: #d0d0d0; /* Light gray but readable */
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.social-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.social-links a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #333333; /* Darker background */
+  color: #d0d0d0; /* Light gray icons */
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.social-links a:hover {
+  background: var(--accent-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,191,165,0.3);
+}
+
+/* Scroll indicator */
+.scroll-indicator {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+  cursor: pointer;
+}
+
+.scroll-indicator::before {
+  content: '↓';
+  display: flex;
+  width: 50px;
+  height: 50px;
+  background: var(--gradient-primary);
+  color: white;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: bold;
+  animation: bounce 2s infinite;
+  box-shadow: var(--shadow-lg);
+  border: 3px solid white;
+}
+
+.scroll-indicator:hover::before {
+  transform: scale(1.1);
+  animation-play-state: paused;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .hero {
+    gap: 3rem;
+    padding: 2rem 1.5rem;
+    min-height: 70vh; /* Reduced for tablet */
+  }
+  
+  .hero-branding h1 {
+    font-size: 2.5rem;
+  }
+  
+  .features {
+    padding: 3rem 0;
+    min-height: 40vh; /* Adjusted for tablet */
+    background: #ffffff; /* Maintain white background */
+  }
+  
+  .features h2 {
+    color: #1a1a1a; /* Ensure dark text on tablet */
+  }
+  
+  .feature h3 {
+    color: #1a1a1a; /* Ensure dark headings on tablet */
+  }
+  
+  .feature p {
+    color: #2c3e50; /* Ensure dark text on tablet */
+  }
+  
+  .feature-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .feature img {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .try-now {
+    min-height: 25vh; /* Adjusted for tablet */
+  }
+  
+  .try-now h2 {
+    color: #1a1a1a; /* Ensure dark text on tablet */
+  }
+  
+  .try-now p {
+    color: #2c3e50; /* Maintain dark text on tablet */
+    font-weight: 500;
+  }
+  
+  .footer-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  
+  .landing-page {
+    min-height: calc(100vh + 15vh); /* Reduced extra height for tablet */
+  }
+}
+
+@media (max-width: 768px) {
+  .content-container {
+    padding: 0 1rem;
+  }
+  
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    text-align: center;
+    min-height: 60vh; /* Reduced for mobile */
+    padding: 2rem 1rem;
+  }
+  
+  .hero-branding {
+    justify-content: center;
+  }
+  
+  .hero-branding h1 {
+    font-size: 2rem;
+  }
+  
+  .hero-text p {
+    font-size: 1.1rem;
+  }
+  
+  .features {
+    padding: 2.5rem 0;
+    min-height: 35vh; /* Adjusted for mobile */
+    background: #ffffff; /* Maintain white background */
+  }
+  
+  .features h2 {
+    font-size: 2rem;
+    color: #1a1a1a; /* Ensure dark text on mobile */
+  }
+  
+  .feature h3 {
+    color: #1a1a1a; /* Ensure dark headings on mobile */
+  }
+  
+  .feature p {
+    color: #2c3e50; /* Ensure dark text on mobile */
+  }
+  
+  .try-now h2 {
+    font-size: 2rem;
+    color: #1a1a1a; /* Ensure dark text on mobile */
+  }
+  
+  .feature-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .feature img {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .try-now {
+    padding: 2.5rem 0;
+    min-height: 20vh; /* Adjusted for mobile */
+  }
+  
+  .try-now p {
+    color: #2c3e50; /* Maintain dark text on mobile */
+    font-weight: 500;
+  }
+  
+  .site-footer {
+    padding: 2rem 0 1rem;
+    background: #1a1a1a; /* Maintain dark background on mobile */
+  }
+  
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    text-align: center;
+  }
+  
+  .footer-bottom {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .landing-page {
+    min-height: calc(100vh + 10vh); /* Minimal extra height for mobile */
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-branding {
+    flex-direction: row; /* Keep logo beside text, not stacked */
+    gap: 0.75rem; /* Slightly larger gap for mobile */
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .hero-branding h1 {
+    font-size: 1.8rem;
+  }
+  
+  .hero-text p {
+    font-size: 1rem;
+  }
+  
+  .cta-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+  
+  .features,
+  .try-now {
+    padding: 2rem 0;
+  }
+  
+  .features h2,
+  .try-now h2 {
+    font-size: 1.8rem;
+  }
+  
+  .feature {
+    padding: 2rem 1.5rem;
+    min-height: 300px;
+  }
+  
+  .feature img {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .logo-container {
+    width: 56px;
+    height: 56px;
+  }
+  
+  .logo-image {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Force scrollbar visibility with aggressive styling */
+html, body {
+  scrollbar-width: auto !important; /* For Firefox - force visible */
+  scrollbar-color: #007bff #f8f9fa !important;
+}
+
+/* Webkit scrollbar styling - More prominent and forced */
+::-webkit-scrollbar {
+  width: 16px !important; /* Even wider for maximum visibility */
+  height: 16px !important;
+}
+
+::-webkit-scrollbar-track {
+  background: #f8f9fa !important;
+  border-radius: 10px;
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #007bff !important;
+  border-radius: 10px;
+  border: 2px solid #f8f9fa !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0056b3 !important;
+}
+
+::-webkit-scrollbar-corner {
+  background: #f8f9fa;
+}
+
+/* Additional force for Windows browsers */
+* {
+  scrollbar-width: auto !important;
+  scrollbar-color: #007bff #f8f9fa !important;
+}
+
+/* Force scrollbar on the main container */
+.landing-page {
+  width: 100%;
+  min-height: calc(100vh + 20vh); /* Just enough extra to require scrolling */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure smooth scroll boundaries */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 1rem;
+  height: 100%;
+  overflow-y: scroll !important; /* Force scrollbar to always show */
+  overflow-x: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--background);
+  margin: 0;
+  padding: 0;
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: scroll !important; /* Force scrollbar to always show */
+}
+
+/* Prevent scroll bounce and overscroll */
+body {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .logo-container {
+    border: 2px solid currentColor;
+  }
+  
+  .logo-image {
+    filter: contrast(1.2);
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .logo-image {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Print styles */
+@media print {
+  .hero, .features, .try-now, .site-footer {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  .scroll-indicator {
+    display: none;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .hero::before {
+    animation: none;
+  }
+  
+  .scroll-indicator::before {
+    animation: none;
+  }
+}
