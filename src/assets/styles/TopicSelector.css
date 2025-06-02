@@ -1,0 +1,39 @@
+/* src/assets/styles/TopicSelector.css */
+.topic-selector {
+    padding: 16px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 20px auto;
+    max-width: 400px;
+    font-family: Arial, sans-serif;
+  }
+  
+  .topic-selector h3 {
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    color: #333;
+  }
+  
+  .topic-selector ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .topic-selector li {
+    padding: 8px 12px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-size: 1rem;
+    color: #333;
+  }
+  
+  .topic-selector li:hover {
+    background-color: #eaeaea;
+  }
+  

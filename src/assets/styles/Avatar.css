@@ -1,0 +1,59 @@
+/* src/assets/styles/Avatar.css */
+
+/* Base avatar styles */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: white;
+  user-select: none;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+
+  /* Responsive sizing: up to 40px, or 10% of viewport width */
+  width: min(40px, 10vw);
+  height: min(40px, 10vw);
+
+  /* Font scales with avatar size */
+  font-size: min(1rem, 2.5vw);
+  line-height: 1;
+}
+
+/* If you're using an <img> for the avatar */
+.avatar--img,
+.avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Button wrapper (when avatar is clickable) */
+.avatar--button {
+  display: inline-flex;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* Adjust slightly for landscape on smaller viewports */
+@media (orientation: landscape) and (max-width: 768px) {
+  .avatar {
+      width: min(36px, 8vw);
+      height: min(36px, 8vw);
+      font-size: min(0.9rem, 2vw);
+  }
+}
+
+/* Adjust slightly for portrait on smaller viewports */
+@media (orientation: portrait) and (max-width: 768px) {
+  .avatar {
+      width: min(42px, 12vw);
+      height: min(42px, 12vw);
+      font-size: min(1.1rem, 3vw);
+  }
+}

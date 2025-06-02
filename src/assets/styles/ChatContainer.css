@@ -1,0 +1,85 @@
+/* ChatContainer.css
+ *
+ * Styles for the ChatContainer component which manages the overall chat session,
+ * including mode switching and topic selection.
+ */
+
+/* Main container styling */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px auto;
+    max-width: 800px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    background-color: #fefefe;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+  }
+  
+  /* Mode selector container */
+  .mode-selector {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px;
+  }
+  
+  .mode-selector button {
+    margin: 0 10px;
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+  }
+  
+  .mode-selector button:hover {
+    background-color: #0056b3;
+  }
+  
+  /* Topic selector (if rendered) */
+  .topic-selector {
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 20px;
+  }
+  
+  .topic-selector h3 {
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  
+  .topic-selector ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .topic-selector li {
+    padding: 8px 12px;
+    background-color: #f2f2f2;
+    border: 1px solid #ddd;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .topic-selector li:hover {
+    background-color: #e6e6e6;
+  }
+  
+  /* Ensure the chat container uses full width for the chat detail */
+  .chat-detail {
+    width: 100%;
+  }
+  
+  /* Additional spacing, if desired */
+  .chat-container > *:not(.mode-selector) {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  

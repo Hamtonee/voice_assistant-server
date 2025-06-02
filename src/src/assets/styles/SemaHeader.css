@@ -1,0 +1,114 @@
+.sema-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    height: 3rem;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  .sema-header__left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .sema-header__toggle-btn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    padding: 0.25rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .sema-header__toggle-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+  
+  .sema-header__search {
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+  .sema-header__search-icon {
+    position: absolute;
+    left: 8px;
+    font-size: 1rem;
+    color: #888;
+  }
+  .sema-header__search-input {
+    padding: 0.3rem 0.5rem 0.3rem 2rem;
+    font-size: 0.9rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    outline: none;
+    width: min(200px, 40vw);
+  }
+  .sema-header__search-input::placeholder {
+    color: #aaa;
+  }
+  
+  .sema-header__title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 50vw;
+  }
+  
+  /* Narrow screens: hide title, shrink inputs/buttons */
+  @media (max-width: 600px) {
+    .sema-header {
+      padding: 0 0.5rem;
+      height: 2.5rem;
+    }
+    .sema-header__search-input {
+      width: min(120px, 30vw);
+    }
+    .sema-header__title {
+      display: none;
+    }
+    .sema-header__toggle-btn {
+      font-size: 1rem;
+      padding: 0.2rem;
+    }
+  }
+  
+  /* Portrait on tablets/phones */
+  @media (orientation: portrait) and (max-width: 768px) {
+    .sema-header {
+      padding: 0 0.75rem;
+      height: 2.75rem;
+    }
+    .sema-header__search-input {
+      width: min(140px, 35vw);
+    }
+    .sema-header__title {
+      display: block;
+      max-width: 30vw;
+      font-size: 0.9rem;
+    }
+  }
+  
+  /* Landscape on tablets/phones */
+  @media (orientation: landscape) and (max-width: 768px) {
+    .sema-header {
+      padding: 0 0.75rem;
+      height: 2.75rem;
+    }
+    .sema-header__search-input {
+      width: min(160px, 40vw);
+    }
+    .sema-header__title {
+      max-width: 35vw;
+      font-size: 0.95rem;
+    }
+  }
+  
