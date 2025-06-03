@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import '../assets/styles/ChatSidebar.css';
 import ChatList from './ChatList';
 import api from '../api';
@@ -62,8 +62,8 @@ export default function ChatSidebar({
     }
   }, []);
 
-  // ENHANCED: Comprehensive session content validation
-  const checkCurrentSessionContent = async () => {
+  // ENHANCED: Comprehensive session content validation - wrapped in useCallback
+  const checkCurrentSessionContent = useCallback(async () => {
     if (!activeChatId) {
       console.log('🔍 [Session Validation] No active chat ID');
       return { hasContent: false, isEmpty: true, details: 'No active session' };
@@ -221,10 +221,10 @@ export default function ChatSidebar({
     } finally {
       setIsValidatingSession(false);
     }
-  };
+  }, [activeChatId, selectedFeature]);
 
   // ENHANCED: Smart new chat/session handler with comprehensive validation
-  const handleNewChatWithValidation = async () => {
+  const handleNewChatWithValidation = useCallback(async () => {
     console.log(`🆕 [New Session Request] Feature: ${selectedFeature}, Active ID: ${activeChatId}`);
     
     // For speech coach and reading, always validate current session first
@@ -297,10 +297,10 @@ export default function ChatSidebar({
         previousSessionId: activeChatId || null
       });
     }
-  };
+  }, [selectedFeature, activeChatId, checkCurrentSessionContent, onNewChat]);
 
   // Handle feature selection with keyboard blur and session context
-  const handleFeatureSelect = (feature) => {
+  const handleFeatureSelect = useCallback((feature) => {
     console.log(`🔄 [Feature Selection] Switching from ${selectedFeature} to ${feature}`);
     
     // Blur any focused elements to prevent keyboard issues
@@ -312,7 +312,7 @@ export default function ChatSidebar({
     setLastValidationResult(null);
     
     onSelectFeature(feature);
-  };
+  }, [selectedFeature, onSelectFeature]);
 
   // Get feature-specific sessions
   const sessions = selectedFeature === 'chat'
@@ -327,27 +327,27 @@ export default function ChatSidebar({
   const orderedSessions = activeSession ? [activeSession, ...otherSessions] : otherSessions;
 
   // Get feature display names
-  const getFeatureDisplayName = (feature) => {
+  const getFeatureDisplayName = useCallback((feature) => {
     switch (feature) {
       case 'chat': return 'Chat';
       case 'sema': return 'Sema';
       case 'tusome': return 'Tusome';
       default: return feature.charAt(0).toUpperCase() + feature.slice(1);
     }
-  };
+  }, []);
 
   // Get new chat button text based on feature
-  const getNewChatButtonText = () => {
+  const getNewChatButtonText = useCallback(() => {
     switch (selectedFeature) {
       case 'chat': return 'New Chat';
       case 'sema': return 'New Sema';
       case 'tusome': return 'New Tusome';
       default: return 'New Chat';
     }
-  };
+  }, [selectedFeature]);
 
   // ENHANCED: Get smart button text based on session state
-  const getSmartButtonText = () => {
+  const getSmartButtonText = useCallback(() => {
     const baseText = getNewChatButtonText();
     
     if (isValidatingSession) {
@@ -363,10 +363,10 @@ export default function ChatSidebar({
     }
     
     return baseText;
-  };
+  }, [isValidatingSession, lastValidationResult, activeChatId, getNewChatButtonText, getFeatureDisplayName, selectedFeature]);
 
   // Usage info component
-  const renderUsageInfo = () => {
+  const renderUsageInfo = useCallback(() => {
     if (!usageSummary) return null;
 
     const getServiceKey = () => {
@@ -439,7 +439,7 @@ export default function ChatSidebar({
         )}
       </div>
     );
-  };
+  }, [usageSummary, selectedFeature, showUsageInfo]);
 
   // Auto-validate current session when feature or active chat changes
   useEffect(() => {

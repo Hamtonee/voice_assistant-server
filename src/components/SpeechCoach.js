@@ -305,6 +305,143 @@ export default function EnhancedSpeechCoach({
     return isMeaningfullyUsed;
   }, [conversation.length, sessionInteractionLevel, interactionMetrics, sessionId]);
 
+  // Helper to get current voice configuration
+  const getCurrentVoiceConfig = useCallback(() => {
+    if (!selectedVoice) {
+      return { voiceName: 'en-US-Chirp3-HD-Aoede', languageCode: 'en-US', profile: 'default' };
+    }
+    
+    if (typeof selectedVoice === 'object' && selectedVoice.voiceName) {
+      return selectedVoice;
+    }
+    
+    if (typeof selectedVoice === 'string') {
+      return { voiceName: selectedVoice, languageCode: 'en-US', profile: 'default' };
+    }
+    
+    return {
+      voiceName: selectedVoice.voiceName || selectedVoice.name || 'en-US-Chirp3-HD-Aoede',
+      languageCode: selectedVoice.languageCode || 'en-US',
+      profile: selectedVoice.profile || 'default'
+    };
+  }, [selectedVoice]);
+
+  // TTS functions - define these first before they're used
+  const speakWithBrowserTTS = useCallback((text, voiceConfig, onEndCallback) => {
+    const utterance = new window.SpeechSynthesisUtterance(text);
+    
+    if (window.speechSynthesis) {
+      const voices = window.speechSynthesis.getVoices();
+      let voice = voices.find(v => v.name === voiceConfig.voiceName) ||
+                  voices.find(v => v.lang === voiceConfig.languageCode) ||
+                  voices.find(v => v.default) ||
+                  voices[0];
+      
+      if (voice) utterance.voice = voice;
+    }
+    
+    utterance.onstart = () => setIsPlaying(true);
+    utterance.onend = () => {
+      setIsPlaying(false);
+      ttsRef.current = null;
+      if (onEndCallback) onEndCallback();
+    };
+    utterance.onerror = () => {
+      setIsPlaying(false);
+      ttsRef.current = null;
+      if (onEndCallback) onEndCallback();
+    };
+    
+    ttsRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+    setIsPlaying(true);
+  }, []);
+
+  const speakWithDeepSpeak = useCallback(async (text, voiceConfig, onEndCallback) => {
+    try {
+      setIsPlaying(true);
+      
+      const response = await fetch(DEEPSPEAK_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text, voice: voiceConfig })
+      });
+      
+      if (!response.ok) throw new Error('DeepSpeak request failed');
+      
+      const data = await response.json();
+      
+      if (data.success && data.audio) {
+        const audio = new Audio(`data:audio/mp3;base64,${data.audio}`);
+        ttsRef.current = audio;
+        
+        audio.onended = () => {
+          setIsPlaying(false);
+          ttsRef.current = null;
+          if (onEndCallback) onEndCallback();
+        };
+        
+        audio.onerror = () => {
+          console.warn('DeepSpeak audio playback failed, falling back to browser TTS');
+          speakWithBrowserTTS(text, voiceConfig, onEndCallback);
+        };
+        
+        await audio.play();
+      } else {
+        throw new Error('No audio received from DeepSpeak');
+      }
+    } catch (error) {
+      console.warn('DeepSpeak failed, falling back to browser TTS:', error);
+      speakWithBrowserTTS(text, voiceConfig, onEndCallback);
+    }
+  }, [speakWithBrowserTTS]);
+
+  const cancelSpeech = useCallback(() => {
+    if (window.speechSynthesis) {
+      try { 
+        window.speechSynthesis.cancel(); 
+      } catch (error) {
+        // Ignore speech synthesis errors
+      }
+    }
+    if (ttsRef.current) {
+      if (typeof ttsRef.current.pause === 'function') {
+        try { 
+          ttsRef.current.pause(); 
+        } catch (error) {
+          // Ignore audio pause errors
+        }
+      }
+      ttsRef.current = null;
+      setIsPlaying(false);
+    }
+  }, []);
+
+  const speakText = useCallback((text, onEndCallback, useServerTTS = false) => {
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    
+    const currentVoice = getCurrentVoiceConfig();
+    
+    if (useServerTTS && useDeepSpeak && deepSpeakAvailable) {
+      speakWithDeepSpeak(text, currentVoice, onEndCallback);
+    } else {
+      speakWithBrowserTTS(text, currentVoice, onEndCallback);
+    }
+  }, [getCurrentVoiceConfig, useDeepSpeak, deepSpeakAvailable, speakWithDeepSpeak, speakWithBrowserTTS]);
+
+  const stopMicrophone = useCallback(() => {
+    if (recognitionRef.current) {
+      try { 
+        recognitionRef.current.abort(); 
+      } catch (error) {
+        console.warn('Recognition cleanup error:', error);
+      }
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+    clearTimeout(timerRef.current);
+  }, []);
+
   // ENHANCED sidebar state management with proper spawning
   const handleSidebarStateChange = useCallback((newSidebarState) => {
     if (previousSidebarState.current === newSidebarState) return;
@@ -431,27 +568,6 @@ export default function EnhancedSpeechCoach({
       }
     };
   }, [sidebarOpen]);
-
-  // Helper to get current voice configuration
-  const getCurrentVoiceConfig = useCallback(() => {
-    if (!selectedVoice) {
-      return { voiceName: 'en-US-Chirp3-HD-Aoede', languageCode: 'en-US', profile: 'default' };
-    }
-    
-    if (typeof selectedVoice === 'object' && selectedVoice.voiceName) {
-      return selectedVoice;
-    }
-    
-    if (typeof selectedVoice === 'string') {
-      return { voiceName: selectedVoice, languageCode: 'en-US', profile: 'default' };
-    }
-    
-    return {
-      voiceName: selectedVoice.voiceName || selectedVoice.name || 'en-US-Chirp3-HD-Aoede',
-      languageCode: selectedVoice.languageCode || 'en-US',
-      profile: selectedVoice.profile || 'default'
-    };
-  }, [selectedVoice]);
 
   // Enhanced system status checker
   const checkSystemStatus = useCallback(async () => {
@@ -1240,20 +1356,7 @@ export default function EnhancedSpeechCoach({
       });
       setIsProcessing(false);
     }
-  }, [conversation, markUserActivity, markUserInteraction, getCurrentVoiceConfig, sessionId, handleDailyLimitExceeded, extractEducationalHighlights]);
-
-  const stopMicrophone = useCallback(() => {
-    if (recognitionRef.current) {
-      try { 
-        recognitionRef.current.abort(); 
-      } catch (error) {
-        console.warn('Recognition cleanup error:', error);
-      }
-      recognitionRef.current = null;
-    }
-    setIsListening(false);
-    clearTimeout(timerRef.current);
-  }, []);
+  }, [conversation, markUserActivity, markUserInteraction, getCurrentVoiceConfig, sessionId, handleDailyLimitExceeded, extractEducationalHighlights, speakText, stopMicrophone]);
 
   // Enhanced microphone functions with mobile support and interaction tracking
   const startMicrophone = useCallback(() => {
@@ -1362,130 +1465,7 @@ export default function EnhancedSpeechCoach({
       setErrorMessage(friendlyError);
       setIsListening(false);
     }
-  }, [isProcessing, isSpeechSupported, markUserActivity, markUserInteraction, sendMessage, isIOS, generateUserFriendlyError, showPermissionHelp, speakText, stopMicrophone]);
-
-  // TTS functions
-  const speakText = useCallback((text, onEndCallback, useServerTTS = false) => {
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
-    
-    const currentVoice = getCurrentVoiceConfig();
-    
-    if (useServerTTS && useDeepSpeak && deepSpeakAvailable) {
-      speakWithDeepSpeak(text, currentVoice, onEndCallback);
-    } else {
-      speakWithBrowserTTS(text, currentVoice, onEndCallback);
-    }
-  }, [getCurrentVoiceConfig, useDeepSpeak, deepSpeakAvailable, speakWithDeepSpeak, speakWithBrowserTTS]);
-
-  const speakWithBrowserTTS = useCallback((text, voiceConfig, onEndCallback) => {
-    const utterance = new window.SpeechSynthesisUtterance(text);
-    
-    if (window.speechSynthesis) {
-      const voices = window.speechSynthesis.getVoices();
-      let voice = voices.find(v => v.name === voiceConfig.voiceName) ||
-                  voices.find(v => v.lang === voiceConfig.languageCode) ||
-                  voices.find(v => v.default) ||
-                  voices[0];
-      
-      if (voice) utterance.voice = voice;
-    }
-    
-    utterance.onstart = () => setIsPlaying(true);
-    utterance.onend = () => {
-      setIsPlaying(false);
-      ttsRef.current = null;
-      if (onEndCallback) onEndCallback();
-    };
-    utterance.onerror = () => {
-      setIsPlaying(false);
-      ttsRef.current = null;
-      if (onEndCallback) onEndCallback();
-    };
-    
-    ttsRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-    setIsPlaying(true);
-  }, []);
-
-  const speakWithDeepSpeak = useCallback(async (text, voiceConfig, onEndCallback) => {
-    try {
-      setIsPlaying(true);
-      
-      const response = await fetch(DEEPSPEAK_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text, voice: voiceConfig })
-      });
-      
-      if (!response.ok) throw new Error('DeepSpeak request failed');
-      
-      const data = await response.json();
-      
-      if (data.success && data.audio) {
-        const audio = new Audio(`data:audio/mp3;base64,${data.audio}`);
-        ttsRef.current = audio;
-        
-        audio.onended = () => {
-          setIsPlaying(false);
-          ttsRef.current = null;
-          if (onEndCallback) onEndCallback();
-        };
-        
-        audio.onerror = () => {
-          console.warn('DeepSpeak audio playback failed, falling back to browser TTS');
-          speakWithBrowserTTS(text, voiceConfig, onEndCallback);
-        };
-        
-        await audio.play();
-      } else {
-        throw new Error('No audio received from DeepSpeak');
-      }
-    } catch (error) {
-      console.warn('DeepSpeak failed, falling back to browser TTS:', error);
-      speakWithBrowserTTS(text, voiceConfig, onEndCallback);
-    }
-  }, [speakWithBrowserTTS]);
-
-  const cancelSpeech = useCallback(() => {
-    if (window.speechSynthesis) {
-      try { 
-        window.speechSynthesis.cancel(); 
-      } catch (error) {
-        // Ignore speech synthesis errors
-      }
-    }
-    if (ttsRef.current) {
-      if (typeof ttsRef.current.pause === 'function') {
-        try { 
-          ttsRef.current.pause(); 
-        } catch (error) {
-          // Ignore audio pause errors
-        }
-      }
-      ttsRef.current = null;
-      setIsPlaying(false);
-    }
-  }, []);
-
-  // Enhanced toggle function with mobile considerations and interaction tracking
-  const toggleMicrophone = useCallback(() => {
-    console.log('🎤 Toggle microphone clicked', { isListening, isPlaying, isSpeechSupported });
-    
-    // Mark as user interaction
-    markUserActivity();
-    
-    if (isPlaying) { 
-      cancelSpeech(); 
-      setTimeout(() => startMicrophone(), 100);
-      return; 
-    }
-    
-    if (isListening) {
-      stopMicrophone();
-    } else {
-      startMicrophone();
-    }
-  }, [isListening, isPlaying, isSpeechSupported, markUserActivity, startMicrophone, stopMicrophone, cancelSpeech]);
+  }, [isProcessing, isSpeechSupported, markUserActivity, markUserInteraction, sendMessage, isIOS, generateUserFriendlyError, showPermissionHelp, cancelSpeech]);
 
   const replayMessage = useCallback((messageText, useServer = false) => {
     if (isPlaying) return;
@@ -1538,6 +1518,26 @@ export default function EnhancedSpeechCoach({
     
     console.log('🆕 [Session Management] New speech session request sent to parent');
   }, [isSessionMeaningfullyUsed, sessionId, sessionInteractionLevel, interactionMetrics, conversation.length, onNewSession, clearConversation]);
+
+  // Enhanced toggle function with mobile considerations and interaction tracking
+  const toggleMicrophone = useCallback(() => {
+    console.log('🎤 Toggle microphone clicked', { isListening, isPlaying, isSpeechSupported });
+    
+    // Mark as user interaction
+    markUserActivity();
+    
+    if (isPlaying) { 
+      cancelSpeech(); 
+      setTimeout(() => startMicrophone(), 100);
+      return; 
+    }
+    
+    if (isListening) {
+      stopMicrophone();
+    } else {
+      startMicrophone();
+    }
+  }, [isListening, isPlaying, isSpeechSupported, markUserActivity, startMicrophone, stopMicrophone, cancelSpeech]);
 
   // Enhanced conversation saving
   useEffect(() => {
@@ -1670,7 +1670,7 @@ export default function EnhancedSpeechCoach({
     Object.values(elementSpawnTimeouts.current).forEach(timeout => {
       if (timeout) clearTimeout(timeout);
     });
-  }, [stopMicrophone]);
+  }, [stopMicrophone, cancelSpeech]);
 
   // Enhanced Status Panel Component
   const renderStatusPanel = () => {
