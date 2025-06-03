@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import api from '../api';
 import '../assets/styles/ChatDetail.css';
 import { Mic, Send, ChevronDown, AlertCircle, Loader, Volume2, X, MicOff, Headphones } from 'lucide-react';
@@ -80,9 +80,10 @@ export default function ChatDetail({
   const errorTimeoutRef = useRef(null);
   const audioTimeoutRef = useRef(null);
   const layoutUpdateTimeoutRef = useRef(null);
+  const handleSendRef = useRef(null);
 
-  // User-friendly error messages
-  const USER_FRIENDLY_ERRORS = {
+  // User-friendly error messages - wrapped in useMemo to prevent recreation
+  const USER_FRIENDLY_ERRORS = useMemo(() => ({
     'microphone_denied': 'Please allow microphone access to use voice features. Click the microphone icon in your browser\'s address bar.',
     'microphone_unavailable': 'Your microphone is not available. Please check if another app is using it.',
     'speech_not_supported': 'Voice features aren\'t supported in this browser. Please try Chrome, Edge, or Safari.',
@@ -91,7 +92,7 @@ export default function ChatDetail({
     'audio_failed': 'Couldn\'t play the response audio. The text response is still available above.',
     'timeout_error': 'The request took too long. Please try again.',
     'api_error': 'Something went wrong with the voice assistant. Please try again.'
-  };
+  }), []);
 
   // Helper to set user-friendly errors
   const setUserFriendlyErrorMessage = useCallback((errorKey, customMessage = null, timeout = 8000) => {
@@ -149,39 +150,6 @@ export default function ChatDetail({
     return isSidebarOpen;
   }, []);
 
-  // Check browser support and permissions
-  useEffect(() => {
-    const checkSupport = async () => {
-      // Check speech recognition support
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) {
-        setIsSpeechSupported(false);
-        setMicStatus('unavailable');
-        setUserFriendlyErrorMessage('speech_not_supported');
-        return;
-      }
-
-      // Check microphone permissions
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach(track => track.stop()); // Clean up
-        setMicStatus('available');
-        console.log('✅ Microphone access granted');
-      } catch (error) {
-        console.warn('Microphone permission check failed:', error);
-        if (error.name === 'NotAllowedError') {
-          setMicStatus('denied');
-          setUserFriendlyErrorMessage('microphone_denied');
-        } else {
-          setMicStatus('error');
-          setUserFriendlyErrorMessage('microphone_unavailable');
-        }
-      }
-    };
-
-    checkSupport();
-  }, [setUserFriendlyErrorMessage]);
-
   // Load conversation data
   const normalize = msgs =>
     msgs.map((m, i) => ({
@@ -202,22 +170,6 @@ export default function ChatDetail({
       setUserFriendlyErrorMessage('network_error');
     }
   }, [activeChatId, setUserFriendlyErrorMessage]);
-
-  // Load chat when activeChatId changes
-  useEffect(() => {
-    if (!activeChatId) return;
-    const inst = chatInstances.find(c => c.id === activeChatId);
-    if (inst?.messages) {
-      setConversation(normalize(inst.messages));
-      setConnectionStatus('connected');
-    } else {
-      loadFullChat();
-    }
-    
-    setTimeout(() => {
-      historyRef.current?.scrollTo({ top: historyRef.current.scrollHeight, behavior: 'auto' });
-    }, 0);
-  }, [activeChatId, chatInstances, loadFullChat]);
 
   // SIMPLIFIED: Audio playback with better error handling
   const playAudio = useCallback(async (audioB64, fallbackText, voiceConfig) => {
@@ -370,6 +322,18 @@ export default function ChatDetail({
     setAudioStatus('ready');
   }, []);
 
+  // Stop listening
+  const stopListening = useCallback(() => {
+    try {
+      recognitionRef.current?.abort();
+      recognizerRunning.current = false;
+      setIsListening(false);
+      clearTimeout(manualMicTimeoutRef.current);
+    } catch (err) {
+      console.warn('Failed to stop microphone:', err);
+    }
+  }, []);
+
   // IMPROVED: Speech recognition with better error handling
   const createRecognition = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -416,7 +380,12 @@ export default function ChatDetail({
         clearTimeout(manualMicTimeoutRef.current);
         if (combined && !sendingLock.current) {
           manualMicTimeoutRef.current = setTimeout(
-            () => handleSend(combined, true),
+            () => {
+              // Use the ref to call handleSend to avoid circular dependency
+              if (handleSendRef.current) {
+                handleSendRef.current(combined, true);
+              }
+            },
             AUTO_SEND_DELAY
           );
         }
@@ -530,18 +499,6 @@ export default function ChatDetail({
       setUserFriendlyErrorMessage('microphone_unavailable');
     }
   }, [isSpeechSupported, micStatus, cancelAudio, createRecognition, setUserFriendlyErrorMessage]);
-
-  // Stop listening
-  const stopListening = useCallback(() => {
-    try {
-      recognitionRef.current?.abort();
-      recognizerRunning.current = false;
-      setIsListening(false);
-      clearTimeout(manualMicTimeoutRef.current);
-    } catch (err) {
-      console.warn('Failed to stop microphone:', err);
-    }
-  }, []);
 
   // ENHANCED: Send message with better error handling and retry logic
   const handleSend = useCallback(
@@ -737,6 +694,11 @@ export default function ChatDetail({
     ]
   );
 
+  // Store handleSend in ref for use in createRecognition
+  useEffect(() => {
+    handleSendRef.current = handleSend;
+  }, [handleSend]);
+
   // Replay message functionality
   const replayMessage = useCallback(async (text) => {
     if (isPlaying || isSending) return;
@@ -764,6 +726,55 @@ export default function ChatDetail({
       setInputText('');
     }
   }, [inputText, isSending, handleSend]);
+
+  // Check browser support and permissions
+  useEffect(() => {
+    const checkSupport = async () => {
+      // Check speech recognition support
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        setIsSpeechSupported(false);
+        setMicStatus('unavailable');
+        setUserFriendlyErrorMessage('speech_not_supported');
+        return;
+      }
+
+      // Check microphone permissions
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop()); // Clean up
+        setMicStatus('available');
+        console.log('✅ Microphone access granted');
+      } catch (error) {
+        console.warn('Microphone permission check failed:', error);
+        if (error.name === 'NotAllowedError') {
+          setMicStatus('denied');
+          setUserFriendlyErrorMessage('microphone_denied');
+        } else {
+          setMicStatus('error');
+          setUserFriendlyErrorMessage('microphone_unavailable');
+        }
+      }
+    };
+
+    checkSupport();
+  }, [setUserFriendlyErrorMessage]);
+
+  // Load chat when activeChatId changes
+  useEffect(() => {
+    if (!activeChatId) return;
+    const inst = chatInstances.find(c => c.id === activeChatId);
+    if (inst?.messages) {
+      setConversation(normalize(inst.messages));
+      setConnectionStatus('connected');
+    } else {
+      loadFullChat();
+    }
+    
+    setTimeout(() => {
+      historyRef.current?.scrollTo({ top: historyRef.current.scrollHeight, behavior: 'auto' });
+    }, 0);
+  }, [activeChatId, chatInstances, loadFullChat]);
 
   // Initialize recognition
   useEffect(() => {
