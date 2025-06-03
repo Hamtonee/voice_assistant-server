@@ -9,7 +9,6 @@
   /* Sidebar is positioned within app container, no header height needed */
   --sidebar-width:      300px;       /* Back to normal width for vertical layout */
   --bg-primary:         #2E3440;
-  --text-light:         #D8DEE9;
   --accent:             #88C0D0;
   --accent-hover:       #8FBCBB;
   --bg-secondary:       #3B4252;
@@ -27,14 +26,14 @@
   width: var(--sidebar-width);
   height: 100%; /* Full height within app container */
   padding: 16px;
-  background: var(--bg-primary);
-  color: var(--text-light);
+  background: var(--sidebar-bg); /* Use unified theme background */
+  color: var(--text-primary); /* Use unified theme text color */
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   font-family: 'Poppins', sans-serif;
   font-size: 0.9rem;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, var(--theme-transition);
   z-index: 10;
   overflow: hidden; /* Prevent main sidebar scrolling */
   border: none;
@@ -58,17 +57,18 @@
 }
 .chat-sidebar__new-chat-btn {
   width: 100%;
-  background: var(--accent);
+  background: var(--accent-color); /* Use unified theme accent */
   color: #fff;
   border: none;
   border-radius: 6px;
   padding: 12px 16px;
   font-size: 0.9rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.1s ease;
+  transition: background 0.2s ease, transform 0.1s ease, var(--theme-transition);
   outline: none;
   -webkit-tap-highlight-color: transparent;
   text-align: center;
@@ -107,9 +107,10 @@
 }
 .chat-sidebar__header h1 {
   font-size: 1.4rem;
-  color: var(--accent);
+  color: var(--accent-color); /* Use unified theme accent */
   margin: 0;
   font-weight: 600;
+  transition: var(--theme-transition);
 }
 
 /*-------------------------------------------------------
@@ -127,14 +128,15 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  background: var(--bg-primary);
-  color: var(--text-light);
+  background: transparent;
+  color: var(--text-primary); /* Use unified theme text color */
   border: 2px solid transparent;
   border-radius: 6px;
   padding: 10px 12px;
   font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.3s ease, border 0.3s ease;
+  transition: background 0.3s ease, border 0.3s ease, var(--theme-transition);
   outline: none;
   -webkit-tap-highlight-color: transparent;
   text-align: left;
@@ -146,8 +148,9 @@
   background: var(--bg-secondary);
 }
 .chat-sidebar__nav-btn.active {
-  border-color: var(--accent);
+  border-color: var(--accent-color); /* Use unified theme accent */
   background: var(--bg-secondary);
+  color: var(--text-primary); /* Ensure active text is visible */
 }
 .chat-sidebar__nav-btn:active {
   transform: scale(0.98);
@@ -168,6 +171,7 @@
   background: var(--bg-secondary);
   border-radius: 6px;
   flex-shrink: 0;
+  transition: var(--theme-transition);
 }
 .usage-info.warning {
   border-left: 3px solid #f59e0b;
@@ -181,15 +185,20 @@
 }
 .usage-icon {
   font-size: 1.1em;
+  color: var(--text-primary); /* Use unified theme text color */
+  transition: var(--theme-transition);
 }
 .usage-title {
   flex: 1;
   font-weight: 500;
   font-size: 0.9em;
+  color: var(--text-primary); /* Use unified theme text color */
+  transition: var(--theme-transition);
 }
 .usage-toggle {
   font-size: 0.8em;
-  color: var(--accent);
+  color: var(--accent-color); /* Use unified theme accent */
+  transition: var(--theme-transition);
 }
 .usage-details {
   margin-top: 8px;
@@ -207,7 +216,8 @@
 }
 .usage-text {
   font-size: 0.8em;
-  color: var(--text-light);
+  color: var(--text-primary); /* Use unified theme text color */
+  transition: var(--theme-transition);
 }
 .usage-text .warning {
   color: #f59e0b;
@@ -271,10 +281,10 @@
   right: 20px !important;
   bottom: auto !important;
   left: auto !important;
-  background: white !important;
-  border: 2px solid #333 !important;
+  background: var(--bg-input) !important; /* Use unified theme background */
+  border: 2px solid var(--border-color) !important; /* Use unified theme border */
   border-radius: 8px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8) !important;
+  box-shadow: var(--shadow-xl) !important; /* Use unified theme shadow */
   min-width: 150px !important;
   padding: 8px 0 !important;
   opacity: 1 !important;
@@ -306,8 +316,8 @@
   position: relative !important;
   z-index: 1000000 !important;
   padding: 12px 16px !important;
-  color: #333 !important;
-  background: white !important;
+  color: var(--text-primary) !important; /* Use unified theme text color */
+  background: var(--bg-input) !important; /* Use unified theme background */
   cursor: pointer !important;
   border: none !important;
   width: 100% !important;
@@ -315,7 +325,7 @@
   font-size: 0.9rem !important;
   font-weight: 500 !important;
   display: block !important;
-  transition: background 0.2s ease !important;
+  transition: background 0.2s ease, var(--theme-transition) !important;
   opacity: 1 !important;
   visibility: visible !important;
   overflow: visible !important;
@@ -328,13 +338,13 @@
 .chat-sidebar [role="menu"] > *:hover,
 .chat-sidebar .menu-popup > *:hover,
 .chat-sidebar .options-menu > *:hover {
-  background: #f0f0f0 !important;
-  color: #333 !important;
+  background: var(--bg-secondary) !important; /* Use unified theme hover background */
+  color: var(--text-primary) !important; /* Use unified theme text color */
 }
 
 .chat-sidebar .delete-btn,
 .chat-sidebar [class*="delete"] {
-  color: #333 !important;
+  color: var(--text-primary) !important; /* Use unified theme text color */
 }
 
 .chat-sidebar .delete-btn:hover,
@@ -345,7 +355,7 @@
 
 .chat-sidebar .rename-btn,
 .chat-sidebar [class*="rename"] {
-  color: #333 !important;
+  color: var(--text-primary) !important; /* Use unified theme text color */
 }
 
 .chat-sidebar .rename-btn:hover,
@@ -411,9 +421,9 @@
 [data-modal],
 [role="dialog"] {
   position: relative !important;
-  background: white !important;
+  background: var(--bg-input) !important; /* Use unified theme background */
   border-radius: 12px !important;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: var(--shadow-xl) !important; /* Use unified theme shadow */
   max-width: 400px !important;
   width: 90% !important;
   max-height: 90vh !important;
@@ -437,8 +447,8 @@
 .dialog-header,
 .prompt-header {
   padding: 20px 24px 16px !important;
-  border-bottom: 1px solid #e5e7eb !important;
-  background: #f9fafb !important;
+  border-bottom: 1px solid var(--border-color) !important; /* Use unified theme border */
+  background: var(--bg-secondary) !important; /* Use unified theme background */
 }
 
 .modal-title,
@@ -446,8 +456,9 @@
 .prompt-title {
   font-size: 1.2rem !important;
   font-weight: 600 !important;
-  color: #1f2937 !important;
+  color: var(--text-primary) !important; /* Use unified theme text color */
   margin: 0 !important;
+  transition: var(--theme-transition) !important;
 }
 
 .modal-body,
@@ -460,9 +471,10 @@
 .dialog-message,
 .prompt-message {
   font-size: 0.95rem !important;
-  color: #4b5563 !important;
+  color: var(--text-muted) !important; /* Use unified theme muted text color */
   line-height: 1.5 !important;
   margin: 0 0 20px 0 !important;
+  transition: var(--theme-transition) !important;
 }
 
 .modal-input,
@@ -471,12 +483,12 @@
 .rename-input {
   width: 100% !important;
   padding: 12px 16px !important;
-  border: 2px solid #d1d5db !important;
+  border: 2px solid var(--border-color) !important; /* Use unified theme border */
   border-radius: 8px !important;
   font-size: 0.95rem !important;
-  color: #1f2937 !important;
-  background: white !important;
-  transition: border-color 0.2s ease !important;
+  color: var(--text-primary) !important; /* Use unified theme text color */
+  background: var(--bg-input) !important; /* Use unified theme background */
+  transition: border-color 0.2s ease, var(--theme-transition) !important;
   outline: none !important;
   box-sizing: border-box !important;
 }
@@ -485,8 +497,8 @@
 .dialog-input:focus,
 .prompt-input:focus,
 .rename-input:focus {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px rgba(136, 192, 208, 0.1) !important;
+  border-color: var(--accent-color) !important; /* Use unified theme accent */
+  box-shadow: 0 0 0 3px var(--accent-light) !important;
 }
 
 .modal-footer,
@@ -506,7 +518,7 @@
   font-size: 0.9rem !important;
   font-weight: 500 !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
+  transition: all 0.2s ease, var(--theme-transition) !important;
   border: none !important;
   outline: none !important;
 }
@@ -514,22 +526,22 @@
 .btn-cancel,
 .btn-secondary,
 .modal-btn-cancel {
-  background: #f3f4f6 !important;
-  color: #374151 !important;
-  border: 1px solid #d1d5db !important;
+  background: var(--bg-secondary) !important; /* Use unified theme background */
+  color: var(--text-primary) !important; /* Use unified theme text color */
+  border: 1px solid var(--border-color) !important; /* Use unified theme border */
 }
 
 .btn-cancel:hover,
 .btn-secondary:hover,
 .modal-btn-cancel:hover {
-  background: #e5e7eb !important;
+  background: var(--hover-bg) !important;
   transform: translateY(-1px) !important;
 }
 
 .btn-confirm,
 .btn-primary,
 .modal-btn-confirm {
-  background: var(--accent) !important;
+  background: var(--accent-color) !important; /* Use unified theme accent */
   color: white !important;
 }
 
@@ -576,21 +588,21 @@
   width: 32px !important;
   height: 32px !important;
   border: none !important;
-  background: #f3f4f6 !important;
+  background: var(--bg-secondary) !important; /* Use unified theme background */
   border-radius: 50% !important;
   cursor: pointer !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   font-size: 18px !important;
-  color: #6b7280 !important;
-  transition: all 0.2s ease !important;
+  color: var(--text-muted) !important; /* Use unified theme muted text color */
+  transition: all 0.2s ease, var(--theme-transition) !important;
 }
 
 .modal-close:hover,
 .dialog-close:hover {
-  background: #e5e7eb !important;
-  color: #374151 !important;
+  background: var(--hover-bg) !important;
+  color: var(--text-primary) !important; /* Use unified theme text color */
   transform: scale(1.1) !important;
 }
 
@@ -678,21 +690,28 @@
 -------------------------------------------------------*/
 .chat-sidebar__no-sessions {
   text-align: center;
-  color: var(--text-light);
+  color: var(--text-muted); /* Use unified theme muted text color */
   margin-top: 1rem;
   padding: 0 8px;
+  transition: var(--theme-transition);
 }
 .no-sessions-icon {
   font-size: 2rem;
   margin-bottom: 8px;
+  color: var(--text-muted); /* Use unified theme muted text color */
+  transition: var(--theme-transition);
 }
 .no-sessions-text {
   font-size: 0.9rem;
   margin-bottom: 4px;
+  color: var(--text-primary); /* Use unified theme text color */
+  font-weight: 500;
+  transition: var(--theme-transition);
 }
 .no-sessions-hint {
   font-size: 0.8rem;
-  color: var(--accent);
+  color: var(--accent-color); /* Use unified theme accent */
+  transition: var(--theme-transition);
 }
 
 /*-------------------------------------------------------
@@ -720,6 +739,7 @@
   .chat-sidebar__new-chat-btn {
     padding: 12px 16px;
     font-size: 0.9rem;
+    font-weight: 600;
     justify-content: center;
   }
   .chat-sidebar__new-chat-btn img {
@@ -748,6 +768,7 @@
   }
   .chat-sidebar__nav-btn { 
     font-size: 0.8rem; 
+    font-weight: 500;
     padding: 10px 12px;
     justify-content: flex-start;
     margin: 0;
@@ -794,7 +815,7 @@
     background: var(--bg-secondary) !important;
     border: 1px solid var(--hover-bg) !important;
     border-radius: 6px !important;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4) !important;
+    box-shadow: var(--shadow-lg) !important;
     min-width: 140px !important;
     overflow: visible !important;
     -webkit-tap-highlight-color: transparent !important;
@@ -811,6 +832,7 @@
   .chat-sidebar .options-popup > * {
     padding: 12px 16px !important;
     font-size: 0.9rem !important;
+    font-weight: 500 !important;
     touch-action: manipulation !important;
   }
   
@@ -857,6 +879,7 @@
   .chat-sidebar__new-chat-btn {
     padding: 10px 12px;
     font-size: 0.85rem;
+    font-weight: 600;
     justify-content: center;
   }
   
@@ -877,6 +900,7 @@
   }
   .chat-sidebar__nav-btn {
     font-size: 0.75rem;
+    font-weight: 500;
     padding: 8px 10px;
   }
   
@@ -906,7 +930,7 @@
     right: 0 !important;
     z-index: 99999 !important;
     min-width: 130px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+    box-shadow: var(--shadow-md) !important;
     margin-top: 4px !important;
   }
   
@@ -918,6 +942,7 @@
   .chat-sidebar .options-popup > * {
     padding: 10px 14px !important;
     font-size: 0.8rem !important;
+    font-weight: 500 !important;
   }
 }
 
@@ -937,6 +962,7 @@
   .chat-sidebar__new-chat-btn {
     padding: 8px 12px;
     font-size: 0.8rem;
+    font-weight: 600;
     justify-content: center;
   }
   
@@ -958,6 +984,7 @@
   .chat-sidebar__nav-btn {
     padding: 6px 8px;
     font-size: 0.75rem;
+    font-weight: 500;
   }
   
   .usage-info {
@@ -984,6 +1011,7 @@
   .chat-sidebar__new-chat-btn {
     padding: 6px 10px;
     font-size: 0.75rem;
+    font-weight: 600;
     justify-content: center;
   }
   
@@ -1005,6 +1033,7 @@
   .chat-sidebar__nav-btn {
     padding: 5px 8px;
     font-size: 0.7rem;
+    font-weight: 500;
   }
   
   .usage-info {

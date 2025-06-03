@@ -104,8 +104,8 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     hasSubmittedParams: false
   });
 
-  // Session state tracking for duplicate prevention
-  const [sessionState, setSessionState] = useState({
+  // Session state tracking for duplicate prevention - removed unused sessionState variable
+  const [, setSessionState] = useState({
     isNew: true,
     hasContent: false,
     lastInteractionTime: null,

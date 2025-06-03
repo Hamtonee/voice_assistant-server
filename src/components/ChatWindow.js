@@ -1,5 +1,5 @@
 // src/components/ChatWindow.js - ENHANCED VERSION WITH UPDATED FEATURE NAMES
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import api from '../api';
 import '../assets/styles/ChatWindow.css';
 
@@ -105,8 +105,6 @@ export default function ChatWindow() {
 
   // ─── NEW: Daily usage and session management state ─────
   const [usageSummary, setUsageSummary] = useState(null);
-  const [showUsageModal, setShowUsageModal] = useState(false);
-  const [dailyLimitStatus, setDailyLimitStatus] = useState(null);
 
   // ─── Voice System ─────────────────────
   const [selectedVoice, setSelectedVoice] = useState(() => {
@@ -138,7 +136,7 @@ export default function ChatWindow() {
     };
 
     initializeVoiceSystem();
-  }, []);
+  }, [selectedVoice]);
 
   // Voice change handler
   const handleVoiceChange = (newVoiceConfig) => {
@@ -549,16 +547,6 @@ export default function ChatWindow() {
     if (!currentId) return false;
     
     return await checkCurrentChatContent(currentId, selectedFeature);
-  };
-
-  // ─── Helper function to get feature display names (updated) ─────
-  const getFeatureDisplayName = (feature) => {
-    switch (feature) {
-      case 'chat': return 'Chat';
-      case 'sema': return 'Sema';
-      case 'tusome': return 'Tusome';
-      default: return feature.charAt(0).toUpperCase() + feature.slice(1);
-    }
   };
 
   // ─── Render Logic ─────────────────────

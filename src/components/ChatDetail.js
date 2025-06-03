@@ -52,7 +52,6 @@ export default function ChatDetail({
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [showScroll, setShowScroll] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(null);
   const [isSpeechSupported, setIsSpeechSupported] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeMessageId, setActiveMessageId] = useState(null);
@@ -98,19 +97,16 @@ export default function ChatDetail({
   const setUserFriendlyErrorMessage = useCallback((errorKey, customMessage = null, timeout = 8000) => {
     const message = customMessage || USER_FRIENDLY_ERRORS[errorKey] || errorKey;
     setUserFriendlyError(message);
-    setErrorMessage(message);
     
     clearTimeout(errorTimeoutRef.current);
     errorTimeoutRef.current = setTimeout(() => {
       setUserFriendlyError(null);
-      setErrorMessage(null);
     }, timeout);
-  }, []);
+  }, [USER_FRIENDLY_ERRORS]);
 
   // Clear error messages
   const clearErrorMessage = useCallback(() => {
     setUserFriendlyError(null);
-    setErrorMessage(null);
     clearTimeout(errorTimeoutRef.current);
   }, []);
 

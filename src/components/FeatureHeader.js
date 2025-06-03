@@ -23,7 +23,6 @@ export default function FeatureHeader({
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [voiceSelectorOpen, setVoiceSelectorOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   
   // ENHANCED: Comprehensive dark mode state management
   const [darkMode, setDarkMode] = useState(() => {
@@ -211,9 +210,6 @@ export default function FeatureHeader({
     const handleResize = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        const newIsMobile = window.innerWidth <= 768;
-        setIsMobile(newIsMobile);
-        
         // Close voice selector when switching viewport sizes
         if (voiceSelectorOpen) {
           setVoiceSelectorOpen(false);

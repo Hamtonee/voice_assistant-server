@@ -454,7 +454,7 @@ export default function ChatSidebar({
       // Clear validation result for chat feature or when no active session
       setLastValidationResult(null);
     }
-  }, [activeChatId, selectedFeature]);
+  }, [activeChatId, selectedFeature, checkCurrentSessionContent]);
 
   return (
     <aside
