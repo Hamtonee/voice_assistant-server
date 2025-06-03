@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Search } from 'lucide-react';
 import '../assets/styles/ScenarioPicker.css';
-import placeholderImg from '../assets/images/placeholder.png';
 import LottieLoader from './LottieLoader';
 
 export default function ScenarioPicker({ scenarios, onSelect, onClose }) {

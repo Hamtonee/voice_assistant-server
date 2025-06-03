@@ -1,7 +1,5 @@
 // src/data/rolePlayScenarios.js
 
-import { ttsVoices } from './ttsVoices';
-
 import courtroomSessionImg    from '../assets/images/courtroom_session.png';
 import debateClubImg          from '../assets/images/debate_club.png';
 import negotiationTableImg    from '../assets/images/negotiation_table.png';

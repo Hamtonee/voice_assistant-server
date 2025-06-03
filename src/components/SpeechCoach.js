@@ -115,8 +115,8 @@ export default function EnhancedSpeechCoach({
     hasReceivedFeedback: false
   });
 
-  // Session state tracking for duplicate prevention
-  const [sessionState, setSessionState] = useState({
+  // Session state tracking for duplicate prevention - removed unused sessionState variable
+  const [, setSessionState] = useState({
     isNew: true,
     hasContent: false,
     lastActivity: null,
@@ -132,7 +132,8 @@ export default function EnhancedSpeechCoach({
     input: true,
     progress: true
   });
-  const [layoutDimensions, setLayoutDimensions] = useState({
+  // Removed unused layoutDimensions variable
+  const [, setLayoutDimensions] = useState({
     viewportWidth: window.innerWidth,
     contentWidth: window.innerWidth - (sidebarOpen ? SIDEBAR_WIDTH : 0),
     isMobile: window.innerWidth <= 768
@@ -232,6 +233,9 @@ export default function EnhancedSpeechCoach({
           break;
         case 'feedback_received':
           updated.hasReceivedFeedback = true;
+          break;
+        default:
+          // Handle any other interaction types
           break;
       }
       
@@ -602,51 +606,6 @@ export default function EnhancedSpeechCoach({
     
     setPermissionHelp(helpInfo[type] || helpInfo.microphone);
   }, [isMobile]);
-
-  // Permission check functions
-  const checkMicrophonePermissions = async () => {
-    if (!navigator.permissions) {
-      console.log('Permissions API not supported');
-      return 'unknown';
-    }
-    
-    try {
-      const permission = await navigator.permissions.query({ name: 'microphone' });
-      console.log('Microphone permission:', permission.state);
-      return permission.state;
-    } catch (error) {
-      console.warn('Failed to check microphone permissions:', error);
-      return 'unknown';
-    }
-  };
-
-  const requestMicrophoneAccess = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('✅ Microphone access granted');
-      // Stop the stream immediately, we just wanted to get permission
-      stream.getTracks().forEach(track => track.stop());
-      
-      // Update status
-      setSystemStatus(prev => ({
-        ...prev,
-        microphone: 'ready',
-        overallStatus: prev.speechRecognition === 'ready' ? 'ready' : prev.overallStatus
-      }));
-      
-      return true;
-    } catch (error) {
-      console.error('❌ Microphone access denied:', error);
-      const friendlyError = generateUserFriendlyError(error.message, 'microphone');
-      setErrorMessage(friendlyError);
-      setSystemStatus(prev => ({
-        ...prev,
-        microphone: 'denied',
-        overallStatus: 'issues'
-      }));
-      return false;
-    }
-  };
 
   // Load existing conversation from API on component mount
   useEffect(() => {
@@ -1403,10 +1362,10 @@ export default function EnhancedSpeechCoach({
       setErrorMessage(friendlyError);
       setIsListening(false);
     }
-  }, [isProcessing, isSpeechSupported, markUserActivity, markUserInteraction, sendMessage, isMobile, isIOS, generateUserFriendlyError, showPermissionHelp]);
+  }, [isProcessing, isSpeechSupported, markUserActivity, markUserInteraction, sendMessage, isIOS, generateUserFriendlyError, showPermissionHelp, speakText, stopMicrophone]);
 
   // TTS functions
-  function speakText(text, onEndCallback, useServerTTS = false) {
+  const speakText = useCallback((text, onEndCallback, useServerTTS = false) => {
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     
     const currentVoice = getCurrentVoiceConfig();
@@ -1416,9 +1375,9 @@ export default function EnhancedSpeechCoach({
     } else {
       speakWithBrowserTTS(text, currentVoice, onEndCallback);
     }
-  }
+  }, [getCurrentVoiceConfig, useDeepSpeak, deepSpeakAvailable, speakWithDeepSpeak, speakWithBrowserTTS]);
 
-  function speakWithBrowserTTS(text, voiceConfig, onEndCallback) {
+  const speakWithBrowserTTS = useCallback((text, voiceConfig, onEndCallback) => {
     const utterance = new window.SpeechSynthesisUtterance(text);
     
     if (window.speechSynthesis) {
@@ -1446,9 +1405,9 @@ export default function EnhancedSpeechCoach({
     ttsRef.current = utterance;
     window.speechSynthesis.speak(utterance);
     setIsPlaying(true);
-  }
+  }, []);
 
-  async function speakWithDeepSpeak(text, voiceConfig, onEndCallback) {
+  const speakWithDeepSpeak = useCallback(async (text, voiceConfig, onEndCallback) => {
     try {
       setIsPlaying(true);
       
@@ -1485,9 +1444,9 @@ export default function EnhancedSpeechCoach({
       console.warn('DeepSpeak failed, falling back to browser TTS:', error);
       speakWithBrowserTTS(text, voiceConfig, onEndCallback);
     }
-  }
+  }, [speakWithBrowserTTS]);
 
-  function cancelSpeech() {
+  const cancelSpeech = useCallback(() => {
     if (window.speechSynthesis) {
       try { 
         window.speechSynthesis.cancel(); 
@@ -1506,10 +1465,10 @@ export default function EnhancedSpeechCoach({
       ttsRef.current = null;
       setIsPlaying(false);
     }
-  }
+  }, []);
 
   // Enhanced toggle function with mobile considerations and interaction tracking
-  function toggleMicrophone() {
+  const toggleMicrophone = useCallback(() => {
     console.log('🎤 Toggle microphone clicked', { isListening, isPlaying, isSpeechSupported });
     
     // Mark as user interaction
@@ -1526,9 +1485,9 @@ export default function EnhancedSpeechCoach({
     } else {
       startMicrophone();
     }
-  }
+  }, [isListening, isPlaying, isSpeechSupported, markUserActivity, startMicrophone, stopMicrophone, cancelSpeech]);
 
-  function replayMessage(messageText, useServer = false) {
+  const replayMessage = useCallback((messageText, useServer = false) => {
     if (isPlaying) return;
     
     // Mark user activity
@@ -1541,7 +1500,7 @@ export default function EnhancedSpeechCoach({
     speakText(messageText, () => {
       setIsPlaying(false);
     }, useServer);
-  }
+  }, [isPlaying, markUserActivity, markUserInteraction, speakText, cancelSpeech]);
 
   // ENHANCED: Handle creating a new speech session with comprehensive validation
   const handleNewSession = useCallback(() => {
