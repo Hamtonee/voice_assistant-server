@@ -15,12 +15,12 @@ const prisma = new PrismaClient();
 
 const rawOrigins = process.env.FRONTEND_URLS || '';
 
-const allowedOrigins = rawOrigins
+const allowedOrigins = (process.env.FRONTEND_URLS || '')
   .split(',')
   .map(origin =>
     origin
       .trim()
-      .replace(/^['"`[\]()\-\\/]+|['"`[\]()\-\\/]+$/g, '')
+      .replace(/^['"`()\-\\/]+|['"`()\-\\/]+$/g, '')
   )
   .filter(Boolean);
 
