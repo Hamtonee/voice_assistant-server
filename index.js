@@ -13,12 +13,18 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 
-const allowedOrigins = (process.env.FRONTEND_URLS || '')
-  
+const rawOrigins = process.env.FRONTEND_URLS || '';
+
+const allowedOrigins = rawOrigins
+  .split(',')
   .map(origin =>
-    origin.trim().replace(/^[-"'`()]+|[-"'`()]+$/g, '')
+    origin
+      .trim()
+      .replace(/^['"`[\]()\-\\/]+|['"`[\]()\-\\/]+$/g, '')
   )
   .filter(Boolean);
+
+console.log('🔧 Cleaned Allowed Origins:', allowedOrigins);
 
 // ——— Prisma error logging ———
 prisma.$on('error', (e) => {
