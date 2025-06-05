@@ -16,17 +16,21 @@ const prisma = new PrismaClient();
 // ——— Clean and parse allowed origins ———
 const cleanUrl = (url) => {
   console.log('🔍 Before cleaning:', JSON.stringify(url));
+  console.log('🔍 Before cleaning (raw):', url);
   
+  // More aggressive cleaning - remove ALL unwanted characters
   let cleaned = url
     .trim()
-    .replace(/^['"`]+/g, '')     // Remove quotes from start
-    .replace(/['"`]+$/g, '')     // Remove quotes from end
-    .replace(/;+$/g, '')         // Remove semicolons from end
-    .replace(/,+$/g, '')         // Remove commas from end
-    .replace(/\s+$/g, '')        // Remove whitespace from end
-    .replace(/^[;,\s]+/g, '');   // Remove semicolons, commas, whitespace from start
+    .replace(/['"`;,\s]/g, '')   // Remove quotes, semicolons, commas, whitespace globally
+    .replace(/\/+$/, '');        // Remove trailing slashes
+  
+  // Ensure it starts with http
+  if (cleaned && !cleaned.startsWith('http')) {
+    cleaned = 'https://' + cleaned;
+  }
   
   console.log('🔍 After cleaning:', JSON.stringify(cleaned));
+  console.log('🔍 After cleaning (raw):', cleaned);
   return cleaned;
 };
 
