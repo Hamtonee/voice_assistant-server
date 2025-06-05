@@ -13,9 +13,12 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 
-const allowedOrigins = process.env.FRONTEND_URLS
-  ? [process.env.FRONTEND_URLS.trim().replace(/^['"]+|['"]+$/g, '')]
-  : ['http://localhost:3000', 'http://192.168.100.122:3000'];
+const allowedOrigins = (process.env.FRONTEND_URLS || '')
+  .split(',')
+  .map(origin =>
+    origin.trim().replace(/^[-"'`()]+|[-"'`()]+$/g, '')
+  )
+  .filter(Boolean);
 
 // ——— Prisma error logging ———
 prisma.$on('error', (e) => {
