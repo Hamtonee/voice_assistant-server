@@ -13,7 +13,6 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 
-const rawOrigins = process.env.FRONTEND_URLS || '';
 
 const rawOrigins = process.env.FRONTEND_URLS || '';
 
