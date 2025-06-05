@@ -14,7 +14,7 @@ const app = express();
 const prisma = new PrismaClient();
 
 const allowedOrigins = (process.env.FRONTEND_URLS || '')
-  .split(',')
+  
   .map(origin =>
     origin.trim().replace(/^[-"'`()]+|[-"'`()]+$/g, '')
   )
