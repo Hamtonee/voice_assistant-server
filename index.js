@@ -15,14 +15,18 @@ const prisma = new PrismaClient();
 
 const rawOrigins = process.env.FRONTEND_URLS || '';
 
-const allowedOrigins = (process.env.FRONTEND_URLS || '')
+const rawOrigins = process.env.FRONTEND_URLS || '';
+
+const allowedOrigins = rawOrigins
   .split(',')
   .map(origin =>
     origin
       .trim()
-      .replace(/^['"`()\-\\/]+|['"`()\-\\/]+$/g, '')
+      .replace(/^['"`[\]()\-\\/]+|['"`[\]()\-\\/]+$/g, '')
   )
   .filter(Boolean);
+
+console.log('🔧 Cleaned Allowed Origins:', allowedOrigins);
 
 console.log('🔧 Cleaned Allowed Origins:', allowedOrigins);
 
