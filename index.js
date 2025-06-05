@@ -4,18 +4,29 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import { PrismaClient } from '@prisma/client';
-
 import authRoutes from './routes/authRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import concurrentLimiter from './middleware/concurrentLimiter.js';
 
 dotenv.config();
+
 const app = express();
 const prisma = new PrismaClient();
 
+// ——— Clean and parse allowed origins ———
+const cleanUrl = (url) => {
+  return url
+    .trim()
+    .replace(/^['"`]|['"`]$/g, '')  // Remove quotes from start/end
+    .replace(/[;,\s]*$/g, '')       // Remove semicolons, commas, whitespace from end
+    .replace(/^[;,\s]*/g, '');      // Remove semicolons, commas, whitespace from start
+};
+
 const allowedOrigins = process.env.FRONTEND_URLS
-  ? process.env.FRONTEND_URLS.split(',').map(url => url.trim())
+  ? process.env.FRONTEND_URLS.split(',').map(url => cleanUrl(url)).filter(url => url.length > 0)
   : ['http://localhost:3000', 'http://192.168.100.122:3000'];
+
+console.log('🔧 Cleaned Allowed Origins:', allowedOrigins);
 
 // ——— Prisma error logging ———
 prisma.$on('error', (e) => {
@@ -31,11 +42,10 @@ app.use((req, _res, next) => {
 // ——— Explicit CORS Headers (for flexibility/debugging) ———
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
-
+  
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     console.log(`✅ Allowed origin: ${origin}`);
@@ -45,11 +55,10 @@ app.use((req, res, next) => {
   } else {
     console.warn(`❌ Blocked origin: ${origin}`);
   }
-
+  
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-
   next();
 });
 
@@ -63,7 +72,7 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE, OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   optionsSuccessStatus: 200
 }));
@@ -92,7 +101,6 @@ app.use((err, _req, res, _next) => {
 
 // ——— Start Server ———
 const PORT = process.env.PORT || 5000;
-
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server listening on port ${PORT} (LAN access enabled)`);
   console.log(`🔗 Local: http://localhost:${PORT}`);
