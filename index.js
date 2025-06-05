@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import { PrismaClient } from '@prisma/client';
+
 import authRoutes from './routes/authRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import concurrentLimiter from './middleware/concurrentLimiter.js';
@@ -12,8 +13,12 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 
+const allowedOrigins = process.env.FRONTEND_URLS
+  ? process.env.FRONTEND_URLS.split(',').map(url => url.trim())
+  : ['http://localhost:3000', 'http://192.168.100.122:3000'];
+
 // ——— Prisma error logging ———
-prisma.$on('error', e => {
+prisma.$on('error', (e) => {
   console.error('🟥 Prisma error event:', e);
 });
 
@@ -23,68 +28,51 @@ app.use((req, _res, next) => {
   next();
 });
 
-// ——— Explicit CORS Headers (FIRST - overrides any other CORS settings) ———
+// ——— Explicit CORS Headers (for flexibility/debugging) ———
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedOrigins = process.env.FRONTEND_URLS
-    ? process.env.FRONTEND_URLS.split(',')
-    : ['http://localhost:3000', 'http://192.168.100.122:3000'];
-  
-  console.log('🌐 Incoming request origin:', origin);
-  console.log('📋 Allowed origins:', allowedOrigins);
-  
-  // Always set credentials header
+
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
-  
-  // Set origin header if origin is allowed
-  if (allowedOrigins.includes(origin)) {
+
+  if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
-    console.log('✅ Setting CORS origin to:', origin);
+    console.log(`✅ Allowed origin: ${origin}`);
   } else if (!origin) {
-    // For requests with no origin (like Postman, curl), allow the first origin
     res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
-    console.log('🔧 No origin header, using default:', allowedOrigins[0]);
+    console.log(`🔧 No origin header — using default: ${allowedOrigins[0]}`);
   } else {
-    console.error('❌ CORS blocked for origin:', origin);
+    console.warn(`❌ Blocked origin: ${origin}`);
   }
-  
-  // Handle preflight requests
+
   if (req.method === 'OPTIONS') {
-    console.log('🔧 Handling preflight request for:', req.originalUrl);
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
-  
+
   next();
 });
 
-// ——— Additional CORS with cors package (backup) ———
-const allowedOrigins = process.env.FRONTEND_URLS
-  ? process.env.FRONTEND_URLS.split(',')
-  : ['http://localhost:3000', 'http://192.168.100.122:3000'];
-
+// ——— CORS Middleware (backup and robust control) ———
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
     } else {
-      return callback(new Error(`Not allowed by CORS. Origin: ${origin}`));
+      callback(new Error(`Not allowed by CORS → Origin: ${origin}`));
     }
   },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-  credentials: true,
   optionsSuccessStatus: 200
 }));
 
-// ——— Body + Cookie Parsers ———
+// ——— Body and Cookie Parsers ———
 app.use(express.json());
 app.use(cookieParser());
 
-// ——— Concurrent Users Limiter ———
+// ——— Limit concurrent users ———
 app.use(concurrentLimiter);
 
 // ——— Routes ———
@@ -92,9 +80,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
 
 // ——— Root Health Check ———
-app.get('/', (_req, res) => res.send('🟢 API up'));
+app.get('/', (_req, res) => {
+  res.send('🟢 API up and running!');
+});
 
-// ——— Global error handler ———
+// ——— Error Handler ———
 app.use((err, _req, res, _next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Server error' });
@@ -103,7 +93,6 @@ app.use((err, _req, res, _next) => {
 // ——— Start Server ———
 const PORT = process.env.PORT || 5000;
 
-// ——— Listen on all network interfaces for LAN access ———
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server listening on port ${PORT} (LAN access enabled)`);
   console.log(`🔗 Local: http://localhost:${PORT}`);
@@ -111,7 +100,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('🔧 Allowed CORS origins:', allowedOrigins);
 });
 
-// ——— Graceful shutdown ———
+// ——— Graceful Shutdown ———
 const shutdown = async () => {
   console.log('🛑 Shutting down server...');
   server.close(async () => {
