@@ -1,76 +1,174 @@
-// Prisma schema for Sema platform (Chat + Roleplay AI system)
-
 generator client {
-  provider        = "prisma-client-js"
-  output          = "../node_modules/.prisma/client"
-  // Uncomment the next line to enable Prisma Data Proxy support:
-  // previewFeatures = ["dataProxy"]
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
-  provider         = "postgresql"
-  url              = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-model User {
-  id              Int           @id @default(autoincrement())
-  email           String        @unique
-  password        String
-  name            String?
-  createdAt       DateTime      @default(now())
-  
-  // 🔥 Session Management Fields (NEW)
-  activeTokenId   String?       @unique  // Current active session token ID
-  lastActive      DateTime?               // Last activity timestamp
-  deviceInfo      String?                 // Device/browser information
-  
-  // Relations
-  chats           Chat[]
-  events          Event[]
-  resetTokens     ResetToken[]
+model AuthUser {
+  id               Int              @id @default(autoincrement())
+  email            String           @unique @db.VarChar(255)
+  hashedPassword   String           @db.VarChar(255)
+  name             String?          @db.VarChar(200)
+  isActive         Boolean          @default(true)
+  isVerified       Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime?        @updatedAt
+  lastLogin        DateTime?
+  activeTokenId    String?          @unique @db.VarChar(255)
+  lastActive       DateTime?
+  deviceInfo       String?          @db.VarChar(500)
+
+  // relations
+  sessions         LearningUser[]   @relation("AuthUserToLearningUser")
+  refreshTokens    RefreshToken[]
+  chats            Chat[]
+  events           Event[]
+
+  @@map("auth_users")
+}
+
+model RefreshToken {
+  id         Int       @id @default(autoincrement())
+  token      String    @unique @db.VarChar(255)
+  userId     Int
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  isRevoked  Boolean   @default(false)
+
+  user       AuthUser  @relation(fields: [userId], references: [id])
+
+  @@map("refresh_tokens")
 }
 
 model Chat {
-  id           Int       @id @default(autoincrement())
-  title        String    @default("\"")
-  ownerId      Int
-  createdAt    DateTime  @default(now())
-  scenarioKey  String?                // Only for scenario-based chats
-  feature      String    @default("chat") // e.g. 'chat', 'sema', 'tusome'
+  id            Int                @id @default(autoincrement())
+  title         String             @default("") @db.VarChar(255)
+  ownerId       Int
+  createdAt     DateTime           @default(now())
+  scenarioKey   String?            @db.VarChar(100)
+  feature       String             @default("chat") @db.VarChar(50)
 
-  // Relations
-  owner        User      @relation(fields: [ownerId], references: [id])
-  messages     Message[]
+  owner         AuthUser           @relation(fields: [ownerId], references: [id])
+  messages      Message[]
+
+  LearningSessions LearningSession[] @relation("ChatToLearningSession")
+  @@map("Chat")
 }
 
 model Message {
-  id        Int      @id @default(autoincrement())
-  chatId    Int
-  role      String                // 'user' | 'assistant' | 'system'
-  text      String
-  timestamp DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  chatId          Int
+  role            String   @db.VarChar(20)
+  text            String
+  timestamp       DateTime @default(now())
+  messageMetadata Json?
 
-  // Relations
-  chat      Chat     @relation(fields: [chatId], references: [id])
+  chat            Chat     @relation(fields: [chatId], references: [id])
+
+  @@map("Message")
 }
 
 model Event {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   userId      Int
-  type        String                // e.g. CHAT_CREATED, CHAT_DELETED
-  description String?
+  type        String    @db.VarChar(50)
+  description String?   @db.VarChar(500)
   createdAt   DateTime  @default(now())
 
-  // Relations
-  user        User     @relation(fields: [userId], references: [id])
+  user        AuthUser  @relation(fields: [userId], references: [id])
+
+  @@map("Event")
 }
 
-model ResetToken {
-  id         Int      @id @default(autoincrement())
-  token      String   @unique
-  userId     Int
-  expiresAt  DateTime
+model LearningUser {
+  id                Int                @id @default(autoincrement())
+  sessionId         String             @unique @db.VarChar(100)
+  authUserId        Int?               // nullable FK
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime?          @updatedAt
+  lastActive        DateTime?
+  totalInteractions Int                @default(0)
+  learningLevel     String             @default("intermediate") @db.VarChar(20)
+  preferredVoice    String?            @db.VarChar(100)
+  settings          Json?
 
-  // Relations
-  user       User     @relation(fields: [userId], references: [id])
+  authUser          AuthUser?          @relation("AuthUserToLearningUser", fields: [authUserId], references: [id])
+  sessions          LearningSession[]
+  analytics         AnalyticsEvent[]
+
+  @@map("users")
+}
+
+model LearningSession {
+  id                    Int                   @id @default(autoincrement())
+  userId                Int
+  chatId                Int?                  // optional link back to Chat
+  sessionType           String                @db.VarChar(50)
+  startedAt             DateTime              @default(now())
+  endedAt               DateTime?
+  durationMinutes       Float?
+  vocabularyIntroduced  Json?
+  proverbsShared        Json?
+  topicsDiscussed       Json?
+  strengths             Json?
+  areasForImprovement   Json?
+  sessionData           Json?
+
+  user                  LearningUser          @relation(fields: [userId], references: [id])
+  conversationMessages  ConversationMessage[]
+  chat                  Chat?                 @relation("ChatToLearningSession", fields: [chatId], references: [id])
+
+  @@map("learning_sessions")
+}
+
+model ConversationMessage {
+  id              Int      @id @default(autoincrement())
+  sessionId       Int
+  role            String   @db.VarChar(20)
+  content         String
+  timestamp       DateTime @default(now())
+  messageMetadata Json?
+
+  session         LearningSession @relation(fields: [sessionId], references: [id])
+
+  @@map("conversation_messages")
+}
+
+model AnalyticsEvent {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  eventType  String   @db.VarChar(50)
+  eventData  Json?
+  timestamp  DateTime @default(now())
+  ipAddress  String   @db.VarChar(45)
+  userAgent  String
+
+  user       LearningUser @relation(fields: [userId], references: [id])
+
+  @@map("analytics_events")
+}
+
+model UsageStats {
+  id            Int     @id @default(autoincrement())
+  clientId      String  @db.VarChar(100)
+  serviceType   String  @db.VarChar(50)
+  date          String  @db.VarChar(10)    // YYYY-MM-DD
+  requestCount  Int     @default(0)
+  successCount  Int     @default(0)
+
+  @@map("usage_stats")
+}
+
+model SystemMetrics {
+  id             Int      @id @default(autoincrement())
+  metricName     String   @db.VarChar(100)
+  metricValue    Float
+  timestamp      DateTime @default(now())
+  metricMetadata Json?
+
+  @@map("system_metrics")
 }
