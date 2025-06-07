@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef, useEffect } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import '../assets/styles/SignUp.css';
@@ -17,7 +17,7 @@ const SignUp = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({ name: '', email: '', password: '' });
-  const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: '', isValid: false });
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: '' });
 
   // Focus management refs
   const nameInputRef = useRef(null);
@@ -60,47 +60,34 @@ const SignUp = () => {
     return errorMsg || 'Signup failed. Please try again.';
   };
 
-  // Password strength checker - FIXED to be more reliable
+  // Password strength checker
   const checkPasswordStrength = (password) => {
     let score = 0;
     let feedback = [];
 
-    const hasLength = password.length >= 8;
-    const hasLower = /[a-z]/.test(password);
-    const hasUpper = /[A-Z]/.test(password);
-    const hasNumber = /\d/.test(password);
-    const hasSpecial = /[\W_]/.test(password);
-
-    if (hasLength) score++;
+    if (password.length >= 8) score++;
     else feedback.push('at least 8 characters');
 
-    if (hasLower) score++;
+    if (/[a-z]/.test(password)) score++;
     else feedback.push('lowercase letter');
 
-    if (hasUpper) score++;
+    if (/[A-Z]/.test(password)) score++;
     else feedback.push('uppercase letter');
 
-    if (hasNumber) score++;
+    if (/\d/.test(password)) score++;
     else feedback.push('number');
 
-    if (hasSpecial) score++;
+    if (/[\W_]/.test(password)) score++;
     else feedback.push('special character');
 
     const strengthLevels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
     const strengthText = strengthLevels[score] || 'Very Weak';
 
-    const isValid = hasLength && hasLower && hasUpper && hasNumber && hasSpecial;
-
     return {
       score,
       feedback: feedback.length > 0 ? `Need: ${feedback.join(', ')}` : 'Strong password!',
       strength: strengthText,
-      isValid, // This should be true for "Today@2025"
-      hasLength,
-      hasLower,
-      hasUpper,
-      hasNumber,
-      hasSpecial
+      isValid: score === 5
     };
   };
 
@@ -132,10 +119,9 @@ const SignUp = () => {
           fieldError = 'Password is required';
         } else {
           const strength = checkPasswordStrength(value);
-          // Update password strength immediately
           setPasswordStrength(strength);
           if (!strength.isValid) {
-            fieldError = 'Password must meet all requirements below';
+            fieldError = strength.feedback;
           }
         }
         break;
@@ -168,12 +154,11 @@ const SignUp = () => {
       validateField(name, value);
     } else if (name === 'password') {
       // Reset password strength when field is empty
-      setPasswordStrength({ score: 0, feedback: '', isValid: false });
+      setPasswordStrength({ score: 0, feedback: '' });
     }
   };
 
   const handleSubmit = async (e) => {
-    console.log('🔥 BUTTON CLICKED! Form submission started');
     e.preventDefault();
     setError('');
     setFieldErrors({ name: '', email: '', password: '' });
@@ -183,11 +168,7 @@ const SignUp = () => {
     const emailValid = validateField('email', form.email);
     const passwordValid = validateField('password', form.password);
 
-    console.log('Validation results:', { nameValid, emailValid, passwordValid });
-    console.log('Password strength:', passwordStrength);
-
     if (!nameValid || !emailValid || !passwordValid) {
-      console.log('Form validation failed');
       // Focus the first invalid field
       setTimeout(() => {
         if (!nameValid && nameInputRef.current) {
@@ -202,16 +183,12 @@ const SignUp = () => {
     }
 
     try {
-      console.log('Starting registration...');
       setLoading(true);
-      
       await register({
         name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
       });
-
-      console.log('Registration successful!');
 
       // Store credentials so the browser can prompt to save them
       if (navigator.credentials && window.PasswordCredential) {
@@ -233,7 +210,6 @@ const SignUp = () => {
         }
       });
     } catch (err) {
-      console.error('Registration error:', err);
       // Enhanced error handling
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
@@ -262,41 +238,18 @@ const SignUp = () => {
     }
   };
 
-  // FIXED: Check if form is valid - more reliable logic
+  // Check if form is valid
   const isFormValid = () => {
-    const nameOk = form.name.trim().length >= 2;
-    const emailOk = form.email.trim() && /\S+@\S+\.\S+/.test(form.email);
-    const passwordOk = form.password && checkPasswordStrength(form.password).isValid;
-    const noErrors = !fieldErrors.name && !fieldErrors.email && !fieldErrors.password;
-    
-    // Debug logging
-    console.log('Form validity check:', {
-      nameOk,
-      emailOk, 
-      passwordOk,
-      noErrors,
-      currentPassword: form.password,
-      passwordStrengthCheck: checkPasswordStrength(form.password)
-    });
-    
-    return nameOk && emailOk && passwordOk && noErrors;
+    return (
+      form.name.trim() && 
+      form.email.trim() && 
+      form.password && 
+      !fieldErrors.name && 
+      !fieldErrors.email && 
+      !fieldErrors.password &&
+      passwordStrength.isValid
+    );
   };
-
-  // Update password strength whenever password changes
-  useEffect(() => {
-    if (form.password) {
-      const strength = checkPasswordStrength(form.password);
-      setPasswordStrength(strength);
-    }
-  }, [form.password]);
-
-  // Debug the current state
-  console.log('Current form state:', {
-    form,
-    passwordStrength,
-    isValid: isFormValid(),
-    fieldErrors
-  });
 
   return (
     <div className="signup-container">
@@ -403,7 +356,7 @@ const SignUp = () => {
                   ></div>
                 </div>
                 <span className={`strength-text strength-${passwordStrength.score}`}>
-                  {passwordStrength.strength} {passwordStrength.isValid ? '✅' : '❌'}
+                  {passwordStrength.strength}
                 </span>
               </div>
             )}
@@ -412,24 +365,24 @@ const SignUp = () => {
               <span className="field-error">{fieldErrors.password}</span>
             )}
             
-            {/* FIXED Password requirements with real-time checking */}
+            {/* Password requirements */}
             <div className="password-requirements">
               <small>Password must contain:</small>
               <ul>
-                <li className={passwordStrength.hasLower ? 'valid' : ''}>
-                  At least one lowercase letter {passwordStrength.hasLower ? '✅' : '❌'}
+                <li className={/[a-z]/.test(form.password) ? 'valid' : ''}>
+                  At least one lowercase letter
                 </li>
-                <li className={passwordStrength.hasUpper ? 'valid' : ''}>
-                  At least one uppercase letter {passwordStrength.hasUpper ? '✅' : '❌'}
+                <li className={/[A-Z]/.test(form.password) ? 'valid' : ''}>
+                  At least one uppercase letter
                 </li>
-                <li className={passwordStrength.hasNumber ? 'valid' : ''}>
-                  At least one number {passwordStrength.hasNumber ? '✅' : '❌'}
+                <li className={/\d/.test(form.password) ? 'valid' : ''}>
+                  At least one number
                 </li>
-                <li className={passwordStrength.hasSpecial ? 'valid' : ''}>
-                  At least one special character {passwordStrength.hasSpecial ? '✅' : '❌'}
+                <li className={/[\W_]/.test(form.password) ? 'valid' : ''}>
+                  At least one special character
                 </li>
-                <li className={passwordStrength.hasLength ? 'valid' : ''}>
-                  At least 8 characters long {passwordStrength.hasLength ? '✅' : '❌'}
+                <li className={form.password.length >= 8 ? 'valid' : ''}>
+                  At least 8 characters long
                 </li>
               </ul>
             </div>
@@ -437,19 +390,11 @@ const SignUp = () => {
 
           <button
             type="submit"
-            className={`signup-button ${loading ? 'signup-loading' : ''} ${isFormValid() ? 'button-enabled' : 'button-disabled'}`}
+            className={`signup-button ${loading ? 'signup-loading' : ''}`}
             disabled={loading || !isFormValid()}
-            onClick={() => console.log('Button clicked! Valid:', isFormValid())}
           >
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
-          
-          {/* Debug info - remove in production */}
-          <div style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
-            Debug: Button {isFormValid() ? 'ENABLED' : 'DISABLED'} | 
-            Valid: {isFormValid() ? 'YES' : 'NO'} | 
-            Password Valid: {passwordStrength.isValid ? 'YES' : 'NO'}
-          </div>
         </form>
         
         <p className="signup-footer-text">
