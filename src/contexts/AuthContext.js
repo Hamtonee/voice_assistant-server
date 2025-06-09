@@ -25,17 +25,26 @@ export const AuthContext = createContext({
 });
 
 export function AuthProvider({ children }) {
-  // initialize from localStorage
-  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  // Initialize from localStorage with validation
+  const [token, setToken] = useState(() => {
+    const storedToken = localStorage.getItem('access_token'); // Changed from 'token' to 'access_token'
+    // Validate token is a proper string
+    if (storedToken && typeof storedToken === 'string' && storedToken !== 'null' && storedToken !== 'undefined' && storedToken.trim()) {
+      return storedToken.trim();
+    }
+    return null;
+  });
+  
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [initializing, setInitializing] = useState(true);
   const [sessionConflict, setSessionConflict] = useState(null);
   const navigate = useNavigate();
 
-  // clear auth state + cancel any scheduled refresh
+  // Clear auth state + cancel any scheduled refresh
   const clearAuth = useCallback(() => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     delete api.defaults.headers.common.Authorization;
     setToken(null);
     setUser(null);
@@ -45,7 +54,7 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // always send credentials (if you use cookies)
+  // Always send credentials (if you use cookies)
   useEffect(() => {
     api.defaults.withCredentials = true;
   }, []);
@@ -57,6 +66,14 @@ export function AuthProvider({ children }) {
       (error) => {
         if (error.response?.status === 401) {
           const errorCode = error.response?.data?.code;
+          const errorDetail = error.response?.data?.detail;
+          
+          // Handle token format errors specifically
+          if (errorDetail && errorDetail.includes('Invalid token format')) {
+            console.warn('🔒 Invalid token format detected, clearing auth');
+            clearAuth();
+            return Promise.reject(error);
+          }
           
           if (errorCode === 'SESSION_CONFLICT' || errorCode === 'SESSION_UPGRADE_REQUIRED') {
             setSessionConflict({
@@ -115,18 +132,24 @@ export function AuthProvider({ children }) {
     };
   }, [clearAuth]);
 
-  // this function both refreshes the token AND schedules the next refresh
+  // This function both refreshes the token AND schedules the next refresh
   const refreshAndSchedule = useCallback(async () => {
     try {
-      const res = await api.post('/auth/refresh');
-      const newToken = res.data.token;
+      // FIXED: Use correct API endpoint with /api prefix
+      const res = await api.post('/api/auth/refresh');
+      const newToken = res.data.access_token; // Backend returns access_token
 
-      // persist & apply
-      localStorage.setItem('token', newToken);
+      // Validate token before using
+      if (!newToken || typeof newToken !== 'string' || !newToken.trim()) {
+        throw new Error('Invalid token received from refresh endpoint');
+      }
+
+      // Persist & apply
+      localStorage.setItem('access_token', newToken);
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
       setToken(newToken);
 
-      // schedule the next one 1 minute before expiry
+      // Schedule the next one 1 minute before expiry
       const { exp } = jwtDecode(newToken);               // exp is in seconds
       const expiresInMs = exp * 1000 - Date.now();
       const buffer = 60 * 1000;                          // 1 minute
@@ -149,34 +172,39 @@ export function AuthProvider({ children }) {
     }
   }, [clearAuth, initializing]);
 
-  // on mount: either schedule based on existing token, or do an initial silent refresh
+  // On mount: either schedule based on existing token, or do an initial silent refresh
   useEffect(() => {
-    if (token) {
+    if (token && typeof token === 'string' && token.trim()) {
       api.defaults.headers.common.Authorization = `Bearer ${token}`;
 
-      // schedule next refresh from this token
-      const { exp } = jwtDecode(token);
-      const expiresInMs = exp * 1000 - Date.now();
-      const buffer = 60 * 1000;
-      const timeout = Math.max(expiresInMs - buffer, 0);
+      try {
+        // Schedule next refresh from this token
+        const { exp } = jwtDecode(token);
+        const expiresInMs = exp * 1000 - Date.now();
+        const buffer = 60 * 1000;
+        const timeout = Math.max(expiresInMs - buffer, 0);
 
-      if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
-      window._refreshTimeout = setTimeout(
-        () => refreshAndSchedule(),
-        timeout
-      );
+        if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
+        window._refreshTimeout = setTimeout(
+          () => refreshAndSchedule(),
+          timeout
+        );
+      } catch (err) {
+        console.error('Invalid token format, clearing auth:', err);
+        clearAuth();
+      }
 
       // Don't set loading to false here - let the user profile fetch handle it
     } else {
-      // no token yet? try to get one from refresh endpoint
+      // No valid token? try to get one from refresh endpoint
       refreshAndSchedule();
     }
   }, [token, refreshAndSchedule]);
 
-  // once we have a valid token, fetch the user profile
+  // Once we have a valid token, fetch the user profile
   useEffect(() => {
-    if (!token) {
-      // No token means not authenticated
+    if (!token || typeof token !== 'string' || !token.trim()) {
+      // No valid token means not authenticated
       setUser(null);
       if (initializing) {
         setLoadingUser(false);
@@ -188,12 +216,13 @@ export function AuthProvider({ children }) {
     // Keep loading true while fetching user
     setLoadingUser(true);
 
-    api.get('/auth/me')
+    // FIXED: Use correct API endpoint with /api prefix
+    api.get('/api/auth/me')
       .then(res => {
         setUser(res.data.user ?? res.data);
       })
       .catch(err => {
-        console.error('🔒 /auth/me failed', err);
+        console.error('🔒 /api/auth/me failed', err);
         clearAuth();
       })
       .finally(() => {
@@ -213,15 +242,26 @@ export function AuthProvider({ children }) {
         payload.forceNewSession = true;
       }
       
-      // Step 1: API login call
-      const res = await api.post('/auth/login', payload);
-      const newToken = res.data.token;
+      // Step 1: API login call - FIXED: Use correct endpoint
+      const res = await api.post('/api/auth/login', payload);
+      const newToken = res.data.access_token; // Backend returns access_token
+
+      // Validate token before using
+      if (!newToken || typeof newToken !== 'string' || !newToken.trim()) {
+        throw new Error('Invalid token received from login endpoint');
+      }
 
       // Step 2: Clear any session conflict
       setSessionConflict(null);
 
       // Step 3: Persist & apply token
-      localStorage.setItem('token', newToken);
+      localStorage.setItem('access_token', newToken);
+      
+      // Also store refresh token if provided
+      if (res.data.refresh_token) {
+        localStorage.setItem('refresh_token', res.data.refresh_token);
+      }
+      
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
       setToken(newToken);
 
@@ -236,8 +276,8 @@ export function AuthProvider({ children }) {
         timeout
       );
 
-      // Step 5: Fetch the user profile
-      const me = await api.get('/auth/me');
+      // Step 5: Fetch the user profile - FIXED: Use correct endpoint
+      const me = await api.get('/api/auth/me');
       setUser(me.data.user ?? me.data);
       
       // Step 6: ONLY navigate if ALL steps above succeeded
@@ -273,11 +313,11 @@ export function AuthProvider({ children }) {
     setSessionConflict(null);
   };
 
-  // REGISTER - UPDATED to use full_name field to match database schema
+  // REGISTER - Keep original full_name mapping
   const register = async ({ email, password, name }) => {
     try {
-      // Send full_name instead of name to match our database column
-      const res = await api.post('/auth/register', { 
+      // Keep original full_name mapping as it was working
+      const res = await api.post('/api/auth/register', { 
         email, 
         password, 
         full_name: name  // Database expects full_name column
@@ -293,19 +333,30 @@ export function AuthProvider({ children }) {
   // LOGOUT: notify server, then clear state & timer
   const logout = async () => {
     try {
-      await api.post('/auth/logout');
-    } catch {
-      // ignore
+      // Get refresh token for logout
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken) {
+        // FIXED: Use correct endpoint and send refresh token
+        await api.post('/api/auth/logout', { refresh_token: refreshToken });
+      }
+    } catch (err) {
+      console.warn('Logout request failed:', err);
+      // ignore errors and continue with local logout
     }
     clearAuth();
     setSessionConflict(null);
     navigate('/login', { replace: true });
   };
 
-  // Determine if user is fully authenticated (has both token and user)
-  const isAuthenticated = Boolean(token && user);
+  // Determine if user is fully authenticated (has both valid token and user)
+  const isAuthenticated = Boolean(
+    token && 
+    typeof token === 'string' && 
+    token.trim() && 
+    user
+  );
 
-  // while we're determining auth status…
+  // While we're determining auth status…
   if (loadingUser || initializing) {
     return <LottieLoader />;
   }
