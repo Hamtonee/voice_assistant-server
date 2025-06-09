@@ -136,18 +136,24 @@ export function AuthProvider({ children }) {
 
   // This function both refreshes the token AND schedules the next refresh
   const refreshAndSchedule = useCallback(async () => {
+    console.log('🔄 refreshAndSchedule called');
     try {
       // Check if we have a refresh token first
       const refreshToken = localStorage.getItem('refresh_token');
+      console.log('🎫 Refresh token check:', refreshToken ? 'Found' : 'Not found');
+      
       if (!refreshToken || refreshToken === 'null' || refreshToken === 'undefined') {
-        console.log('No refresh token available, skipping refresh');
+        console.log('❌ No refresh token available, skipping refresh');
         setLoadingUser(false);
         setInitializing(false);
         return;
       }
 
+      console.log('📡 Making refresh request to:', '/auth/refresh');
       // FIXED: Remove /api prefix - your base URL already includes it
       const res = await api.post('/auth/refresh');
+      console.log('✅ Refresh response received:', res.data);
+      
       const newToken = res.data.access_token; // Backend returns access_token
 
       // Validate token before using
@@ -172,10 +178,12 @@ export function AuthProvider({ children }) {
         timeout
       );
     } catch (err) {
-      console.warn('⚠️ Silent refresh failed', err);
+      console.error('❌ Silent refresh failed:', err);
+      console.error('Error details:', err.response?.data || err.message);
       clearAuth();
     } finally {
       // Always set loading to false to prevent infinite spinner
+      console.log('🏁 Setting loading to false');
       setLoadingUser(false);
       setInitializing(false);
     }
@@ -183,7 +191,12 @@ export function AuthProvider({ children }) {
 
   // On mount: either schedule based on existing token, or check if we have refresh token
   useEffect(() => {
+    console.log('🚀 AuthProvider useEffect triggered');
+    console.log('Current token:', token ? 'Present' : 'None');
+    console.log('API base URL:', api.defaults.baseURL);
+    
     if (token && typeof token === 'string' && token.trim()) {
+      console.log('✅ Valid token found, setting up refresh schedule');
       api.defaults.headers.common.Authorization = `Bearer ${token}`;
 
       try {
@@ -199,7 +212,7 @@ export function AuthProvider({ children }) {
           timeout
         );
       } catch (err) {
-        console.error('Invalid token format, clearing auth:', err);
+        console.error('❌ Invalid token format, clearing auth:', err);
         clearAuth();
       }
 
@@ -207,12 +220,15 @@ export function AuthProvider({ children }) {
     } else {
       // No access token - check if we have a refresh token before trying to refresh
       const refreshToken = localStorage.getItem('refresh_token');
+      console.log('🎫 Checking for refresh token:', refreshToken ? 'Found' : 'Not found');
+      
       if (refreshToken && refreshToken !== 'null' && refreshToken !== 'undefined' && refreshToken.trim()) {
+        console.log('🔄 Attempting to refresh with existing refresh token');
         // We have a refresh token, try to get a new access token
         refreshAndSchedule();
       } else {
         // No tokens at all - user is not authenticated
-        console.log('No tokens found, user not authenticated');
+        console.log('❌ No tokens found, user not authenticated');
         setLoadingUser(false);
         setInitializing(false);
       }
@@ -252,22 +268,31 @@ export function AuthProvider({ children }) {
   // LOGIN: get token, persist it, schedule the silent refresh, then load profile
   // FIXED: Only navigate on complete success, always re-throw errors
   const login = async ({ email, password }, forceNewSession = false) => {
+    console.log('🔐 Login attempt started for:', email);
+    console.log('API base URL:', api.defaults.baseURL);
+    
     try {
       const payload = { email, password };
       
       // Only add forceNewSession if explicitly set to true
       if (forceNewSession === true) {
         payload.forceNewSession = true;
+        console.log('🔄 Force new session requested');
       }
       
+      console.log('📡 Making login request to:', '/auth/login');
       // Step 1: API login call - FIXED: Remove /api prefix
       const res = await api.post('/auth/login', payload);
+      console.log('✅ Login response received:', res.status, res.data);
+      
       const newToken = res.data.access_token; // Backend returns access_token
 
       // Validate token before using
       if (!newToken || typeof newToken !== 'string' || !newToken.trim()) {
         throw new Error('Invalid token received from login endpoint');
       }
+
+      console.log('🎫 Valid token received, storing...');
 
       // Step 2: Clear any session conflict
       setSessionConflict(null);
@@ -278,6 +303,7 @@ export function AuthProvider({ children }) {
       // Also store refresh token if provided
       if (res.data.refresh_token) {
         localStorage.setItem('refresh_token', res.data.refresh_token);
+        console.log('🔄 Refresh token stored');
       }
       
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
@@ -294,17 +320,24 @@ export function AuthProvider({ children }) {
         timeout
       );
 
+      console.log('👤 Fetching user profile...');
       // Step 5: Fetch the user profile - FIXED: Remove /api prefix
       const me = await api.get('/auth/me');
+      console.log('✅ User profile received:', me.data);
       setUser(me.data.user ?? me.data);
       
       // Step 6: ONLY navigate if ALL steps above succeeded
+      console.log('🚀 Login successful, navigating to chats');
       navigate('/chats', { replace: true });
       
       // Return success indicator
       return { success: true, user: me.data.user ?? me.data };
       
     } catch (error) {
+      console.error('❌ Login failed:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
       // CRITICAL: Clear any partial auth state on any error
       clearAuth();
       setSessionConflict(null);

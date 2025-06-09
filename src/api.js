@@ -4,7 +4,9 @@ import axios from 'axios';
 // 🌐 Base URL configuration (from .env or fallback)
 const BASE_URL =
   process.env.REACT_APP_API_BASE_URL?.replace(/\/+$/, '') || // strip trailing slash if any
-  'http://localhost:5000/api';
+  'http://localhost:8000/api'; // FIXED: Changed from 5000 to 8000
+
+console.log('🌐 API Base URL:', BASE_URL); // Debug log
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -16,7 +18,11 @@ const api = axios.create({
 // ———————————————————————————————————————————————
 api.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('token');
+    // FIXED: Use 'access_token' to match AuthContext
+    const token = localStorage.getItem('access_token');
+    console.log('📡 Request interceptor - Token:', token ? 'Present' : 'None');
+    console.log('📡 Request URL:', config.baseURL + config.url);
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,8 +35,13 @@ api.interceptors.request.use(
 // 🚨 Global 401 handler → try refresh → retry original
 // ———————————————————————————————————————————————
 api.interceptors.response.use(
-  response => response,
+  response => {
+    console.log('✅ Response success:', response.config.url, response.status);
+    return response;
+  },
   async error => {
+    console.error('❌ Response error:', error.config?.url, error.response?.status, error.response?.data);
+    
     const { response, config } = error;
     if (!response || response.status !== 401 || config._retry) {
       return Promise.reject(error);
@@ -52,15 +63,25 @@ api.interceptors.response.use(
     config._retry = true;
     
     try {
+      console.log('🔄 Attempting token refresh...');
       const refreshRes = await api.post('/auth/refresh');
-      const newToken = refreshRes.data.token;
-      localStorage.setItem('token', newToken);
+      
+      // FIXED: Use 'access_token' to match backend response
+      const newToken = refreshRes.data.access_token;
+      console.log('✅ Token refresh successful');
+      
+      // FIXED: Store with 'access_token' key
+      localStorage.setItem('access_token', newToken);
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
       config.headers.Authorization = `Bearer ${newToken}`;
+      
+      console.log('🔄 Retrying original request...');
       return api(config);
     } catch (refreshError) {
       console.warn('🔁 Refresh failed, redirecting to login');
-      localStorage.removeItem('token');
+      // FIXED: Remove 'access_token' key
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
       delete api.defaults.headers.common.Authorization;
       window.location.href = '/login';
       return Promise.reject(refreshError);
