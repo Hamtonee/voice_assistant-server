@@ -4,6 +4,31 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+import os
+from logging.config import fileConfig
+from sqlalchemy import engine_from_config, pool
+from alembic import context
+
+# new imports ↓
+from dotenv import load_dotenv
+
+# load your .env
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+load_dotenv(os.path.join(project_root, ".env"))
+
+# now override the URL in Alembic's config
+config = context.config
+db_url = os.getenv("DATABASE_URL")
+if not db_url:
+    raise RuntimeError("DATABASE_URL environment variable not set")
+config.set_main_option("sqlalchemy.url", db_url)
+
+# the rest of env.py continues unchanged…
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+# …etc.
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -78,5 +103,8 @@ else:
     run_migrations_online()
 
 from your_app.database import Base  # wherever you declare Base = declarative_base()
+target_metadata = Base.metadata
+
+from path.to.your.models import Base
 target_metadata = Base.metadata
 

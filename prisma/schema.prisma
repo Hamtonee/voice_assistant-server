@@ -8,25 +8,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Clean AuthUser model - consistent snake_case for auth tables
 model AuthUser {
-  id               Int              @id @default(autoincrement())
-  email            String           @unique @db.VarChar(255)
-  hashedPassword   String           @db.VarChar(255)
-  name             String?          @db.VarChar(200)
-  isActive         Boolean          @default(true)
-  isVerified       Boolean          @default(false)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime?        @updatedAt
-  lastLogin        DateTime?
-  activeTokenId    String?          @unique @db.VarChar(255)
-  lastActive       DateTime?
-  deviceInfo       String?          @db.VarChar(500)
+  id              Int       @id @default(autoincrement())
+  email           String    @unique @db.VarChar(255)
+  hashed_password String    @db.VarChar(255)
+  full_name       String?   @db.VarChar(200)
+  is_active       Boolean   @default(true)
+  is_verified     Boolean   @default(false)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime? @updatedAt
+  last_login      DateTime?
 
-  // relations
-  sessions         LearningUser[]   @relation("AuthUserToLearningUser")
-  refreshTokens    RefreshToken[]
-  chats            Chat[]
-  events           Event[]
+  // Relations
+  refreshTokens RefreshToken[]
+  chats         Chat[]
+  events        Event[]
 
   @@map("auth_users")
 }
@@ -34,28 +31,29 @@ model AuthUser {
 model RefreshToken {
   id         Int       @id @default(autoincrement())
   token      String    @unique @db.VarChar(255)
-  userId     Int
-  expiresAt  DateTime
-  createdAt  DateTime  @default(now())
-  isRevoked  Boolean   @default(false)
+  user_id    Int
+  expires_at DateTime
+  created_at DateTime  @default(now())
+  is_revoked Boolean   @default(false)
 
-  user       AuthUser  @relation(fields: [userId], references: [id])
+  user       AuthUser  @relation(fields: [user_id], references: [id])
 
   @@map("refresh_tokens")
 }
 
+// Application models - consistent camelCase
 model Chat {
-  id            Int                @id @default(autoincrement())
-  title         String             @default("") @db.VarChar(255)
-  ownerId       Int
-  createdAt     DateTime           @default(now())
-  scenarioKey   String?            @db.VarChar(100)
-  feature       String             @default("chat") @db.VarChar(50)
+  id          Int      @id @default(autoincrement())
+  title       String   @default("") @db.VarChar(255)
+  ownerId     Int
+  createdAt   DateTime @default(now())
+  scenarioKey String?  @db.VarChar(100)
+  feature     String   @default("chat") @db.VarChar(50)
 
-  owner         AuthUser           @relation(fields: [ownerId], references: [id])
-  messages      Message[]
+  owner       AuthUser          @relation(fields: [ownerId], references: [id])
+  messages    Message[]
+  sessions    LearningSession[]
 
-  LearningSessions LearningSession[] @relation("ChatToLearningSession")
   @@map("Chat")
 }
 
@@ -73,102 +71,102 @@ model Message {
 }
 
 model Event {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   userId      Int
-  type        String    @db.VarChar(50)
-  description String?   @db.VarChar(500)
-  createdAt   DateTime  @default(now())
+  type        String   @db.VarChar(50)
+  description String?  @db.VarChar(500)
+  createdAt   DateTime @default(now())
 
-  user        AuthUser  @relation(fields: [userId], references: [id])
+  user        AuthUser @relation(fields: [userId], references: [id])
 
   @@map("Event")
 }
 
-model LearningUser {
+// Learning system models - User model for learning system
+model User {
   id                Int                @id @default(autoincrement())
-  sessionId         String             @unique @db.VarChar(100)
-  authUserId        Int?               // nullable FK
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime?          @updatedAt
-  lastActive        DateTime?
-  totalInteractions Int                @default(0)
-  learningLevel     String             @default("intermediate") @db.VarChar(20)
-  preferredVoice    String?            @db.VarChar(100)
+  session_id        String             @unique @db.VarChar(100)
+  auth_user_id      Int?
+  created_at        DateTime           @default(now())
+  updated_at        DateTime?          @updatedAt
+  last_active       DateTime?
+  total_interactions Int               @default(0)
+  learning_level    String            @default("intermediate") @db.VarChar(20)
+  preferred_voice   String?           @db.VarChar(100)
   settings          Json?
 
-  authUser          AuthUser?          @relation("AuthUserToLearningUser", fields: [authUserId], references: [id])
   sessions          LearningSession[]
   analytics         AnalyticsEvent[]
 
-  @@map("users")
+  @@map("learning_users")
 }
 
 model LearningSession {
   id                    Int                   @id @default(autoincrement())
-  userId                Int
-  chatId                Int?                  // optional link back to Chat
-  sessionType           String                @db.VarChar(50)
-  startedAt             DateTime              @default(now())
-  endedAt               DateTime?
-  durationMinutes       Float?
-  vocabularyIntroduced  Json?
-  proverbsShared        Json?
-  topicsDiscussed       Json?
+  user_id               Int
+  chat_id               Int?
+  session_type          String                @db.VarChar(50)
+  started_at            DateTime              @default(now())
+  ended_at              DateTime?
+  duration_minutes      Float?
+  vocabulary_introduced Json?
+  proverbs_shared       Json?
+  topics_discussed      Json?
   strengths             Json?
-  areasForImprovement   Json?
-  sessionData           Json?
+  areas_for_improvement Json?
+  session_data          Json?
 
-  user                  LearningUser          @relation(fields: [userId], references: [id])
+  user                  User                  @relation(fields: [user_id], references: [id])
+  chat                  Chat?                 @relation(fields: [chat_id], references: [id])
   conversationMessages  ConversationMessage[]
-  chat                  Chat?                 @relation("ChatToLearningSession", fields: [chatId], references: [id])
 
   @@map("learning_sessions")
 }
 
 model ConversationMessage {
-  id              Int      @id @default(autoincrement())
-  sessionId       Int
-  role            String   @db.VarChar(20)
-  content         String
-  timestamp       DateTime @default(now())
-  messageMetadata Json?
+  id               Int      @id @default(autoincrement())
+  session_id       Int
+  role             String   @db.VarChar(20)
+  content          String
+  timestamp        DateTime @default(now())
+  message_metadata Json?
 
-  session         LearningSession @relation(fields: [sessionId], references: [id])
+  session          LearningSession @relation(fields: [session_id], references: [id])
 
   @@map("conversation_messages")
 }
 
 model AnalyticsEvent {
   id         Int      @id @default(autoincrement())
-  userId     Int
-  eventType  String   @db.VarChar(50)
-  eventData  Json?
+  user_id    Int
+  event_type String   @db.VarChar(50)
+  event_data Json?
   timestamp  DateTime @default(now())
-  ipAddress  String   @db.VarChar(45)
-  userAgent  String
+  ip_address String   @db.VarChar(45)
+  user_agent String
 
-  user       LearningUser @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [user_id], references: [id])
 
   @@map("analytics_events")
 }
 
 model UsageStats {
   id            Int     @id @default(autoincrement())
-  clientId      String  @db.VarChar(100)
-  serviceType   String  @db.VarChar(50)
-  date          String  @db.VarChar(10)    // YYYY-MM-DD
-  requestCount  Int     @default(0)
-  successCount  Int     @default(0)
+  client_id     String  @db.VarChar(100)
+  service_type  String  @db.VarChar(50)
+  date          String  @db.VarChar(10)
+  request_count Int     @default(0)
+  success_count Int     @default(0)
 
   @@map("usage_stats")
 }
 
 model SystemMetrics {
-  id             Int      @id @default(autoincrement())
-  metricName     String   @db.VarChar(100)
-  metricValue    Float
-  timestamp      DateTime @default(now())
-  metricMetadata Json?
+  id              Int      @id @default(autoincrement())
+  metric_name     String   @db.VarChar(100)
+  metric_value    Float
+  timestamp       DateTime @default(now())
+  metric_metadata Json?
 
   @@map("system_metrics")
 }
