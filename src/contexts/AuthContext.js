@@ -273,10 +273,15 @@ export function AuthProvider({ children }) {
     setSessionConflict(null);
   };
 
-  // REGISTER - ensure it doesn't navigate automatically
+  // REGISTER - UPDATED to use full_name field to match database schema
   const register = async ({ email, password, name }) => {
     try {
-      const res = await api.post('/auth/register', { email, password, name });
+      // Send full_name instead of name to match our database column
+      const res = await api.post('/auth/register', { 
+        email, 
+        password, 
+        full_name: name  // Database expects full_name column
+      });
       // Don't navigate automatically - let the component handle it
       return { success: true, user: res.data.user ?? res.data };
     } catch (error) {
