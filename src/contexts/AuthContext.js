@@ -28,6 +28,8 @@ export function AuthProvider({ children }) {
   // Initialize from localStorage with validation
   const [token, setToken] = useState(() => {
     const storedToken = localStorage.getItem('access_token'); // Changed from 'token' to 'access_token'
+    console.log('Initial token check:', storedToken ? 'Token found' : 'No token found');
+    
     // Validate token is a proper string
     if (storedToken && typeof storedToken === 'string' && storedToken !== 'null' && storedToken !== 'undefined' && storedToken.trim()) {
       return storedToken.trim();
@@ -135,8 +137,17 @@ export function AuthProvider({ children }) {
   // This function both refreshes the token AND schedules the next refresh
   const refreshAndSchedule = useCallback(async () => {
     try {
-      // FIXED: Use correct API endpoint with /api prefix
-      const res = await api.post('/api/auth/refresh');
+      // Check if we have a refresh token first
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (!refreshToken || refreshToken === 'null' || refreshToken === 'undefined') {
+        console.log('No refresh token available, skipping refresh');
+        setLoadingUser(false);
+        setInitializing(false);
+        return;
+      }
+
+      // FIXED: Remove /api prefix - your base URL already includes it
+      const res = await api.post('/auth/refresh');
       const newToken = res.data.access_token; // Backend returns access_token
 
       // Validate token before using
@@ -164,15 +175,13 @@ export function AuthProvider({ children }) {
       console.warn('⚠️ Silent refresh failed', err);
       clearAuth();
     } finally {
-      // Only set loading to false during initialization, not during refresh
-      if (initializing) {
-        setLoadingUser(false);
-        setInitializing(false);
-      }
+      // Always set loading to false to prevent infinite spinner
+      setLoadingUser(false);
+      setInitializing(false);
     }
   }, [clearAuth, initializing]);
 
-  // On mount: either schedule based on existing token, or do an initial silent refresh
+  // On mount: either schedule based on existing token, or check if we have refresh token
   useEffect(() => {
     if (token && typeof token === 'string' && token.trim()) {
       api.defaults.headers.common.Authorization = `Bearer ${token}`;
@@ -196,8 +205,17 @@ export function AuthProvider({ children }) {
 
       // Don't set loading to false here - let the user profile fetch handle it
     } else {
-      // No valid token? try to get one from refresh endpoint
-      refreshAndSchedule();
+      // No access token - check if we have a refresh token before trying to refresh
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken && refreshToken !== 'null' && refreshToken !== 'undefined' && refreshToken.trim()) {
+        // We have a refresh token, try to get a new access token
+        refreshAndSchedule();
+      } else {
+        // No tokens at all - user is not authenticated
+        console.log('No tokens found, user not authenticated');
+        setLoadingUser(false);
+        setInitializing(false);
+      }
     }
   }, [token, refreshAndSchedule]);
 
@@ -216,13 +234,13 @@ export function AuthProvider({ children }) {
     // Keep loading true while fetching user
     setLoadingUser(true);
 
-    // FIXED: Use correct API endpoint with /api prefix
-    api.get('/api/auth/me')
+    // FIXED: Remove /api prefix - your base URL already includes it
+    api.get('/auth/me')
       .then(res => {
         setUser(res.data.user ?? res.data);
       })
       .catch(err => {
-        console.error('🔒 /api/auth/me failed', err);
+        console.error('🔒 /auth/me failed', err);
         clearAuth();
       })
       .finally(() => {
@@ -242,8 +260,8 @@ export function AuthProvider({ children }) {
         payload.forceNewSession = true;
       }
       
-      // Step 1: API login call - FIXED: Use correct endpoint
-      const res = await api.post('/api/auth/login', payload);
+      // Step 1: API login call - FIXED: Remove /api prefix
+      const res = await api.post('/auth/login', payload);
       const newToken = res.data.access_token; // Backend returns access_token
 
       // Validate token before using
@@ -276,8 +294,8 @@ export function AuthProvider({ children }) {
         timeout
       );
 
-      // Step 5: Fetch the user profile - FIXED: Use correct endpoint
-      const me = await api.get('/api/auth/me');
+      // Step 5: Fetch the user profile - FIXED: Remove /api prefix
+      const me = await api.get('/auth/me');
       setUser(me.data.user ?? me.data);
       
       // Step 6: ONLY navigate if ALL steps above succeeded
@@ -317,7 +335,7 @@ export function AuthProvider({ children }) {
   const register = async ({ email, password, name }) => {
     try {
       // Keep original full_name mapping as it was working
-      const res = await api.post('/api/auth/register', { 
+      const res = await api.post('/auth/register', { 
         email, 
         password, 
         full_name: name  // Database expects full_name column
@@ -336,8 +354,8 @@ export function AuthProvider({ children }) {
       // Get refresh token for logout
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
-        // FIXED: Use correct endpoint and send refresh token
-        await api.post('/api/auth/logout', { refresh_token: refreshToken });
+        // FIXED: Remove /api prefix and send refresh token
+        await api.post('/auth/logout', { refresh_token: refreshToken });
       }
     } catch (err) {
       console.warn('Logout request failed:', err);
