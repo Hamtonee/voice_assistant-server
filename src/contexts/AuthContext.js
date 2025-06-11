@@ -82,77 +82,40 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // 🚀 FIXED: Enhanced response interceptor - less aggressive about clearing auth
+  // FIXED: Much safer response interceptor that doesn't interfere with auth
   useEffect(() => {
     const interceptor = api.interceptors.response.use(
       (response) => response,
       (error) => {
-        console.log('🚨 API Error intercepted:', error.response?.status, error.response?.data);
+        const url = error.config?.url || '';
         
+        // COMPLETELY IGNORE all errors during auth operations
+        if (url.includes('/api/auth/') || url.includes('/auth/')) {
+          console.log('🔓 Ignoring error during auth operation:', url, error.response?.status);
+          return Promise.reject(error);
+        }
+        
+        // Only handle 401 for protected endpoints (non-auth)
         if (error.response?.status === 401) {
           const errorDetail = error.response?.data?.detail || '';
           const errorMessage = error.response?.data?.message || '';
-          const url = error.config?.url || '';
           
-          // 🚀 FIX: Don't clear auth during authentication flows
-          if (url.includes('/api/auth/login') || 
-              url.includes('/api/auth/register') || 
-              url.includes('/api/auth/refresh')) {
-            console.log('🔓 Ignoring 401 during auth operation:', url);
-            return Promise.reject(error);
-          }
-          
-          // Handle various authentication errors - BE MORE SPECIFIC
-          if (errorDetail.includes('Invalid authentication credentials') ||
-              errorDetail.includes('Invalid token format') ||
-              errorDetail.includes('Token has expired') ||
-              errorDetail.includes('User not found')) {
-            
-            console.warn('🔒 Authentication error detected:', errorDetail);
-            
-            // 🚀 FIX: Only clear auth for token issues, not credential issues
-            if (!errorDetail.includes('Incorrect email or password')) {
-              clearAuth();
-            }
-          }
+          console.warn('🔒 401 on protected endpoint:', url);
           
           // Handle session conflicts
-          if (errorMessage.includes('logged in elsewhere') || errorDetail.includes('SESSION_CONFLICT')) {
+          if (errorMessage.includes('logged in elsewhere') || 
+              errorDetail.includes('SESSION_CONFLICT')) {
             setSessionConflict({
               message: 'You have been logged out because you logged in elsewhere.',
             });
             clearAuth();
-            
-            // Visual feedback
-            if (typeof window !== 'undefined') {
-              const notification = document.createElement('div');
-              notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #ef4444;
-                color: white;
-                padding: 16px;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                z-index: 10000;
-                font-family: sans-serif;
-                max-width: 300px;
-              `;
-              notification.innerHTML = `
-                <strong>Session Expired</strong><br>
-                You have been logged out because you logged in elsewhere.
-              `;
-              document.body.appendChild(notification);
-              
-              setTimeout(() => {
-                if (notification.parentNode) {
-                  notification.parentNode.removeChild(notification);
-                }
-              }, 5000);
-            }
+          } else if (errorDetail.includes('Invalid or expired refresh token')) {
+            // Only clear for refresh token issues
+            console.log('🔄 Refresh token invalid, clearing auth');
+            clearAuth();
           }
         }
+        
         return Promise.reject(error);
       }
     );
@@ -162,7 +125,7 @@ export function AuthProvider({ children }) {
     };
   }, [clearAuth]);
 
-  // 🚀 FIXED: Enhanced token refresh with new refresh token handling
+  // Enhanced token refresh with new refresh token handling
   const refreshAndSchedule = useCallback(async () => {
     console.log('🔄 refreshAndSchedule called');
     try {
@@ -189,7 +152,7 @@ export function AuthProvider({ children }) {
       api.defaults.headers.common.Authorization = tempHeader;
       
       const newToken = res.data.access_token;
-      const newRefreshToken = res.data.refresh_token; // 🚀 Handle new refresh token
+      const newRefreshToken = res.data.refresh_token;
 
       if (!newToken || typeof newToken !== 'string' || !newToken.trim()) {
         throw new Error('Invalid token received from refresh endpoint');
@@ -201,7 +164,7 @@ export function AuthProvider({ children }) {
         throw new Error('Received expired token from refresh');
       }
 
-      // 🚀 FIXED: Store tokens - Update refresh token if provided
+      // Store tokens - Update refresh token if provided
       localStorage.setItem('access_token', newToken);
       if (newRefreshToken && newRefreshToken !== refreshToken) {
         localStorage.setItem('refresh_token', newRefreshToken);
@@ -223,17 +186,14 @@ export function AuthProvider({ children }) {
 
     } catch (err) {
       console.error('❌ Silent refresh failed:', err);
-      console.error('Error details:', err.response?.data || err.message);
       
-      // 🚀 FIX: Only clear auth for specific refresh errors
+      // Only clear auth for specific refresh errors
       if (err.response?.status === 401) {
         const errorDetail = err.response?.data?.detail || '';
         if (errorDetail.includes('Invalid or expired refresh token') || 
             errorDetail.includes('refresh token')) {
           console.log('🔄 Refresh token invalid, clearing auth');
           clearAuth();
-        } else {
-          console.log('🤷 401 but not refresh token issue, keeping auth');
         }
       } else {
         clearAuth();
@@ -322,15 +282,12 @@ export function AuthProvider({ children }) {
       });
   }, [token, clearAuth, initializing]);
 
-  // 🚀 FIXED: Enhanced login function with better debug logging
+  // FIXED: Completely rewritten login function
   const login = async ({ email, password }, forceNewSession = false) => {
     console.log('🔐 Login attempt for:', email);
     console.log('🌐 API base URL:', api.defaults.baseURL);
     
     try {
-      // Clear any existing auth state first
-      clearAuth();
-      
       const payload = { email, password };
       
       if (forceNewSession === true) {
@@ -340,6 +297,7 @@ export function AuthProvider({ children }) {
       
       console.log('📡 Making login request to: /api/auth/login');
       
+      // CRITICAL FIX: Don't clear auth before login - this was causing the issue!
       const res = await api.post('/api/auth/login', payload);
       console.log('✅ Login response:', res.status, 'Token received:', !!res.data.access_token);
       
@@ -372,10 +330,6 @@ export function AuthProvider({ children }) {
       if (refreshToken) {
         localStorage.setItem('refresh_token', refreshToken);
         console.log('🔄 Refresh token stored');
-        
-        // 🚀 ADD: Verify refresh token storage
-        const storedRefreshToken = localStorage.getItem('refresh_token');
-        console.log('🔍 Refresh token verification:', storedRefreshToken === refreshToken ? 'Match' : 'Mismatch');
       }
       
       // Set API header
@@ -390,25 +344,20 @@ export function AuthProvider({ children }) {
       if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
       window._refreshTimeout = setTimeout(() => refreshAndSchedule(), timeout);
 
-      console.log('👤 Fetching user profile after login');
-      
-      // Fetch user profile
-      const userRes = await api.get('/api/auth/me');
-      console.log('✅ User profile loaded:', userRes.data);
-      setUser(userRes.data);
-      
       console.log('🚀 Login successful, navigating to chats');
       navigate('/chats', { replace: true });
       
-      return { success: true, user: userRes.data };
+      return { success: true };
       
     } catch (error) {
       console.error('❌ Login failed:', error);
       console.error('Response data:', error.response?.data);
       console.error('Response status:', error.response?.status);
       
-      // Clean up any partial state
-      clearAuth();
+      // Only clear auth on actual login failure, not network issues
+      if (error.response?.status === 401) {
+        clearAuth();
+      }
       
       // Re-throw for component handling
       throw error;
@@ -429,13 +378,10 @@ export function AuthProvider({ children }) {
     console.log('📝 Registration attempt for:', email);
     
     try {
-      // Clear any existing auth state
-      clearAuth();
-      
       const res = await api.post('/api/auth/register', { 
         email, 
         password, 
-        name // Backend expects 'name' field
+        name
       });
       
       console.log('✅ Registration successful:', res.data);

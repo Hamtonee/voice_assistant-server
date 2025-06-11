@@ -16,14 +16,31 @@ const Login = () => {
   const passwordInputRef = useRef(null);
   const emailInputRef = useRef(null);
 
-  // Enhanced error message handler
+  // FIXED: Enhanced error message handler with better network error detection
   const getErrorMessage = (error) => {
-    const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || '';
+    console.log('🔍 Processing error:', error);
+    
+    const errorMsg = error.response?.data?.error || error.response?.data?.message || error.response?.data?.detail || error.message || '';
     const statusCode = error.response?.status;
 
-    // Handle specific error cases
+    // Network/Connection errors (most important for your issue)
+    if (!error.response || error.code === 'NETWORK_ERROR' || error.code === 'ECONNREFUSED') {
+      return 'Connection problem. Please check your internet connection and try again.';
+    }
+
+    if (error.name === 'AxiosError' && !statusCode) {
+      return 'Connection problem. Please check your internet connection and try again.';
+    }
+
+    // Timeout errors
+    if (error.code === 'ECONNABORTED' || errorMsg.toLowerCase().includes('timeout')) {
+      return 'Request timed out. Please try again.';
+    }
+
+    // Handle specific HTTP status codes
     if (statusCode === 401) {
-      if (errorMsg.toLowerCase().includes('invalid credentials')) {
+      if (errorMsg.toLowerCase().includes('invalid credentials') || 
+          errorMsg.toLowerCase().includes('incorrect email or password')) {
         return 'The email or password you entered is incorrect. Please check and try again.';
       }
       if (errorMsg.toLowerCase().includes('user not found')) {
@@ -40,9 +57,8 @@ const Login = () => {
       return 'Server error. Please try again in a moment.';
     }
 
-    // Network errors
-    if (errorMsg.toLowerCase().includes('network')) {
-      return 'Connection problem. Please check your internet and try again.';
+    if (statusCode === 0) {
+      return 'Connection problem. Please check your internet connection and try again.';
     }
 
     // Default fallback
@@ -118,13 +134,18 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Attempt login - only proceed if successful
+      console.log('🚀 Attempting login from Login component');
+      
+      // Attempt login
       await login({ email: form.email.trim(), password: form.password });
       
+      console.log('✅ Login successful from Login component perspective');
       // If we get here, login was successful
       // Navigation should be handled by AuthContext
       
     } catch (err) {
+      console.error('❌ Login failed in Login component:', err);
+      
       // Login failed - handle error and stay on page
       setLoading(false);
       
@@ -140,12 +161,14 @@ const Login = () => {
       
       // Smart focus management based on error type
       setTimeout(() => {
-        if (errorMessage.toLowerCase().includes('email') || errorMessage.toLowerCase().includes('account')) {
+        if (errorMessage.toLowerCase().includes('email') || 
+            errorMessage.toLowerCase().includes('account')) {
           if (emailInputRef.current) {
             emailInputRef.current.focus();
             emailInputRef.current.select();
           }
-        } else {
+        } else if (!errorMessage.toLowerCase().includes('connection')) {
+          // Don't focus password field for connection errors
           if (passwordInputRef.current) {
             passwordInputRef.current.focus();
             passwordInputRef.current.select();
@@ -157,7 +180,7 @@ const Login = () => {
       return;
     }
     
-    // Only set loading to false if login was successful
+    // This should only be reached if login was successful
     setLoading(false);
   };
 
@@ -261,6 +284,10 @@ const Login = () => {
                 >
                   create a new account
                 </button>
+              </small>
+            ) : error.toLowerCase().includes('connection') ? (
+              <small className="error-help-text">
+                Please check your internet connection and try again
               </small>
             ) : null}
           </div>
