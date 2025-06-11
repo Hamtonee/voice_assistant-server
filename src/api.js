@@ -4,12 +4,13 @@ import axios from 'axios';
 // 🌐 Base URL configuration (from .env or fallback)
 const BASE_URL =
   process.env.REACT_APP_API_BASE_URL?.replace(/\/+$/, '') || // strip trailing slash if any
-  'http://localhost:8000/api'; // FIXED: Changed from 5000 to 8000
+  'http://localhost:8000/api'; // Keep original path structure
 
 console.log('🌐 API Base URL:', BASE_URL); // Debug log
 
 const api = axios.create({
   baseURL: BASE_URL,
+  timeout: 15000, // Add timeout to handle slow responses
   withCredentials: true, // Send HTTP-only refresh cookie
 });
 
@@ -23,7 +24,7 @@ api.interceptors.request.use(
     console.log('📡 Request interceptor - Token:', token ? 'Present' : 'None');
     console.log('📡 Request URL:', config.baseURL + config.url);
     
-    if (token) {
+    if (token && token !== 'null' && token !== 'undefined') {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -33,6 +34,7 @@ api.interceptors.request.use(
 
 // ———————————————————————————————————————————————
 // 🚨 Global 401 handler → try refresh → retry original
+// FIXED: Don't interfere with auth endpoints
 // ———————————————————————————————————————————————
 api.interceptors.response.use(
   response => {
@@ -47,16 +49,19 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
     
-    // Don't try refresh on these endpoints
+    // FIXED: Don't try refresh on these endpoints - prevent interference with login
     const skipRefresh = [
       '/auth/login',
-      '/auth/register',
+      '/auth/register', 
       '/auth/forgot-password',
       '/auth/reset-password',
       '/auth/refresh',
     ];
     
-    if (skipRefresh.some(path => config.url?.endsWith(path))) {
+    // CRITICAL FIX: Check if this is an auth endpoint
+    const isAuthEndpoint = skipRefresh.some(path => config.url?.endsWith(path));
+    if (isAuthEndpoint) {
+      console.log('🔓 Skipping refresh for auth endpoint:', config.url);
       return Promise.reject(error);
     }
     
@@ -83,7 +88,11 @@ api.interceptors.response.use(
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       delete api.defaults.headers.common.Authorization;
-      window.location.href = '/login';
+      
+      // Don't redirect immediately during login process
+      if (!config.url?.includes('/auth/')) {
+        window.location.href = '/login';
+      }
       return Promise.reject(refreshError);
     }
   }
