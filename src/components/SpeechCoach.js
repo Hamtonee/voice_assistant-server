@@ -10,12 +10,12 @@ const API_RETRY_COUNT = 3;
 // Activity detection settings
 const USER_IDLE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
 const PROGRESS_FETCH_COOLDOWN = 30 * 1000; // 30 seconds minimum between fetches
+const DEBOUNCE_DELAY = 2000; // 2 seconds debounce for API calls
+const CACHE_DURATION = 60 * 1000; // 1 minute cache duration
 
-// ENHANCED Sidebar spawning constants
+// ENHANCED Sidebar spawning constants (simplified)
 const SIDEBAR_WIDTH = 300;
 const SIDEBAR_TRANSITION_DURATION = 300; // milliseconds
-const ELEMENT_SPAWN_DELAY = 100; // delay for elements to spawn after sidebar animation
-const ELEMENT_STAGGER_DELAY = 50; // stagger delay between elements
 
 // SECURE: Validate required API endpoints and use individual endpoint variables
 const validateAndGetApiEndpoints = () => {
@@ -40,16 +40,13 @@ const validateAndGetApiEndpoints = () => {
     );
   }
 
-  // Return individual endpoints
-  const endpoints = {
+  return {
     API_ENDPOINT: speechCoachEndpoint,
     DEEPSPEAK_ENDPOINT: deepSpeakEndpoint,
     USAGE_ENDPOINT: usageEndpoint,
     HEALTH_ENDPOINT: healthEndpoint,
     LEARNING_PROGRESS_ENDPOINT: learningProgressEndpoint
   };
-
-  return endpoints;
 };
 
 // Initialize endpoints with validation
@@ -58,7 +55,6 @@ try {
   ENDPOINTS = validateAndGetApiEndpoints();
 } catch (error) {
   console.error('❌ [API Configuration Error]:', error.message);
-  // Use fallback endpoints for demo
   ENDPOINTS = {
     API_ENDPOINT: '/api/speech-coach',
     DEEPSPEAK_ENDPOINT: '/api/deepspeak',
@@ -83,7 +79,7 @@ export default function EnhancedSpeechCoach({
   sessionId,
   selectedVoice,
   sidebarOpen,
-  onNewSession // New prop for handling new session creation
+  onNewSession
 }) {
   // Existing state
   const [isListening, setIsListening] = useState(false);
@@ -104,8 +100,8 @@ export default function EnhancedSpeechCoach({
   const [deepSpeakAvailable, setDeepSpeakAvailable] = useState(false);
   const [useDeepSpeak, setUseDeepSpeak] = useState(false);
 
-  // ENHANCED: Comprehensive session interaction tracking
-  const [sessionInteractionLevel, setSessionInteractionLevel] = useState('none'); // 'none', 'started', 'engaged', 'meaningful'
+  // SIMPLIFIED: Streamlined session interaction tracking
+  const [sessionInteractionLevel, setSessionInteractionLevel] = useState('none');
   const [interactionMetrics, setInteractionMetrics] = useState({
     messageCount: 0,
     speechAttempts: 0,
@@ -115,31 +111,10 @@ export default function EnhancedSpeechCoach({
     hasReceivedFeedback: false
   });
 
-  // Session state tracking for duplicate prevention - removed unused sessionState variable
-  const [, setSessionState] = useState({
-    isNew: true,
-    hasContent: false,
-    lastActivity: null,
-    isUnused: true
-  });
-
-  // ENHANCED Sidebar spawning state
+  // FIXED: Simplified sidebar and layout state
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [elementsVisible, setElementsVisible] = useState(true);
-  const [elementsSpawned, setElementsSpawned] = useState({
-    mic: true,
-    controls: true,
-    input: true,
-    progress: true
-  });
-  // Removed unused layoutDimensions variable
-  const [, setLayoutDimensions] = useState({
-    viewportWidth: window.innerWidth,
-    contentWidth: window.innerWidth - (sidebarOpen ? SIDEBAR_WIDTH : 0),
-    isMobile: window.innerWidth <= 768
-  });
 
-  // Learning progress state
+  // Learning progress state with caching
   const [learningProgress, setLearningProgress] = useState(null);
   const [showProgress, setShowProgress] = useState(false);
   const [vocabularyHighlight, setVocabularyHighlight] = useState(null);
@@ -164,10 +139,10 @@ export default function EnhancedSpeechCoach({
 
   // Enhanced user-friendly status state
   const [systemStatus, setSystemStatus] = useState({
-    microphone: 'checking', // checking, ready, denied, unavailable
-    speechRecognition: 'checking', // checking, ready, unsupported
-    connection: 'checking', // checking, connected, disconnected
-    overallStatus: 'initializing' // initializing, ready, issues, error
+    microphone: 'checking',
+    speechRecognition: 'checking',
+    connection: 'checking',
+    overallStatus: 'initializing'
   });
   const [showStatusPanel, setShowStatusPanel] = useState(false);
   const [permissionHelp, setPermissionHelp] = useState(null);
@@ -181,21 +156,21 @@ export default function EnhancedSpeechCoach({
   const isUnmountingRef = useRef(false);
   const lastResponseRef = useRef(null);
   
-  // Activity and polling prevention refs
+  // FIXED: Simplified activity and caching refs
   const lastProgressFetch = useRef(0);
+  const lastUsageFetch = useRef(0);
   const activityCheckInterval = useRef(null);
-  const progressFetchTimeout = useRef(null);
+  const conversationSaveTimeout = useRef(null);
+  const progressCache = useRef({ data: null, timestamp: 0 });
+  const usageCache = useRef({ data: null, timestamp: 0 });
 
   // Enhanced scrolling refs
   const conversationAreaRef = useRef(null);
   const scrollTimeoutRef = useRef(null);
   const autoScrollEnabled = useRef(true);
 
-  // ENHANCED Sidebar transition refs
+  // SIMPLIFIED: Basic sidebar transition refs
   const sidebarTransitionTimeout = useRef(null);
-  const elementSpawnTimeouts = useRef({});
-  const resizeObserver = useRef(null);
-  const previousSidebarState = useRef(sidebarOpen);
 
   // Session timing ref
   const sessionStartTime = useRef(Date.now());
@@ -209,13 +184,24 @@ export default function EnhancedSpeechCoach({
     return /iPad|iPhone|iPod/.test(navigator.userAgent);
   }, []);
 
-  // ENHANCED: Comprehensive interaction tracking system
+  // FIXED: Debounced API call helper
+  const debounce = useCallback((func, delay) => {
+    let timeoutId;
+    return (...args) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func.apply(null, args), delay);
+    };
+  }, []);
+
+  // FIXED: Cache helper
+  const isCacheValid = useCallback((cache, duration = CACHE_DURATION) => {
+    return cache.data && (Date.now() - cache.timestamp) < duration;
+  }, []);
+
+  // ENHANCED: Simplified interaction tracking
   const markUserInteraction = useCallback((interactionType, details = {}) => {
     const timestamp = Date.now();
     
-    console.log(`📊 [Speech Interaction Tracking] ${interactionType}:`, details);
-    
-    // Update interaction metrics
     setInteractionMetrics(prev => {
       const updated = {
         ...prev,
@@ -235,14 +221,13 @@ export default function EnhancedSpeechCoach({
           updated.hasReceivedFeedback = true;
           break;
         default:
-          // Handle any other interaction types
           break;
       }
       
       return updated;
     });
     
-    // Update interaction level based on activity
+    // Update interaction level
     const newLevel = (() => {
       if (interactionMetrics.messageCount >= 3 && interactionMetrics.hasReceivedFeedback) {
         return 'meaningful';
@@ -256,54 +241,22 @@ export default function EnhancedSpeechCoach({
     
     if (newLevel !== sessionInteractionLevel) {
       setSessionInteractionLevel(newLevel);
-      console.log(`🔄 [Interaction Level] Updated to: ${newLevel}`);
     }
-    
-    // Update session state
-    setSessionState(prev => ({
-      ...prev,
-      isNew: false,
-      hasContent: newLevel !== 'none',
-      lastActivity: timestamp,
-      isUnused: newLevel === 'none'
-    }));
     
     // Reset user activity tracking
     setLastUserActivity(timestamp);
     setIsUserActive(true);
   }, [sessionInteractionLevel, interactionMetrics]);
 
-  // ENHANCED: Smart session validation - determines if session is "meaningfully used"
+  // ENHANCED: Smart session validation
   const isSessionMeaningfullyUsed = useCallback(() => {
     const hasConversation = conversation.length > 0;
     const hasMeaningfulInteraction = sessionInteractionLevel === 'meaningful' || sessionInteractionLevel === 'engaged';
     const hasMinimumActivity = interactionMetrics.messageCount >= 1;
     const hasRecordedSpeech = interactionMetrics.hasRecordedSpeech;
-    const hasRecentActivity = interactionMetrics.lastInteractionTime && 
-      (Date.now() - interactionMetrics.lastInteractionTime) < (24 * 60 * 60 * 1000); // 24 hours
     
-    // Consider session "meaningfully used" if:
-    const isMeaningfullyUsed = 
-      hasConversation ||              // Has conversation history
-      hasMeaningfulInteraction ||     // Has reached meaningful interaction level
-      hasMinimumActivity ||           // Has sent at least one message
-      hasRecordedSpeech;              // Has attempted speech recognition
-    
-    console.log(`🔍 [Session Validation] Checking if speech session is meaningfully used:`, {
-      sessionId,
-      hasConversation,
-      hasMeaningfulInteraction,
-      hasMinimumActivity,
-      hasRecordedSpeech,
-      hasRecentActivity,
-      interactionLevel: sessionInteractionLevel,
-      messageCount: interactionMetrics.messageCount,
-      speechAttempts: interactionMetrics.speechAttempts,
-      result: isMeaningfullyUsed
-    });
-    
-    return isMeaningfullyUsed;
-  }, [conversation.length, sessionInteractionLevel, interactionMetrics, sessionId]);
+    return hasConversation || hasMeaningfulInteraction || hasMinimumActivity || hasRecordedSpeech;
+  }, [conversation.length, sessionInteractionLevel, interactionMetrics]);
 
   // Helper to get current voice configuration
   const getCurrentVoiceConfig = useCallback(() => {
@@ -326,7 +279,7 @@ export default function EnhancedSpeechCoach({
     };
   }, [selectedVoice]);
 
-  // TTS functions - define these first before they're used
+  // TTS functions
   const speakWithBrowserTTS = useCallback((text, voiceConfig, onEndCallback) => {
     const utterance = new window.SpeechSynthesisUtterance(text);
     
@@ -442,132 +395,23 @@ export default function EnhancedSpeechCoach({
     clearTimeout(timerRef.current);
   }, []);
 
-  // ENHANCED sidebar state management with proper spawning
+  // FIXED: Simplified sidebar state management
   const handleSidebarStateChange = useCallback((newSidebarState) => {
-    if (previousSidebarState.current === newSidebarState) return;
-    
-    console.log('🔄 [Sidebar Spawning] State changing:', { 
-      from: previousSidebarState.current, 
-      to: newSidebarState,
-      isMobile: isMobile()
-    });
-    
-    // Start transition
     setIsTransitioning(true);
-    
-    // Phase 1: Hide elements for smooth transition (desktop only)
-    if (!isMobile()) {
-      setElementsVisible(false);
-      setElementsSpawned({
-        mic: false,
-        controls: false,
-        input: false,
-        progress: false
-      });
-    }
-    
-    // Update layout dimensions immediately
-    setLayoutDimensions(prev => ({
-      ...prev,
-      contentWidth: window.innerWidth - (newSidebarState ? SIDEBAR_WIDTH : 0),
-      isMobile: isMobile()
-    }));
-    
-    // Clear any existing timeouts
-    Object.values(elementSpawnTimeouts.current).forEach(timeout => {
-      if (timeout) clearTimeout(timeout);
-    });
-    elementSpawnTimeouts.current = {};
     
     if (sidebarTransitionTimeout.current) {
       clearTimeout(sidebarTransitionTimeout.current);
     }
     
-    // Phase 2: Complete transition and spawn elements
     sidebarTransitionTimeout.current = setTimeout(() => {
       setIsTransitioning(false);
-      setElementsVisible(true);
-      
-      // Phase 3: Staggered element spawning for smooth appearance
-      if (!isMobile()) {
-        const elementOrder = ['controls', 'mic', 'input', 'progress'];
-        
-        elementOrder.forEach((element, index) => {
-          elementSpawnTimeouts.current[element] = setTimeout(() => {
-            setElementsSpawned(prev => ({
-              ...prev,
-              [element]: true
-            }));
-          }, index * ELEMENT_STAGGER_DELAY);
-        });
-      } else {
-        // Mobile: spawn all at once
-        setElementsSpawned({
-          mic: true,
-          controls: true,
-          input: true,
-          progress: true
-        });
-      }
-      
-      console.log('✅ [Sidebar Spawning] Transition completed');
-    }, SIDEBAR_TRANSITION_DURATION + ELEMENT_SPAWN_DELAY);
-    
-    previousSidebarState.current = newSidebarState;
-  }, [isMobile]);
+    }, SIDEBAR_TRANSITION_DURATION);
+  }, []);
 
   // Monitor sidebar prop changes
   useEffect(() => {
     handleSidebarStateChange(sidebarOpen);
   }, [sidebarOpen, handleSidebarStateChange]);
-
-  // ENHANCED layout dimension monitoring with spawning awareness
-  useEffect(() => {
-    const updateLayoutDimensions = () => {
-      const newDimensions = {
-        viewportWidth: window.innerWidth,
-        contentWidth: window.innerWidth - (sidebarOpen ? SIDEBAR_WIDTH : 0),
-        isMobile: window.innerWidth <= 768
-      };
-      
-      setLayoutDimensions(prev => {
-        if (prev.isMobile !== newDimensions.isMobile) {
-          console.log('📱 [Sidebar Spawning] Mobile state changed:', newDimensions.isMobile);
-          
-          // Reset spawning state on mobile change
-          if (newDimensions.isMobile) {
-            setElementsSpawned({
-              mic: true,
-              controls: true,
-              input: true,
-              progress: true
-            });
-          }
-        }
-        return newDimensions;
-      });
-    };
-
-    // Create ResizeObserver for more efficient monitoring
-    if (window.ResizeObserver) {
-      resizeObserver.current = new ResizeObserver(updateLayoutDimensions);
-      resizeObserver.current.observe(document.body);
-    } else {
-      // Fallback to resize event
-      window.addEventListener('resize', updateLayoutDimensions);
-    }
-
-    // Initial update
-    updateLayoutDimensions();
-
-    return () => {
-      if (resizeObserver.current) {
-        resizeObserver.current.disconnect();
-      } else {
-        window.removeEventListener('resize', updateLayoutDimensions);
-      }
-    };
-  }, [sidebarOpen]);
 
   // Enhanced system status checker
   const checkSystemStatus = useCallback(async () => {
@@ -600,7 +444,6 @@ export default function EnhancedSpeechCoach({
           newStatus.microphone = 'needs_permission';
         }
       } else {
-        // Fallback: try to access microphone
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           stream.getTracks().forEach(track => track.stop());
@@ -617,7 +460,7 @@ export default function EnhancedSpeechCoach({
       newStatus.microphone = 'unavailable';
     }
 
-    // Check connection (simple test using health endpoint)
+    // Check connection
     try {
       const testResponse = await fetch(HEALTH_ENDPOINT, { 
         method: 'HEAD',
@@ -640,8 +483,6 @@ export default function EnhancedSpeechCoach({
     }
 
     setSystemStatus(newStatus);
-    console.log('✅ System status updated:', newStatus);
-    
     return newStatus;
   }, []);
 
@@ -683,7 +524,6 @@ export default function EnhancedSpeechCoach({
       };
     }
     
-    // Generic fallback
     return {
       title: "Something Went Wrong",
       message: "Don't worry, let's try again!",
@@ -723,218 +563,67 @@ export default function EnhancedSpeechCoach({
     setPermissionHelp(helpInfo[type] || helpInfo.microphone);
   }, [isMobile]);
 
-  // Load existing conversation from API on component mount
-  useEffect(() => {
-    const loadConversationFromAPI = async () => {
+  // FIXED: Consolidated and debounced learning progress fetcher
+  const fetchLearningProgress = useCallback(
+    debounce(async (userInitiated = false) => {
+      // Check cache first
+      if (!userInitiated && isCacheValid(progressCache.current)) {
+        return progressCache.current.data;
+      }
+
+      // Don't fetch if user is idle and this isn't user-initiated
+      if (!userInitiated && !isUserActive) {
+        return;
+      }
+
+      // Prevent excessive fetching
+      const now = Date.now();
+      if (now - lastProgressFetch.current < PROGRESS_FETCH_COOLDOWN) {
+        return;
+      }
+
       try {
-        const { data } = await api.fetchSpeechSession(sessionId);
-        if (data.messages && data.messages.length > 0) {
-          const normalized = data.messages.map(msg => ({
-            sender: msg.role === 'user' ? 'user' : 'coach',
-            text: msg.text,
-            timestamp: msg.timestamp || Date.now(),
-            corrected: msg.corrected,
-            voiceUsed: msg.voiceUsed,
-            learningProgress: msg.learningProgress,
-            saved: true // Mark as already saved
-          }));
-          setConversation(normalized);
-          
-          // Mark session as restored with content
-          markUserInteraction('session_restored', { messageCount: normalized.length });
+        const url = new URL(`${LEARNING_PROGRESS_ENDPOINT}/${sessionId}`);
+        if (userInitiated) {
+          url.searchParams.set('user_initiated', 'true');
         }
-      } catch (error) {
-        // Session doesn't exist yet or API error, fall back to localStorage
-        console.log('No API session found, using localStorage data');
+
+        const response = await fetch(url.toString());
         
-        // Check if localStorage has content
-        if (conversation.length > 0) {
-          markUserInteraction('session_restored', { source: 'localStorage', messageCount: conversation.length });
-        }
-      }
-    };
-
-    // Try to load from API first, then fall back to localStorage
-    if (sessionId) {
-      loadConversationFromAPI();
-    }
-  }, [sessionId, markUserInteraction, conversation.length]);
-
-  // Save conversation to API whenever it changes
-  useEffect(() => {
-    const saveToAPI = async () => {
-      if (conversation.length === 0) return;
-      
-      try {
-        // Create session if it doesn't exist
-        try {
-          await api.fetchSpeechSession(sessionId);
-        } catch (error) {
-          if (error.response?.status === 404) {
-            await api.createSpeechSession({
-              title: `Speech Session ${new Date().toLocaleDateString()}`,
-              voiceConfig: getCurrentVoiceConfig()
-            });
-          }
-        }
-
-        // Save the latest message if it's not already saved
-        const lastMessage = conversation[conversation.length - 1];
-        if (lastMessage && !lastMessage.saved && !lastMessage.loading) {
-          await api.addSpeechMessage(sessionId, {
-            role: lastMessage.sender === 'user' ? 'user' : 'assistant',
-            text: lastMessage.text,
-            voiceUsed: lastMessage.voiceUsed,
-            corrected: lastMessage.corrected,
-            learningProgress: lastMessage.learningProgress
-          });
-          
-          // Mark as saved to avoid duplicate saves
-          setConversation(prev => prev.map((msg, index) => 
-            index === prev.length - 1 ? { ...msg, saved: true } : msg
-          ));
-        }
-      } catch (error) {
-        console.error('Failed to save to API:', error);
-        // Fall back to localStorage only
-      }
-    };
-
-    // Debounce API saves
-    const timeoutId = setTimeout(saveToAPI, 1000);
-    return () => clearTimeout(timeoutId);
-  }, [conversation, sessionId, getCurrentVoiceConfig]);
-
-  // Fetch usage summary on component mount and periodically
-  useEffect(() => {
-    const fetchUsageSummaryPeriodic = async () => {
-      try {
-        const response = await fetch(USAGE_ENDPOINT);
         if (response.ok) {
           const data = await response.json();
-          setUsageSummary(data.usage_summary);
           
-          // Check if user is close to speech coach limit
-          const speechCoachUsage = data.usage_summary.speech_coach;
-          if (speechCoachUsage && speechCoachUsage.remaining <= 3 && speechCoachUsage.remaining > 0) {
-            setShowUsageWarning(true);
-          }
+          // Update cache
+          progressCache.current = {
+            data: data.progress,
+            timestamp: now
+          };
+          
+          setLearningProgress(data.progress);
+          setSessionStats({
+            interactions: data.progress.total_interactions,
+            vocabularyLearned: data.progress.vocabulary_learned,
+            proverbsShared: data.progress.proverbs_shared,
+            sessionDuration: data.progress.session_duration_minutes
+          });
+          lastProgressFetch.current = now;
+          
+          return data.progress;
         }
       } catch (error) {
-        console.error('Failed to fetch usage summary:', error);
+        console.warn('Failed to fetch learning progress:', error);
       }
-    };
+    }, DEBOUNCE_DELAY),
+    [sessionId, isUserActive, isCacheValid]
+  );
 
-    fetchUsageSummaryPeriodic();
-    
-    // Fetch usage summary every 30 minutes
-    const intervalId = setInterval(fetchUsageSummaryPeriodic, 30 * 60 * 1000);
-    
-    return () => clearInterval(intervalId);
-  }, []);
-
-  // Enhanced scrolling functions
-  const scrollToBottom = useCallback((behavior = 'smooth') => {
-    if (conversationAreaRef.current) {
-      conversationAreaRef.current.scrollTo({
-        top: conversationAreaRef.current.scrollHeight,
-        behavior: behavior
-      });
-    }
-  }, []);
-
-  const checkScrollPosition = useCallback(() => {
-    if (!conversationAreaRef.current) return;
-    
-    const { scrollTop, scrollHeight, clientHeight } = conversationAreaRef.current;
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-    const shouldShowButton = scrollHeight > clientHeight + 50 && !isNearBottom;
-    
-    setShowScrollToBottom(shouldShowButton);
-    
-    // Disable auto-scroll if user manually scrolled up
-    if (!isNearBottom && scrollTop > 0) {
-      autoScrollEnabled.current = false;
-      // Re-enable auto-scroll after 3 seconds of no manual scrolling
-      clearTimeout(scrollTimeoutRef.current);
-      scrollTimeoutRef.current = setTimeout(() => {
-        autoScrollEnabled.current = true;
-      }, 3000);
-    }
-  }, []);
-
-  const handleScroll = useCallback(() => {
-    checkScrollPosition();
-  }, [checkScrollPosition]);
-
-  const forceScrollToBottom = useCallback(() => {
-    autoScrollEnabled.current = true;
-    scrollToBottom('smooth');
-  }, [scrollToBottom]);
-
-  // Fetch learning progress (with user-initiated flag)
-  const fetchLearningProgress = useCallback(async (userInitiated = false) => {
-    // Don't fetch if user is idle and this isn't user-initiated
-    if (!userInitiated && !isUserActive) {
-      return;
-    }
-
-    // Prevent excessive fetching
-    const now = Date.now();
-    if (now - lastProgressFetch.current < PROGRESS_FETCH_COOLDOWN) {
-      return;
-    }
-
-    try {
-      const url = new URL(`${LEARNING_PROGRESS_ENDPOINT}/${sessionId}`);
-      if (userInitiated) {
-        url.searchParams.set('user_initiated', 'true');
-      }
-
-      const response = await fetch(url.toString());
-      
-      if (response.ok) {
-        const data = await response.json();
-        setLearningProgress(data.progress);
-        setSessionStats({
-          interactions: data.progress.total_interactions,
-          vocabularyLearned: data.progress.vocabulary_learned,
-          proverbsShared: data.progress.proverbs_shared,
-          sessionDuration: data.progress.session_duration_minutes
-        });
-        lastProgressFetch.current = now;
-        
-        if (userInitiated) {
-          console.log('📊 Learning progress updated (user-initiated)');
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to fetch learning progress:', error);
-    }
-  }, [sessionId, isUserActive]);
-
-  // Track user activity with interaction flag
+  // FIXED: Simplified user activity tracking
   const markUserActivity = useCallback(() => {
     const now = Date.now();
     setLastUserActivity(now);
     setIsUserActive(true);
-    
-    // Mark as user interaction for session management
     markUserInteraction('user_activity', { timestamp: now });
-    
-    // Clear any pending progress fetch
-    if (progressFetchTimeout.current) {
-      clearTimeout(progressFetchTimeout.current);
-      progressFetchTimeout.current = null;
-    }
-    
-    // Schedule a progress fetch after activity (but not immediately to avoid spam)
-    progressFetchTimeout.current = setTimeout(() => {
-      if (now - lastProgressFetch.current > PROGRESS_FETCH_COOLDOWN) {
-        fetchLearningProgress(true); // Mark as user-initiated
-      }
-    }, 1000); // Wait 1 second after activity
-  }, [fetchLearningProgress, markUserInteraction]);
+  }, [markUserInteraction]);
 
   // Check if user is currently active
   const checkUserActivity = useCallback(() => {
@@ -943,47 +632,54 @@ export default function EnhancedSpeechCoach({
     
     if (isActive !== isUserActive) {
       setIsUserActive(isActive);
-      if (!isActive) {
-        console.log('🔇 User is now idle, stopping automatic progress fetching');
-        // Clear any pending progress fetches
-        if (progressFetchTimeout.current) {
-          clearTimeout(progressFetchTimeout.current);
-          progressFetchTimeout.current = null;
-        }
-      } else {
-        console.log('👤 User is now active, resuming progress tracking');
-      }
     }
   }, [lastUserActivity, isUserActive]);
 
-  // Fetch usage summary
-  const fetchUsageSummary = useCallback(async () => {
-    try {
-      const response = await fetch(USAGE_ENDPOINT);
-      if (response.ok) {
-        const data = await response.json();
-        setUsageSummary(data.usage_summary);
-        console.log('📈 Usage summary updated');
+  // FIXED: Consolidated and cached usage summary fetcher
+  const fetchUsageSummary = useCallback(
+    debounce(async () => {
+      // Check cache first
+      if (isCacheValid(usageCache.current)) {
+        return usageCache.current.data;
       }
-    } catch (error) {
-      console.warn('Failed to fetch usage summary:', error);
-    }
-  }, []);
+
+      try {
+        const response = await fetch(USAGE_ENDPOINT);
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Update cache
+          usageCache.current = {
+            data: data.usage_summary,
+            timestamp: Date.now()
+          };
+          
+          setUsageSummary(data.usage_summary);
+          
+          // Check if user is close to speech coach limit
+          const speechCoachUsage = data.usage_summary.speech_coach;
+          if (speechCoachUsage && speechCoachUsage.remaining <= 3 && speechCoachUsage.remaining > 0) {
+            setShowUsageWarning(true);
+          }
+          
+          return data.usage_summary;
+        }
+      } catch (error) {
+        console.error('Failed to fetch usage summary:', error);
+      }
+    }, DEBOUNCE_DELAY),
+    [isCacheValid]
+  );
 
   // Handle daily limit exceeded
   const handleDailyLimitExceeded = useCallback((limitInfo) => {
     setDailyLimitStatus(limitInfo);
     setShowLimitModal(true);
-    
-    // Fetch current usage summary
     fetchUsageSummary();
-    
-    console.warn('⚠️ Daily limit exceeded:', limitInfo);
   }, [fetchUsageSummary]);
 
   // Extract educational highlights from response
   const extractEducationalHighlights = useCallback((responseText) => {
-    // Look for vocabulary introductions
     const vocabMatch = responseText.match(/here's a powerful word: ['"]([^'"]+)['"] means ([^.]+)/i);
     if (vocabMatch) {
       setVocabularyHighlight({
@@ -994,7 +690,6 @@ export default function EnhancedSpeechCoach({
       setTimeout(() => setVocabularyHighlight(null), 8000);
     }
 
-    // Look for proverbs
     const proverbMatch = responseText.match(/reminds me of the wisdom: ['"]([^'"]+)['"] - ([^.]+)/i);
     if (proverbMatch) {
       setProverbHighlight({
@@ -1006,28 +701,19 @@ export default function EnhancedSpeechCoach({
     }
   }, []);
 
-  // ENHANCED: Smart conversation clearing with validation
+  // ENHANCED: Smart conversation clearing
   const clearConversation = useCallback(() => {
     const isMeaningfullyUsed = isSessionMeaningfullyUsed();
     
-    console.log('🔄 [Clear Conversation] Checking if should clear:', {
-      sessionId,
-      isMeaningfullyUsed,
-      interactionLevel: sessionInteractionLevel,
-      messageCount: conversation.length
-    });
-    
     if (!isMeaningfullyUsed) {
-      // No meaningful content, just notify user
-      console.log('📝 [Session Management] No meaningful content to clear');
       return;
     }
     
-    markUserActivity(); // Mark as user activity
+    markUserActivity();
     setConversation([]);
     setActiveCoachIndex(null);
     lastResponseRef.current = null;
-    autoScrollEnabled.current = true; // Re-enable auto-scroll
+    autoScrollEnabled.current = true;
     
     // Reset interaction tracking
     setSessionInteractionLevel('none');
@@ -1046,135 +732,63 @@ export default function EnhancedSpeechCoach({
     } catch (error) {
       // Ignore localStorage errors
     }
-    
-    console.log('🗑️ [Conversation] Cleared for session:', sessionId);
-  }, [isSessionMeaningfullyUsed, sessionId, sessionInteractionLevel, conversation.length, markUserActivity]);
+  }, [isSessionMeaningfullyUsed, markUserActivity]);
 
-  // ENHANCED positioning functions with sidebar spawning awareness
-  const getElementSpawnStyle = useCallback((elementType, baseStyle = {}) => {
-    const isSpawned = elementsSpawned[elementType];
-    const isDesktop = !isMobile();
-    
-    return {
-      ...baseStyle,
-      opacity: elementsVisible && isSpawned ? 1 : (isDesktop ? 0 : 1),
-      transform: `translateY(${elementsVisible && isSpawned ? 0 : (isDesktop ? 10 : 0)}px) scale(${elementsVisible && isSpawned ? 1 : (isDesktop ? 0.95 : 1)})`,
-      transition: `all ${SIDEBAR_TRANSITION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-      pointerEvents: elementsVisible && isSpawned ? 'auto' : (isDesktop ? 'none' : 'auto')
-    };
-  }, [elementsVisible, elementsSpawned, isMobile]);
+  // FIXED: Simplified positioning functions
+  const getBottomOffset = useCallback((baseOffset) => {
+    return showProgress ? baseOffset + 200 : baseOffset;
+  }, [showProgress]);
 
-  const getMicWrapperStyle = useCallback(() => {
-    const isDesktop = window.innerWidth > 768;
-    const micBottomOffset = showProgress ? 240 : 90;
-    
-    const baseStyle = {
-      position: 'fixed',
-      bottom: `${micBottomOffset}px`,
-      left: sidebarOpen && isDesktop ? `${SIDEBAR_WIDTH}px` : '0',
-      right: '0',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 930,
-      pointerEvents: 'none'
-    };
-    
-    return getElementSpawnStyle('mic', baseStyle);
-  }, [sidebarOpen, showProgress, getElementSpawnStyle]);
+  const getSidebarOffset = useCallback((isDesktop) => {
+    return sidebarOpen && isDesktop ? SIDEBAR_WIDTH : 0;
+  }, [sidebarOpen]);
 
-  const getSpeechInputStyle = useCallback(() => {
-    const isDesktop = window.innerWidth > 768;
-    const inputBottomOffset = showProgress ? 230 : 80;
-    const chatPadding = 16;
-    
-    const baseStyle = {
-      position: 'fixed',
-      bottom: `${inputBottomOffset}px`,
-      left: sidebarOpen && isDesktop ? `${SIDEBAR_WIDTH + chatPadding}px` : `${chatPadding}px`,
-      right: `${chatPadding}px`,
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-      padding: '0.6rem 1rem',
-      background: 'white',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-      borderRadius: '12px',
-      zIndex: 950,
-      border: '1px solid #ddd',
-      pointerEvents: 'auto',
-      boxSizing: 'border-box'
-    };
-    
-    return getElementSpawnStyle('input', baseStyle);
-  }, [sidebarOpen, showProgress, getElementSpawnStyle]);
+  // FIXED: Debounced conversation saving
+  const saveConversationDebounced = useCallback(
+    debounce(async (conversationData) => {
+      if (conversationData.length === 0) return;
+      
+      try {
+        // Create session if it doesn't exist
+        try {
+          await api.fetchSpeechSession(sessionId);
+        } catch (error) {
+          if (error.response?.status === 404) {
+            await api.createSpeechSession({
+              title: `Speech Session ${new Date().toLocaleDateString()}`,
+              voiceConfig: getCurrentVoiceConfig()
+            });
+          }
+        }
 
-  const getControlsStyle = useCallback(() => {
-    const isDesktop = window.innerWidth > 768;
-    const controlsHeight = showProgress ? 270 : 140;
-    
-    const baseStyle = {
-      position: 'fixed',
-      bottom: '0',
-      left: sidebarOpen && isDesktop ? `${SIDEBAR_WIDTH}px` : '0',
-      right: '0',
-      height: `${controlsHeight}px`,
-      background: 'linear-gradient(to bottom, rgba(250,250,250,0) 0%, rgba(250,250,250,0.8) 15%, rgba(250,250,250,0.95) 30%, rgba(250,250,250,1) 60%)',
-      zIndex: 900,
-      pointerEvents: 'none'
-    };
-    
-    return getElementSpawnStyle('controls', baseStyle);
-  }, [sidebarOpen, showProgress, getElementSpawnStyle]);
+        // Save the latest message if it's not already saved
+        const lastMessage = conversationData[conversationData.length - 1];
+        if (lastMessage && !lastMessage.saved && !lastMessage.loading) {
+          await api.addSpeechMessage(sessionId, {
+            role: lastMessage.sender === 'user' ? 'user' : 'assistant',
+            text: lastMessage.text,
+            voiceUsed: lastMessage.voiceUsed,
+            corrected: lastMessage.corrected,
+            learningProgress: lastMessage.learningProgress
+          });
+          
+          // Mark as saved
+          setConversation(prev => prev.map((msg, index) => 
+            index === prev.length - 1 ? { ...msg, saved: true } : msg
+          ));
+        }
+      } catch (error) {
+        console.error('Failed to save to API:', error);
+      }
+    }, DEBOUNCE_DELAY),
+    [sessionId, getCurrentVoiceConfig]
+  );
 
-  const getControlsBarStyle = useCallback(() => {
-    const isDesktop = window.innerWidth > 768;
-    const chatPadding = 16;
-    
-    const baseStyle = {
-      position: 'fixed',
-      bottom: showProgress ? '200px' : '0',
-      left: sidebarOpen && isDesktop ? `${SIDEBAR_WIDTH + (isDesktop ? chatPadding : 0)}px` : `${isDesktop ? chatPadding : 0}px`,
-      right: `${isDesktop ? chatPadding : 0}px`,
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: '16px',
-      zIndex: 960,
-      padding: isDesktop ? '0' : '16px'
-    };
-    
-    return getElementSpawnStyle('controls', baseStyle);
-  }, [sidebarOpen, showProgress, getElementSpawnStyle]);
-
-  const getProgressPanelStyle = useCallback(() => {
-    const isDesktop = window.innerWidth > 768;
-    const chatPadding = 16;
-    
-    const baseStyle = {
-      position: 'fixed',
-      bottom: '140px',
-      left: sidebarOpen && isDesktop ? `${SIDEBAR_WIDTH + chatPadding}px` : `${chatPadding}px`,
-      right: `${chatPadding}px`,
-      background: 'white',
-      borderRadius: '12px',
-      padding: '16px',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-      border: '1px solid #e0e0e0',
-      zIndex: 920,
-      maxWidth: sidebarOpen && isDesktop ? '100%' : '1200px',
-      margin: sidebarOpen && isDesktop ? '0' : '0 auto'
-    };
-    
-    return getElementSpawnStyle('progress', baseStyle);
-  }, [sidebarOpen, getElementSpawnStyle]);
-
-  // Enhanced send message with daily limit checking and interaction tracking
+  // Enhanced send message function
   const sendMessage = useCallback(async (text) => {
     const final = text.trim();
     if (!final || final.length < 2) return;
     
-    // Mark user activity and meaningful interaction
     markUserActivity();
     markUserInteraction('message_sent', { messageLength: final.length });
     
@@ -1222,7 +836,6 @@ export default function EnhancedSpeechCoach({
         
         clearTimeout(timeoutId);
         
-        // Check for daily limit exceeded
         if (res.status === 429) {
           const errorData = await res.json();
           if (errorData.error === "Daily limit exceeded") {
@@ -1238,11 +851,15 @@ export default function EnhancedSpeechCoach({
         
         const data = await res.json();
         
-        // Mark feedback received
         markUserInteraction('feedback_received', { hasLearningProgress: !!data.learning_progress });
         
-        // Update learning progress if available
+        // Update cached data
         if (data.learning_progress) {
+          progressCache.current = {
+            data: data.learning_progress,
+            timestamp: Date.now()
+          };
+          
           setLearningProgress(data.learning_progress);
           setSessionStats({
             interactions: data.learning_progress.total_interactions,
@@ -1252,9 +869,12 @@ export default function EnhancedSpeechCoach({
           });
         }
         
-        // Update usage info if available
         if (data.usage_info) {
-          console.log('📊 Usage info updated:', data.usage_info);
+          usageCache.current = {
+            data: { ...usageSummary, speech_coach: data.usage_info },
+            timestamp: Date.now()
+          };
+          
           setUsageSummary(prev => ({
             ...prev,
             speech_coach: data.usage_info
@@ -1292,7 +912,6 @@ export default function EnhancedSpeechCoach({
       const result = await makeApiRequest();
       lastResponseRef.current = result;
       
-      // Extract educational highlights
       extractEducationalHighlights(result.text);
       
       setConversation(prev => {
@@ -1356,13 +975,12 @@ export default function EnhancedSpeechCoach({
       });
       setIsProcessing(false);
     }
-  }, [conversation, markUserActivity, markUserInteraction, getCurrentVoiceConfig, sessionId, handleDailyLimitExceeded, extractEducationalHighlights, speakText, stopMicrophone]);
+  }, [conversation, markUserActivity, markUserInteraction, getCurrentVoiceConfig, sessionId, handleDailyLimitExceeded, extractEducationalHighlights, speakText, stopMicrophone, usageSummary]);
 
-  // Enhanced microphone functions with mobile support and interaction tracking
+  // Enhanced microphone functions
   const startMicrophone = useCallback(() => {
     if (!isSpeechSupported || isProcessing) return;
     
-    // Mark user activity and speech interaction
     markUserActivity();
     markUserInteraction('speech_started');
     
@@ -1376,7 +994,6 @@ export default function EnhancedSpeechCoach({
       return;
     }
     
-    // Clean up any existing recognition
     if (recognitionRef.current) {
       try { 
         recognitionRef.current.abort(); 
@@ -1388,22 +1005,17 @@ export default function EnhancedSpeechCoach({
 
     const recognition = new SR();
     
-    // Enhanced mobile-friendly configuration
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
-    
-    // Mobile-specific optimizations
     recognition.maxAlternatives = 1;
     
-    // For iOS Safari - sometimes needs these settings
     if (isIOS()) {
-      recognition.continuous = false; // iOS works better with non-continuous
-      recognition.interimResults = false; // iOS can be unstable with interim results
+      recognition.continuous = false;
+      recognition.interimResults = false;
     }
 
     recognition.onstart = () => {
-      console.log('🎤 Speech recognition started');
       setIsListening(true);
       setErrorMessage(null);
       finalSegments.current = [];
@@ -1411,7 +1023,7 @@ export default function EnhancedSpeechCoach({
     };
 
     recognition.onresult = (event) => {
-      markUserActivity(); // Mark activity on speech input
+      markUserActivity();
       
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -1433,7 +1045,6 @@ export default function EnhancedSpeechCoach({
     };
 
     recognition.onend = () => {
-      console.log('🎤 Speech recognition ended');
       setIsListening(false);
     };
     
@@ -1441,7 +1052,6 @@ export default function EnhancedSpeechCoach({
       console.error('Speech recognition error:', event.error);
       setIsListening(false);
       
-      // Enhanced mobile error handling with user-friendly messages
       const friendlyError = generateUserFriendlyError(event.error, 'speech recognition');
       setErrorMessage(friendlyError);
       
@@ -1454,11 +1064,9 @@ export default function EnhancedSpeechCoach({
 
     recognitionRef.current = recognition;
     
-    // Enhanced start with error handling
     try {
       recognition.start();
       setIsListening(true);
-      console.log('🎤 Starting speech recognition...');
     } catch (error) {
       console.error('Failed to start speech recognition:', error);
       const friendlyError = generateUserFriendlyError(error.message, 'start recognition');
@@ -1470,7 +1078,6 @@ export default function EnhancedSpeechCoach({
   const replayMessage = useCallback((messageText, useServer = false) => {
     if (isPlaying) return;
     
-    // Mark user activity
     markUserActivity();
     markUserInteraction('message_replay', { useServer });
     
@@ -1482,48 +1089,24 @@ export default function EnhancedSpeechCoach({
     }, useServer);
   }, [isPlaying, markUserActivity, markUserInteraction, speakText, cancelSpeech]);
 
-  // ENHANCED: Handle creating a new speech session with comprehensive validation
+  // ENHANCED: Handle creating a new speech session
   const handleNewSession = useCallback(() => {
     const isMeaningfullyUsed = isSessionMeaningfullyUsed();
     
-    console.log('🔄 [New Speech Session Request] Evaluating current session:', {
-      sessionId,
-      isMeaningfullyUsed,
-      interactionLevel: sessionInteractionLevel,
-      messageCount: interactionMetrics.messageCount,
-      speechAttempts: interactionMetrics.speechAttempts,
-      hasContent: conversation.length > 0
-    });
-    
     if (!isMeaningfullyUsed) {
-      // Current session is not meaningfully used, don't create new one
-      console.log('📝 [Session Management] Current speech session unused - staying in same session');
-      
-      // Just clear the conversation but keep session ID
       clearConversation();
       return;
     }
     
-    // Current session has meaningful content, create new session
-    console.log('🆕 [Session Management] Creating new speech session due to meaningful usage');
-    
-    // Clear current conversation
     clearConversation();
     
-    // Notify parent component to create new session
     if (onNewSession) {
       const newSessionId = `speech_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       onNewSession(newSessionId);
     }
-    
-    console.log('🆕 [Session Management] New speech session request sent to parent');
-  }, [isSessionMeaningfullyUsed, sessionId, sessionInteractionLevel, interactionMetrics, conversation.length, onNewSession, clearConversation]);
+  }, [isSessionMeaningfullyUsed, onNewSession, clearConversation]);
 
-  // Enhanced toggle function with mobile considerations and interaction tracking
   const toggleMicrophone = useCallback(() => {
-    console.log('🎤 Toggle microphone clicked', { isListening, isPlaying, isSpeechSupported });
-    
-    // Mark as user interaction
     markUserActivity();
     
     if (isPlaying) { 
@@ -1537,51 +1120,108 @@ export default function EnhancedSpeechCoach({
     } else {
       startMicrophone();
     }
-  }, [isListening, isPlaying, isSpeechSupported, markUserActivity, startMicrophone, stopMicrophone, cancelSpeech]);
+  }, [isListening, isPlaying, markUserActivity, startMicrophone, stopMicrophone, cancelSpeech]);
 
-  // Enhanced conversation saving
+  // Load existing conversation from API on component mount
   useEffect(() => {
-    try { 
-      const toSave = conversation.slice(-50).map(msg => ({
-        ...msg,
-        voiceUsed: msg.voiceUsed || getCurrentVoiceConfig()
-      }));
-      localStorage.setItem(`speech_coach_${sessionId}`, JSON.stringify(toSave));
-    } catch (error) {
-      console.warn('Failed to save conversation:', error);
+    const loadConversationFromAPI = async () => {
+      try {
+        const { data } = await api.fetchSpeechSession(sessionId);
+        if (data.messages && data.messages.length > 0) {
+          const normalized = data.messages.map(msg => ({
+            sender: msg.role === 'user' ? 'user' : 'coach',
+            text: msg.text,
+            timestamp: msg.timestamp || Date.now(),
+            corrected: msg.corrected,
+            voiceUsed: msg.voiceUsed,
+            learningProgress: msg.learningProgress,
+            saved: true
+          }));
+          setConversation(normalized);
+          markUserInteraction('session_restored', { messageCount: normalized.length });
+        }
+      } catch (error) {
+        if (conversation.length > 0) {
+          markUserInteraction('session_restored', { source: 'localStorage', messageCount: conversation.length });
+        }
+      }
+    };
+
+    if (sessionId) {
+      loadConversationFromAPI();
     }
-  }, [conversation, sessionId, getCurrentVoiceConfig]);
+  }, [sessionId, markUserInteraction, conversation.length]);
 
-  // Auto-scroll on conversation updates
+  // FIXED: Debounced conversation saving
   useEffect(() => {
-    if (autoScrollEnabled.current && conversation.length > 0) {
-      // Delay scroll to ensure DOM is updated
-      setTimeout(() => {
-        scrollToBottom('smooth');
-      }, 100);
-    }
-  }, [conversation, scrollToBottom]);
-
-  // Setup scroll monitoring
-  useEffect(() => {
-    const conversationArea = conversationAreaRef.current;
-    if (conversationArea) {
-      conversationArea.addEventListener('scroll', handleScroll);
-      // Initial check
-      checkScrollPosition();
+    if (conversation.length > 0) {
+      // Save to localStorage immediately
+      try { 
+        const toSave = conversation.slice(-50).map(msg => ({
+          ...msg,
+          voiceUsed: msg.voiceUsed || getCurrentVoiceConfig()
+        }));
+        localStorage.setItem(`speech_coach_${sessionId}`, JSON.stringify(toSave));
+      } catch (error) {
+        console.warn('Failed to save conversation to localStorage:', error);
+      }
       
-      return () => {
-        conversationArea.removeEventListener('scroll', handleScroll);
-      };
+      // Debounced API save
+      saveConversationDebounced(conversation);
     }
-  }, [handleScroll, checkScrollPosition]);
+  }, [conversation, sessionId, getCurrentVoiceConfig, saveConversationDebounced]);
+
+  // FIXED: Simplified fetch usage summary on mount
+  useEffect(() => {
+    fetchUsageSummary();
+    
+    // Fetch usage summary every 30 minutes
+    const intervalId = setInterval(fetchUsageSummary, 30 * 60 * 1000);
+    
+    return () => clearInterval(intervalId);
+  }, [fetchUsageSummary]);
+
+  // Enhanced scrolling functions
+  const scrollToBottom = useCallback((behavior = 'smooth') => {
+    if (conversationAreaRef.current) {
+      conversationAreaRef.current.scrollTo({
+        top: conversationAreaRef.current.scrollHeight,
+        behavior: behavior
+      });
+    }
+  }, []);
+
+  const checkScrollPosition = useCallback(() => {
+    if (!conversationAreaRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = conversationAreaRef.current;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    const shouldShowButton = scrollHeight > clientHeight + 50 && !isNearBottom;
+    
+    setShowScrollToBottom(shouldShowButton);
+    
+    if (!isNearBottom && scrollTop > 0) {
+      autoScrollEnabled.current = false;
+      clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        autoScrollEnabled.current = true;
+      }, 3000);
+    }
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    checkScrollPosition();
+  }, [checkScrollPosition]);
+
+  const forceScrollToBottom = useCallback(() => {
+    autoScrollEnabled.current = true;
+    scrollToBottom('smooth');
+  }, [scrollToBottom]);
 
   // User activity monitoring
   useEffect(() => {
-    // Set up activity check interval
-    activityCheckInterval.current = setInterval(checkUserActivity, 30000); // Check every 30 seconds
+    activityCheckInterval.current = setInterval(checkUserActivity, 30000);
     
-    // Add event listeners for user activity
     const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
     
     const handleActivity = () => {
@@ -1596,8 +1236,8 @@ export default function EnhancedSpeechCoach({
       if (activityCheckInterval.current) {
         clearInterval(activityCheckInterval.current);
       }
-      if (progressFetchTimeout.current) {
-        clearTimeout(progressFetchTimeout.current);
+      if (conversationSaveTimeout.current) {
+        clearTimeout(conversationSaveTimeout.current);
       }
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
@@ -1606,38 +1246,25 @@ export default function EnhancedSpeechCoach({
         clearTimeout(sidebarTransitionTimeout.current);
       }
       
-      // Clear all element spawn timeouts
-      Object.values(elementSpawnTimeouts.current).forEach(timeout => {
-        if (timeout) clearTimeout(timeout);
-      });
-      
       activityEvents.forEach(event => {
         document.removeEventListener(event, handleActivity, true);
       });
     };
   }, [checkUserActivity, markUserActivity]);
 
-  // Enhanced initial support checks with mobile considerations
+  // Enhanced initial support checks
   useEffect(() => {
     const initializeApp = async () => {
-      console.log('🚀 Initializing speech coach...');
-      
-      // Check system status
       const status = await checkSystemStatus();
-      
-      // Set speech supported based on status
       setIsSpeechSupported(status.speechRecognition === 'ready');
       
-      // Show status panel briefly if there are issues
       if (status.overallStatus === 'issues' || status.overallStatus === 'error') {
         setShowStatusPanel(true);
-        // Auto-hide after 10 seconds if user doesn't interact
         setTimeout(() => {
           setShowStatusPanel(false);
         }, 10000);
       }
       
-      // Mark initial session opening
       markUserInteraction('session_opened');
     };
     
@@ -1649,11 +1276,31 @@ export default function EnhancedSpeechCoach({
       
     // Initial progress fetch (user-initiated)
     fetchLearningProgress(true);
-    
-    // Initial usage summary fetch
-    fetchUsageSummary();
-  }, [fetchLearningProgress, fetchUsageSummary, checkSystemStatus, markUserInteraction]);
+  }, [checkSystemStatus, markUserInteraction, fetchLearningProgress]);
 
+  // Auto-scroll on conversation updates
+  useEffect(() => {
+    if (autoScrollEnabled.current && conversation.length > 0) {
+      setTimeout(() => {
+        scrollToBottom('smooth');
+      }, 100);
+    }
+  }, [conversation, scrollToBottom]);
+
+  // Setup scroll monitoring
+  useEffect(() => {
+    const conversationArea = conversationAreaRef.current;
+    if (conversationArea) {
+      conversationArea.addEventListener('scroll', handleScroll);
+      checkScrollPosition();
+      
+      return () => {
+        conversationArea.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, [handleScroll, checkScrollPosition]);
+
+  // Cleanup
   useEffect(() => () => {
     isUnmountingRef.current = true;
     stopMicrophone();
@@ -1661,18 +1308,119 @@ export default function EnhancedSpeechCoach({
     clearTimeout(timerRef.current);
     if (abortControllerRef.current) abortControllerRef.current.abort();
     if (activityCheckInterval.current) clearInterval(activityCheckInterval.current);
-    if (progressFetchTimeout.current) clearTimeout(progressFetchTimeout.current);
+    if (conversationSaveTimeout.current) clearTimeout(conversationSaveTimeout.current);
     if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     if (sidebarTransitionTimeout.current) clearTimeout(sidebarTransitionTimeout.current);
-    if (resizeObserver.current) resizeObserver.current.disconnect();
-    
-    // Clear all element spawn timeouts
-    Object.values(elementSpawnTimeouts.current).forEach(timeout => {
-      if (timeout) clearTimeout(timeout);
-    });
   }, [stopMicrophone, cancelSpeech]);
 
-  // Enhanced Status Panel Component
+  // FIXED: Simplified style calculation functions
+  const getMicWrapperStyle = () => {
+    const isDesktop = window.innerWidth > 768;
+    const bottomOffset = getBottomOffset(90);
+    const leftOffset = getSidebarOffset(isDesktop);
+    
+    return {
+      position: 'fixed',
+      bottom: `${bottomOffset}px`,
+      left: `${leftOffset}px`,
+      right: '0',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 930,
+      pointerEvents: 'none',
+      transition: `all ${SIDEBAR_TRANSITION_DURATION}ms ease`
+    };
+  };
+
+  const getSpeechInputStyle = () => {
+    const isDesktop = window.innerWidth > 768;
+    const bottomOffset = getBottomOffset(80);
+    const leftOffset = getSidebarOffset(isDesktop);
+    const chatPadding = 16;
+    
+    return {
+      position: 'fixed',
+      bottom: `${bottomOffset}px`,
+      left: `${leftOffset + chatPadding}px`,
+      right: `${chatPadding}px`,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      padding: '0.6rem 1rem',
+      background: 'white',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+      borderRadius: '12px',
+      zIndex: 950,
+      border: '1px solid #ddd',
+      pointerEvents: 'auto',
+      boxSizing: 'border-box',
+      transition: `all ${SIDEBAR_TRANSITION_DURATION}ms ease`
+    };
+  };
+
+  const getControlsStyle = () => {
+    const isDesktop = window.innerWidth > 768;
+    const leftOffset = getSidebarOffset(isDesktop);
+    const controlsHeight = showProgress ? 270 : 140;
+    
+    return {
+      position: 'fixed',
+      bottom: '0',
+      left: `${leftOffset}px`,
+      right: '0',
+      height: `${controlsHeight}px`,
+      background: 'linear-gradient(to bottom, rgba(250,250,250,0) 0%, rgba(250,250,250,0.8) 15%, rgba(250,250,250,0.95) 30%, rgba(250,250,250,1) 60%)',
+      zIndex: 900,
+      pointerEvents: 'none',
+      transition: `all ${SIDEBAR_TRANSITION_DURATION}ms ease`
+    };
+  };
+
+  const getControlsBarStyle = () => {
+    const isDesktop = window.innerWidth > 768;
+    const leftOffset = getSidebarOffset(isDesktop);
+    const chatPadding = isDesktop ? 16 : 0;
+    
+    return {
+      position: 'fixed',
+      bottom: showProgress ? '200px' : '0',
+      left: `${leftOffset + chatPadding}px`,
+      right: `${chatPadding}px`,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: '16px',
+      zIndex: 960,
+      padding: isDesktop ? '0' : '16px',
+      transition: `all ${SIDEBAR_TRANSITION_DURATION}ms ease`
+    };
+  };
+
+  const getProgressPanelStyle = () => {
+    const isDesktop = window.innerWidth > 768;
+    const leftOffset = getSidebarOffset(isDesktop);
+    const chatPadding = 16;
+    
+    return {
+      position: 'fixed',
+      bottom: '140px',
+      left: `${leftOffset + chatPadding}px`,
+      right: `${chatPadding}px`,
+      background: 'white',
+      borderRadius: '12px',
+      padding: '16px',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+      border: '1px solid #e0e0e0',
+      zIndex: 920,
+      maxWidth: '100%',
+      transition: `all ${SIDEBAR_TRANSITION_DURATION}ms ease`
+    };
+  };
+
+  // Component renderers (simplified for brevity - keeping the same render functions but removing complex spawning logic)
+  
+  // [All the render functions remain the same, just simplified positioning]
   const renderStatusPanel = () => {
     if (!showStatusPanel) return null;
 
@@ -2231,7 +1979,7 @@ export default function EnhancedSpeechCoach({
     );
   }
 
-  // Progress panel component
+  // FIXED: Stable progress panel component
   function renderProgressPanel() {
     if (!showProgress || !learningProgress) return null;
 
@@ -2384,8 +2132,7 @@ export default function EnhancedSpeechCoach({
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 940,
-          transition: `all ${SIDEBAR_TRANSITION_DURATION}ms ease`,
-          opacity: elementsVisible ? 1 : 0.7
+          transition: `all ${SIDEBAR_TRANSITION_DURATION}ms ease`
         }}
         title="Scroll to bottom"
         onMouseEnter={(e) => {
@@ -2402,11 +2149,10 @@ export default function EnhancedSpeechCoach({
     );
   }
 
-  // ENHANCED: New session button renderer with smart logic
+  // ENHANCED: New session button renderer
   const renderNewSessionButton = () => {
     const isMeaningfullyUsed = isSessionMeaningfullyUsed();
     
-    // Only show button if session has meaningful content
     if (!isMeaningfullyUsed) return null;
     
     return (
@@ -2443,9 +2189,7 @@ export default function EnhancedSpeechCoach({
           background: #fafafa;
           position: relative;
           overflow: hidden;
-          /* Enhanced sidebar spawning transitions */
-          transition: all ${SIDEBAR_TRANSITION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1);
-          /* Mobile optimizations */
+          transition: all ${SIDEBAR_TRANSITION_DURATION}ms ease;
           -webkit-overflow-scrolling: touch;
           touch-action: pan-y;
         }
@@ -2461,8 +2205,7 @@ export default function EnhancedSpeechCoach({
           box-sizing: border-box;
           scroll-behavior: smooth;
           background: #fafafa;
-          /* Enhanced sidebar spawning transitions */
-          transition: all ${SIDEBAR_TRANSITION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all ${SIDEBAR_TRANSITION_DURATION}ms ease;
         }
 
         .conversation-area::-webkit-scrollbar {
@@ -2544,7 +2287,6 @@ export default function EnhancedSpeechCoach({
           box-shadow: 0 8px 24px rgba(0, 123, 255, 0.3);
           position: relative;
           overflow: hidden;
-          /* Mobile enhancements */
           touch-action: manipulation;
           user-select: none;
           -webkit-user-select: none;
@@ -2576,16 +2318,6 @@ export default function EnhancedSpeechCoach({
           50% { transform: scale(1.1); }
         }
 
-        /* Enhanced sidebar spawning classes */
-        .sidebar-transitioning {
-          --transition-delay: ${ELEMENT_SPAWN_DELAY}ms;
-        }
-
-        .sidebar-transitioning * {
-          transition-delay: var(--transition-delay) !important;
-        }
-
-        /* Mobile-specific styles */
         @media (max-width: 768px) {
           .mic-btn {
             width: 70px !important;
@@ -2596,7 +2328,6 @@ export default function EnhancedSpeechCoach({
             transform: scale(0.95);
           }
           
-          /* Prevent text selection on mobile */
           .speech-coach * {
             -webkit-user-select: none;
             -webkit-touch-callout: none;
@@ -2605,7 +2336,7 @@ export default function EnhancedSpeechCoach({
         }
       `}</style>
       
-      <div className={`speech-coach ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'} ${isTransitioning ? 'sidebar-transitioning' : ''}`}>
+      <div className={`speech-coach ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'} ${isTransitioning ? 'transitioning' : ''}`}>
         {renderStatusPanel()}
         {renderPermissionHelp()}
         {renderUserFriendlyErrorMessage()}
@@ -2647,8 +2378,7 @@ export default function EnhancedSpeechCoach({
             paddingRight: '32px',
             maxWidth: sidebarOpen && window.innerWidth > 768 ? '100%' : '1200px',
             margin: sidebarOpen && window.innerWidth > 768 ? '0' : '0 auto',
-            transition: `all ${SIDEBAR_TRANSITION_DURATION}ms ease`,
-            opacity: elementsVisible ? 1 : 0.95
+            transition: `all ${SIDEBAR_TRANSITION_DURATION}ms ease`
           }}
         >
           {conversation.length === 0 ? (
@@ -2679,7 +2409,6 @@ export default function EnhancedSpeechCoach({
                 </div>
               )}
               
-              {/* Usage info display for empty state */}
               {usageSummary?.speech_coach && (
                 <div style={{
                   background: '#f0f9ff',
@@ -2705,7 +2434,6 @@ export default function EnhancedSpeechCoach({
                 </div>
               )}
 
-              {/* Status indicator */}
               {systemStatus.overallStatus !== 'ready' && (
                 <button
                   onClick={() => setShowStatusPanel(true)}
@@ -2988,7 +2716,6 @@ export default function EnhancedSpeechCoach({
               userSelect: 'none',
               WebkitUserSelect: 'none',
               WebkitTouchCallout: 'none',
-              transform: elementsSpawned.mic ? 'scale(1)' : 'scale(0.8)',
               opacity: !isSpeechSupported ? 0.5 : 1
             }}
             title={`Voice: ${getCurrentVoiceConfig()?.label || 'Default'}`}
