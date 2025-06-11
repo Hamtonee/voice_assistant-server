@@ -25,26 +25,17 @@ export const AuthContext = createContext({
 });
 
 export function AuthProvider({ children }) {
-  // Initialize from localStorage with enhanced validation
+  // Simplified initial token check
   const [token, setToken] = useState(() => {
     const storedToken = localStorage.getItem('access_token');
-    console.log('🔍 Initial token check:', storedToken ? 'Token found' : 'No token found');
     
-    // Enhanced token validation
-    if (storedToken && 
-        typeof storedToken === 'string' && 
-        storedToken !== 'null' && 
-        storedToken !== 'undefined' && 
-        storedToken.trim() &&
-        storedToken.length > 10) { // Basic token length check
-      
+    if (storedToken && storedToken !== 'null' && storedToken !== 'undefined') {
       try {
-        // Try to decode the token to verify it's valid JWT
         const decoded = jwtDecode(storedToken);
         const now = Date.now() / 1000;
         
-        // Check if token is not expired
-        if (decoded.exp && decoded.exp > now) {
+        // Only reject if clearly expired (add 30 second buffer)
+        if (decoded.exp && decoded.exp > (now - 30)) {
           console.log('✅ Valid token found, expires:', new Date(decoded.exp * 1000));
           return storedToken.trim();
         } else {
@@ -53,7 +44,7 @@ export function AuthProvider({ children }) {
           localStorage.removeItem('refresh_token');
         }
       } catch (error) {
-        console.log('❌ Invalid token format, clearing storage:', error);
+        console.log('❌ Invalid token format, clearing storage');
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
       }
@@ -65,11 +56,12 @@ export function AuthProvider({ children }) {
   const [loadingUser, setLoadingUser] = useState(true);
   const [initializing, setInitializing] = useState(true);
   const [sessionConflict, setSessionConflict] = useState(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false); // NEW: Track login state
   const navigate = useNavigate();
 
   // Enhanced auth cleanup
-  const clearAuth = useCallback(() => {
-    console.log('🧹 Clearing authentication state');
+  const clearAuth = useCallback((reason = 'Unknown') => {
+    console.log('🧹 Clearing authentication state. Reason:', reason);
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     delete api.defaults.headers.common.Authorization;
@@ -82,66 +74,46 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // Enhanced response interceptor with better error handling
+  // FIXED: Much more selective response interceptor
   useEffect(() => {
     const interceptor = api.interceptors.response.use(
       (response) => response,
       (error) => {
-        console.log('🚨 API Error intercepted:', error.response?.status, error.response?.data);
+        const url = error.config?.url || '';
+        const status = error.response?.status;
+        const errorDetail = error.response?.data?.detail || '';
         
-        if (error.response?.status === 401) {
-          const errorDetail = error.response?.data?.detail || '';
-          const errorMessage = error.response?.data?.message || '';
-          
-          // Handle various authentication errors
-          if (errorDetail.includes('Invalid authentication credentials') ||
-              errorDetail.includes('Invalid token format') ||
-              errorDetail.includes('User not found') ||
-              errorDetail.includes('Incorrect email or password')) {
-            
-            console.warn('🔒 Authentication error detected:', errorDetail);
-            
-            // Only clear auth if it's a token issue, not a login credential issue
-            if (!errorDetail.includes('Incorrect email or password')) {
-              clearAuth();
-            }
+        console.log('🚨 API Error intercepted:', status, url, errorDetail);
+        
+        if (status === 401) {
+          // NEVER clear auth during these operations:
+          if (isLoggingIn || 
+              url.includes('/api/auth/login') || 
+              url.includes('/api/auth/register') ||
+              url.includes('/api/auth/refresh')) {
+            console.log('🔓 Ignoring 401 during auth operation:', url);
+            return Promise.reject(error);
           }
           
-          // Handle session conflicts
-          if (errorMessage.includes('logged in elsewhere') || errorDetail.includes('SESSION_CONFLICT')) {
-            setSessionConflict({
-              message: 'You have been logged out because you logged in elsewhere.',
-            });
-            clearAuth();
+          // ONLY clear auth for these specific scenarios:
+          const shouldClearAuth = 
+            errorDetail.includes('Token has expired') ||
+            errorDetail.includes('Invalid token signature') ||
+            errorDetail.includes('Malformed token') ||
+            (errorDetail.includes('SESSION_CONFLICT') || errorDetail.includes('logged in elsewhere'));
+          
+          if (shouldClearAuth) {
+            console.warn('🔒 Clearing auth due to:', errorDetail);
             
-            // Visual feedback
-            if (typeof window !== 'undefined') {
-              const notification = document.createElement('div');
-              notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #ef4444;
-                color: white;
-                padding: 16px;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                z-index: 10000;
-                font-family: sans-serif;
-                max-width: 300px;
-              `;
-              notification.innerHTML = `
-                <strong>Session Expired</strong><br>
-                You have been logged out because you logged in elsewhere.
-              `;
-              document.body.appendChild(notification);
-              
-              setTimeout(() => {
-                if (notification.parentNode) {
-                  notification.parentNode.removeChild(notification);
-                }
-              }, 5000);
+            if (errorDetail.includes('SESSION_CONFLICT') || errorDetail.includes('logged in elsewhere')) {
+              setSessionConflict({
+                message: 'You have been logged out because you logged in elsewhere.',
+              });
             }
+            
+            clearAuth('Token/session issue');
+          } else {
+            console.log('🤷 401 error but not clearing auth:', errorDetail);
           }
         }
         return Promise.reject(error);
@@ -151,67 +123,66 @@ export function AuthProvider({ children }) {
     return () => {
       api.interceptors.response.eject(interceptor);
     };
-  }, [clearAuth]);
+  }, [clearAuth, isLoggingIn]);
 
-  // Enhanced token refresh with better error handling
+  // Token refresh function
   const refreshAndSchedule = useCallback(async () => {
-    console.log('🔄 refreshAndSchedule called');
+    console.log('🔄 Attempting token refresh');
     try {
       const refreshToken = localStorage.getItem('refresh_token');
-      console.log('🎫 Refresh token check:', refreshToken ? 'Found' : 'Not found');
       
-      if (!refreshToken || refreshToken === 'null' || refreshToken === 'undefined' || !refreshToken.trim()) {
-        console.log('❌ No valid refresh token, stopping refresh cycle');
+      if (!refreshToken || refreshToken === 'null' || refreshToken === 'undefined') {
+        console.log('❌ No valid refresh token');
         setLoadingUser(false);
         setInitializing(false);
         return;
       }
 
-      console.log('📡 Making refresh request to: /api/auth/refresh');
+      // OPTION 1: Send refresh token in request body (most common)
+      const res = await api.post('/api/auth/refresh', {
+        refresh_token: refreshToken
+      });
       
-      // Set the refresh token as bearer token for the refresh request
-      const tempHeader = api.defaults.headers.common.Authorization;
-      api.defaults.headers.common.Authorization = `Bearer ${refreshToken}`;
-      
-      const res = await api.post('/api/auth/refresh');
-      console.log('✅ Refresh response received:', res.data);
-      
-      // Restore previous header
-      api.defaults.headers.common.Authorization = tempHeader;
+      // OPTION 2: If your backend expects it as Authorization header, uncomment below:
+      // const tempHeader = api.defaults.headers.common.Authorization;
+      // api.defaults.headers.common.Authorization = `Bearer ${refreshToken}`;
+      // const res = await api.post('/api/auth/refresh');
+      // api.defaults.headers.common.Authorization = tempHeader;
       
       const newToken = res.data.access_token;
+      const newRefreshToken = res.data.refresh_token;
 
-      if (!newToken || typeof newToken !== 'string' || !newToken.trim()) {
-        throw new Error('Invalid token received from refresh endpoint');
+      if (!newToken) {
+        throw new Error('No token received from refresh');
       }
 
-      // Validate the new token
-      const decoded = jwtDecode(newToken);
-      if (!decoded.exp || decoded.exp <= Date.now() / 1000) {
-        throw new Error('Received expired token from refresh');
-      }
-
-      // Store and apply new token
+      // Store tokens
       localStorage.setItem('access_token', newToken);
+      if (newRefreshToken) {
+        localStorage.setItem('refresh_token', newRefreshToken);
+      }
+      
+      // Set API header and state
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
       setToken(newToken);
 
-      // Schedule next refresh (1 minute before expiry)
-      const expiresInMs = decoded.exp * 1000 - Date.now();
-      const buffer = 60 * 1000; // 1 minute buffer
-      const timeout = Math.max(expiresInMs - buffer, 5000); // Minimum 5 seconds
+      // Schedule next refresh
+      try {
+        const decoded = jwtDecode(newToken);
+        const expiresInMs = decoded.exp * 1000 - Date.now();
+        const timeout = Math.max(expiresInMs - 60000, 30000); // 1 min buffer, min 30s
 
-      if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
-      window._refreshTimeout = setTimeout(() => refreshAndSchedule(), timeout);
-      
-      console.log('⏰ Next refresh scheduled in:', Math.floor(timeout / 1000), 'seconds');
+        if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
+        window._refreshTimeout = setTimeout(refreshAndSchedule, timeout);
+        
+        console.log('⏰ Next refresh in:', Math.floor(timeout / 1000), 'seconds');
+      } catch (scheduleError) {
+        console.warn('⚠️ Could not schedule next refresh:', scheduleError);
+      }
 
     } catch (err) {
-      console.error('❌ Silent refresh failed:', err);
-      console.error('Error details:', err.response?.data || err.message);
-      
-      // Clear auth state on refresh failure
-      clearAuth();
+      console.error('❌ Token refresh failed:', err);
+      clearAuth('Refresh failed');
     } finally {
       setLoadingUser(false);
       setInitializing(false);
@@ -221,122 +192,116 @@ export function AuthProvider({ children }) {
   // Initialize auth state
   useEffect(() => {
     console.log('🚀 AuthProvider initialization');
-    console.log('Current token:', token ? 'Present' : 'None');
-    console.log('API base URL:', api.defaults.baseURL);
     
-    if (token && typeof token === 'string' && token.trim()) {
-      console.log('✅ Valid token found, setting up API header and refresh schedule');
+    if (token) {
+      console.log('✅ Token found, setting up API header');
       api.defaults.headers.common.Authorization = `Bearer ${token}`;
 
       try {
         const { exp } = jwtDecode(token);
         const expiresInMs = exp * 1000 - Date.now();
         
-        if (expiresInMs > 60000) { // More than 1 minute left
-          const buffer = 60 * 1000;
-          const timeout = Math.max(expiresInMs - buffer, 5000);
-
+        if (expiresInMs > 120000) { // More than 2 minutes left
+          const timeout = Math.max(expiresInMs - 60000, 30000);
           if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
-          window._refreshTimeout = setTimeout(() => refreshAndSchedule(), timeout);
-          
+          window._refreshTimeout = setTimeout(refreshAndSchedule, timeout);
           console.log('⏰ Refresh scheduled in:', Math.floor(timeout / 1000), 'seconds');
         } else {
-          console.log('🔄 Token expires soon, refreshing immediately');
+          console.log('🔄 Token expires soon, refreshing now');
           refreshAndSchedule();
         }
       } catch (err) {
-        console.error('❌ Invalid token format, clearing auth:', err);
-        clearAuth();
+        console.error('❌ Invalid token format:', err);
+        clearAuth('Invalid token format');
       }
     } else {
-      // No access token - check for refresh token
+      // Try refresh token if available
       const refreshToken = localStorage.getItem('refresh_token');
-      console.log('🎫 Checking for refresh token:', refreshToken ? 'Found' : 'Not found');
-      
-      if (refreshToken && refreshToken !== 'null' && refreshToken !== 'undefined' && refreshToken.trim()) {
-        console.log('🔄 Attempting to refresh with existing refresh token');
+      if (refreshToken && refreshToken !== 'null') {
+        console.log('🔄 Trying refresh token');
         refreshAndSchedule();
       } else {
-        console.log('❌ No tokens found, user not authenticated');
+        console.log('❌ No tokens available');
         setLoadingUser(false);
         setInitializing(false);
       }
     }
   }, [token, refreshAndSchedule]);
 
-  // Fetch user profile when token is available
+  // FIXED: Much safer user profile fetching
   useEffect(() => {
-    if (!token || typeof token !== 'string' || !token.trim()) {
-      setUser(null);
-      if (initializing) {
-        setLoadingUser(false);
-        setInitializing(false);
-      }
+    if (!token || isLoggingIn) {
+      if (!token) setUser(null);
       return;
     }
 
-    console.log('👤 Fetching user profile with token');
+    console.log('👤 Fetching user profile');
     setLoadingUser(true);
 
-    api.get('/api/auth/me')
-      .then(res => {
+    // Add a small delay to ensure API headers are properly set
+    const fetchProfile = async () => {
+      try {
+        console.log('📡 Making /api/auth/me request with token:', token.substring(0, 20) + '...');
+        console.log('📡 Authorization header:', api.defaults.headers.common.Authorization?.substring(0, 30) + '...');
+        
+        const res = await api.get('/api/auth/me');
         console.log('✅ User profile loaded:', res.data);
         setUser(res.data);
-      })
-      .catch(err => {
-        console.error('🔒 Failed to load user profile:', err);
-        // Don't clear auth here if it's just a profile loading issue
+      } catch (err) {
+        console.error('❌ Failed to load user profile:', err);
+        console.error('❌ Error response:', err.response?.data);
+        console.error('❌ Error status:', err.response?.status);
+        
+        // MUCH MORE SELECTIVE about clearing auth
         if (err.response?.status === 401) {
-          clearAuth();
+          const errorDetail = err.response?.data?.detail || '';
+          
+          // Only clear auth for very specific token issues
+          if (errorDetail.includes('Token has expired') ||
+              errorDetail.includes('Invalid token signature') ||
+              errorDetail.includes('Malformed token')) {
+            console.warn('🔒 Clearing auth due to definitive token issue:', errorDetail);
+            clearAuth('Profile fetch - definitive token issue');
+          } else {
+            console.warn('🤷 Profile fetch 401 but not clearing auth:', errorDetail);
+            // Don't clear auth - might be a temporary issue
+          }
         }
-      })
-      .finally(() => {
+      } finally {
         setLoadingUser(false);
         setInitializing(false);
-      });
-  }, [token, clearAuth, initializing]);
+      }
+    };
 
-  // Enhanced login function
+    // Small delay to ensure everything is set up properly
+    const timeoutId = setTimeout(fetchProfile, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [token, clearAuth, isLoggingIn]);
+
+  // FIXED: Enhanced login function
   const login = async ({ email, password }, forceNewSession = false) => {
-    console.log('🔐 Login attempt for:', email);
-    console.log('🌐 API base URL:', api.defaults.baseURL);
+    console.log('🔐 Starting login for:', email);
+    setIsLoggingIn(true); // Set login state
     
     try {
-      // Clear any existing auth state first
-      clearAuth();
+      // Clear existing auth
+      clearAuth('Starting new login');
       
       const payload = { email, password };
-      
-      if (forceNewSession === true) {
+      if (forceNewSession) {
         payload.forceNewSession = true;
-        console.log('🔄 Force new session requested');
       }
       
-      console.log('📡 Making login request to: /api/auth/login');
-      
       const res = await api.post('/api/auth/login', payload);
-      console.log('✅ Login response:', res.status, 'Token received:', !!res.data.access_token);
+      console.log('✅ Login response received');
       
       const newToken = res.data.access_token;
       const refreshToken = res.data.refresh_token;
 
-      // Enhanced token validation
-      if (!newToken || typeof newToken !== 'string' || !newToken.trim()) {
-        throw new Error('Invalid access token received');
+      if (!newToken) {
+        throw new Error('No access token received');
       }
-
-      // Validate token structure
-      let decoded;
-      try {
-        decoded = jwtDecode(newToken);
-        if (!decoded.exp || decoded.exp <= Date.now() / 1000) {
-          throw new Error('Received expired token');
-        }
-      } catch (decodeError) {
-        throw new Error('Invalid token format received');
-      }
-
-      console.log('🎫 Storing tokens and setting up auth');
 
       // Clear session conflict
       setSessionConflict(null);
@@ -345,70 +310,87 @@ export function AuthProvider({ children }) {
       localStorage.setItem('access_token', newToken);
       if (refreshToken) {
         localStorage.setItem('refresh_token', refreshToken);
-        console.log('🔄 Refresh token stored');
       }
       
-      // Set API header
+      // Set API header BEFORE setting token state
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+      
+      // Set token state (this will trigger user profile fetch)
       setToken(newToken);
 
       // Schedule refresh
-      const expiresInMs = decoded.exp * 1000 - Date.now();
-      const buffer = 60 * 1000;
-      const timeout = Math.max(expiresInMs - buffer, 5000);
-      
-      if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
-      window._refreshTimeout = setTimeout(() => refreshAndSchedule(), timeout);
+      try {
+        const decoded = jwtDecode(newToken);
+        const expiresInMs = decoded.exp * 1000 - Date.now();
+        const timeout = Math.max(expiresInMs - 60000, 30000);
+        
+        if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
+        window._refreshTimeout = setTimeout(refreshAndSchedule, timeout);
+      } catch (scheduleError) {
+        console.warn('⚠️ Could not schedule refresh:', scheduleError);
+      }
 
-      console.log('👤 Fetching user profile after login');
+      // Fetch user profile manually with retry
+      let retries = 3;
+      let userProfile = null;
       
-      // Fetch user profile
-      const userRes = await api.get('/api/auth/me');
-      console.log('✅ User profile loaded:', userRes.data);
-      setUser(userRes.data);
+      while (retries > 0 && !userProfile) {
+        try {
+          const userRes = await api.get('/api/auth/me');
+          userProfile = userRes.data;
+          setUser(userProfile);
+          console.log('✅ User profile loaded after login');
+          break;
+        } catch (profileError) {
+          console.warn(`⚠️ Profile fetch attempt failed (${4-retries}/3):`, profileError);
+          retries--;
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms before retry
+          }
+        }
+      }
+
+      if (!userProfile) {
+        throw new Error('Could not load user profile after login');
+      }
       
       console.log('🚀 Login successful, navigating to chats');
-      navigate('/chats', { replace: true });
       
-      return { success: true, user: userRes.data };
+      // Navigate after everything is set up
+      setTimeout(() => {
+        navigate('/chats', { replace: true });
+      }, 100);
+      
+      return { success: true, user: userProfile };
       
     } catch (error) {
       console.error('❌ Login failed:', error);
-      console.error('Response data:', error.response?.data);
-      console.error('Response status:', error.response?.status);
-      
-      // Clean up any partial state
-      clearAuth();
-      
-      // Re-throw for component handling
+      clearAuth('Login failed');
       throw error;
+    } finally {
+      setIsLoggingIn(false); // Clear login state
     }
   };
 
   // Force login for session conflicts
   const forceLogin = async (credentials) => {
-    try {
-      return await login(credentials, true);
-    } catch (error) {
-      throw error;
-    }
+    return await login(credentials, true);
   };
 
-  // Enhanced register function
+  // Register function
   const register = async ({ email, password, name }) => {
     console.log('📝 Registration attempt for:', email);
     
     try {
-      // Clear any existing auth state
-      clearAuth();
+      clearAuth('Starting registration');
       
       const res = await api.post('/api/auth/register', { 
         email, 
         password, 
-        name // Backend expects 'name' field
+        name 
       });
       
-      console.log('✅ Registration successful:', res.data);
+      console.log('✅ Registration successful');
       return { success: true, user: res.data };
       
     } catch (error) {
@@ -417,49 +399,40 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Clear session conflict
   const clearSessionConflict = () => {
     setSessionConflict(null);
   };
 
-  // Enhanced logout
   const logout = async () => {
-    console.log('🚪 Logging out user');
+    console.log('🚪 Logging out');
     
     try {
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
         await api.post('/api/auth/logout', { refresh_token: refreshToken });
-        console.log('✅ Server logout successful');
       }
     } catch (err) {
       console.warn('⚠️ Server logout failed:', err);
-      // Continue with local logout anyway
     }
     
-    clearAuth();
+    clearAuth('User logout');
     navigate('/login', { replace: true });
   };
 
   // Computed authentication status
-  const isAuthenticated = Boolean(
-    token && 
-    typeof token === 'string' && 
-    token.trim() && 
-    user &&
-    user.id
-  );
+  const isAuthenticated = Boolean(token && user && !isLoggingIn);
 
   console.log('🔍 Auth state:', {
     hasToken: !!token,
     hasUser: !!user,
     isAuthenticated,
     loadingUser,
-    initializing
+    initializing,
+    isLoggingIn
   });
 
   // Show loader while determining auth status
-  if (loadingUser || initializing) {
+  if ((loadingUser || initializing) && !isAuthenticated) {
     return <LottieLoader />;
   }
 
