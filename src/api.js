@@ -10,7 +10,7 @@ console.log('🌐 API Base URL:', BASE_URL); // Debug log
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 20000, // Add timeout to handle slow responses
+  timeout: 5000, // Add timeout to handle slow responses
   withCredentials: true, // Send HTTP-only refresh cookie
 });
 
