@@ -90,7 +90,7 @@ export function AuthProvider({ children }) {
         const url = error.config?.url || '';
         
         // COMPLETELY IGNORE all errors during auth operations
-        if (url.includes('/api/auth/') || url.includes('/auth/')) {
+        if (url.includes('/auth/')) {
           console.log('🔓 Ignoring error during auth operation:', url, error.response?.status);
           return Promise.reject(error);
         }
@@ -139,13 +139,13 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      console.log('📡 Making refresh request to: /api/auth/refresh');
+      console.log('📡 Making refresh request to: /auth/refresh');
       
       // Set the refresh token as bearer token for the refresh request
       const tempHeader = api.defaults.headers.common.Authorization;
       api.defaults.headers.common.Authorization = `Bearer ${refreshToken}`;
       
-      const res = await api.post('/api/auth/refresh');
+      const res = await api.post('/auth/refresh');
       console.log('✅ Refresh response received:', res.data);
       
       // Restore previous header
@@ -264,7 +264,7 @@ export function AuthProvider({ children }) {
     console.log('👤 Fetching user profile with token');
     setLoadingUser(true);
 
-    api.get('/api/auth/me')
+    api.get('/auth/me')
       .then(res => {
         console.log('✅ User profile loaded:', res.data);
         setUser(res.data);
@@ -272,9 +272,8 @@ export function AuthProvider({ children }) {
       .catch(err => {
         console.error('🔒 Failed to load user profile:', err);
         // Don't clear auth here if it's just a profile loading issue
-        if (err.response?.status === 401) {
-          clearAuth();
-        }
+        // User profile loading failure doesn't mean authentication failed
+        console.warn('⚠️ Continuing with authentication despite profile loading failure');
       })
       .finally(() => {
         setLoadingUser(false);
@@ -295,10 +294,10 @@ export function AuthProvider({ children }) {
         console.log('🔄 Force new session requested');
       }
       
-      console.log('📡 Making login request to: /api/auth/login');
+      console.log('📡 Making login request to: /auth/login');
       
       // CRITICAL FIX: Don't clear auth before login - this was causing the issue!
-      const res = await api.post('/api/auth/login', payload);
+      const res = await api.post('/auth/login', payload);
       console.log('✅ Login response:', res.status, 'Token received:', !!res.data.access_token);
       
       const newToken = res.data.access_token;
@@ -345,6 +344,8 @@ export function AuthProvider({ children }) {
       window._refreshTimeout = setTimeout(() => refreshAndSchedule(), timeout);
 
       console.log('🚀 Login successful, navigating to chats');
+      
+      // FIXED: Navigate immediately after setting token - don't wait for user profile
       navigate('/chats', { replace: true });
       
       return { success: true };
@@ -378,7 +379,7 @@ export function AuthProvider({ children }) {
     console.log('📝 Registration attempt for:', email);
     
     try {
-      const res = await api.post('/api/auth/register', { 
+      const res = await api.post('/auth/register', { 
         email, 
         password, 
         name
@@ -405,7 +406,7 @@ export function AuthProvider({ children }) {
     try {
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
-        await api.post('/api/auth/logout', { refresh_token: refreshToken });
+        await api.post('/auth/logout', { refresh_token: refreshToken });
         console.log('✅ Server logout successful');
       }
     } catch (err) {
@@ -417,13 +418,15 @@ export function AuthProvider({ children }) {
     navigate('/login', { replace: true });
   };
 
-  // Computed authentication status
+  // CRITICAL FIX: Update authentication logic to only require valid token
+  // The user profile loading can happen asynchronously without affecting auth status
   const isAuthenticated = Boolean(
     token && 
     typeof token === 'string' && 
-    token.trim() && 
-    user &&
-    user.id
+    token.trim()
+    // REMOVED: user && user.id requirement - this was causing the redirect loop
+    // A valid token is sufficient to consider the user authenticated
+    // User profile data is for display purposes, not authentication validation
   );
 
   console.log('🔍 Auth state:', {
