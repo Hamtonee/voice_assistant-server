@@ -144,13 +144,14 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      console.log('📡 Making refresh request to: /auth/refresh');
+      console.log('📡 Making refresh request to: /api/auth/refresh');
       
       // Set the refresh token as bearer token for the refresh request
       const tempHeader = api.defaults.headers.common.Authorization;
       api.defaults.headers.common.Authorization = `Bearer ${refreshToken}`;
       
-      const res = await api.post('/auth/refresh');
+      // 🔧 FIX: Use correct API path
+      const res = await api.post('/api/auth/refresh');
       console.log('✅ Refresh response received:', res.data);
       
       // Restore previous header
@@ -278,7 +279,8 @@ export function AuthProvider({ children }) {
     console.log('👤 Fetching user profile with token');
     setLoadingUser(true);
 
-    api.get('/auth/me')
+    // 🔧 FIX: Use correct API path
+    api.get('/api/auth/me')
       .then(res => {
         console.log('✅ User profile loaded:', res.data);
         setUser(res.data);
@@ -308,9 +310,10 @@ export function AuthProvider({ children }) {
         console.log('🔄 Force new session requested');
       }
       
-      console.log('📡 Making login request to: /auth/login');
+      console.log('📡 Making login request to: /api/auth/login');
       
-      const res = await api.post('/auth/login', payload);
+      // 🔧 FIX: Use correct API path
+      const res = await api.post('/api/auth/login', payload);
       console.log('✅ Login response:', res.status, 'Token received:', !!res.data.access_token);
       
       const newToken = res.data.access_token;
@@ -392,7 +395,8 @@ export function AuthProvider({ children }) {
     console.log('📝 Registration attempt for:', email);
     
     try {
-      const res = await api.post('/auth/register', { 
+      // 🔧 FIX: Use correct API path
+      const res = await api.post('/api/auth/register', { 
         email, 
         password, 
         name
@@ -419,7 +423,8 @@ export function AuthProvider({ children }) {
     try {
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
-        await api.post('/auth/logout', { refresh_token: refreshToken });
+        // 🔧 FIX: Use correct API path
+        await api.post('/api/auth/logout', { refresh_token: refreshToken });
         console.log('✅ Server logout successful');
       }
     } catch (err) {
