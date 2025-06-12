@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef } from 'react';
+import React, { useState, useContext, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../assets/styles/Login.css';
 import { AuthContext } from '../contexts/AuthContext';
@@ -6,7 +6,7 @@ import logo from '../assets/images/logo.png';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, forceLogin, clearSessionConflict } = useContext(AuthContext);
+  const { login, forceLogin, clearSessionConflict, isAuthenticated } = useContext(AuthContext);
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,6 +15,14 @@ const Login = () => {
   const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
   const passwordInputRef = useRef(null);
   const emailInputRef = useRef(null);
+
+  // 🔧 FIX: Redirect to chats if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('🔍 User already authenticated, redirecting to chats');
+      navigate('/chats', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   // FIXED: Enhanced error message handler with better network error detection
   const getErrorMessage = (error) => {
@@ -140,8 +148,9 @@ const Login = () => {
       await login({ email: form.email.trim(), password: form.password });
       
       console.log('✅ Login successful from Login component perspective');
-      // If we get here, login was successful
-      // Navigation should be handled by AuthContext
+      
+      // 🔧 FIX: Don't set loading to false here, let the navigation happen
+      // The AuthContext will handle navigation and the loader will show during transition
       
     } catch (err) {
       console.error('❌ Login failed in Login component:', err);
@@ -179,9 +188,6 @@ const Login = () => {
       // Explicitly return to prevent any further execution
       return;
     }
-    
-    // This should only be reached if login was successful
-    setLoading(false);
   };
 
   const handleForceLogin = async () => {
@@ -203,6 +209,7 @@ const Login = () => {
   const handleCancelConflict = () => {
     setShowSessionConflict(false);
     clearSessionConflict();
+    setLoading(false); // 🔧 FIX: Reset loading state when canceling
   };
 
   // Session Conflict Dialog

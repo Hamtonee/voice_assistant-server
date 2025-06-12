@@ -65,6 +65,10 @@ export function AuthProvider({ children }) {
   const [loadingUser, setLoadingUser] = useState(true);
   const [initializing, setInitializing] = useState(true);
   const [sessionConflict, setSessionConflict] = useState(null);
+  
+  // 🔧 FIX: Add state to handle login navigation
+  const [pendingNavigation, setPendingNavigation] = useState(null);
+  
   const navigate = useNavigate();
 
   // Enhanced auth cleanup
@@ -76,6 +80,7 @@ export function AuthProvider({ children }) {
     setToken(null);
     setUser(null);
     setSessionConflict(null);
+    setPendingNavigation(null); // 🔧 FIX: Clear pending navigation
     if (window._refreshTimeout) {
       clearTimeout(window._refreshTimeout);
       delete window._refreshTimeout;
@@ -250,6 +255,15 @@ export function AuthProvider({ children }) {
     }
   }, [token, refreshAndSchedule]);
 
+  // 🔧 FIX: Handle navigation after token state is updated
+  useEffect(() => {
+    if (pendingNavigation && token && !loadingUser && !initializing) {
+      console.log('🚀 Executing pending navigation:', pendingNavigation);
+      navigate(pendingNavigation, { replace: true });
+      setPendingNavigation(null);
+    }
+  }, [token, loadingUser, initializing, pendingNavigation, navigate]);
+
   // Fetch user profile when token is available
   useEffect(() => {
     if (!token || typeof token !== 'string' || !token.trim()) {
@@ -281,7 +295,7 @@ export function AuthProvider({ children }) {
       });
   }, [token, clearAuth, initializing]);
 
-  // FIXED: Completely rewritten login function
+  // 🔧 FIX: Completely rewritten login function with proper state management
   const login = async ({ email, password }, forceNewSession = false) => {
     console.log('🔐 Login attempt for:', email);
     console.log('🌐 API base URL:', api.defaults.baseURL);
@@ -296,7 +310,6 @@ export function AuthProvider({ children }) {
       
       console.log('📡 Making login request to: /auth/login');
       
-      // CRITICAL FIX: Don't clear auth before login - this was causing the issue!
       const res = await api.post('/auth/login', payload);
       console.log('✅ Login response:', res.status, 'Token received:', !!res.data.access_token);
       
@@ -333,8 +346,7 @@ export function AuthProvider({ children }) {
       
       // Set API header
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
-      setToken(newToken);
-
+      
       // Schedule refresh
       const expiresInMs = decoded.exp * 1000 - Date.now();
       const buffer = 60 * 1000;
@@ -343,10 +355,11 @@ export function AuthProvider({ children }) {
       if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
       window._refreshTimeout = setTimeout(() => refreshAndSchedule(), timeout);
 
-      console.log('🚀 Login successful, navigating to chats');
+      console.log('🚀 Login successful, preparing navigation');
       
-      // FIXED: Navigate immediately after setting token - don't wait for user profile
-      navigate('/chats', { replace: true });
+      // 🔧 FIX: Set token and navigation destination, let useEffect handle the actual navigation
+      setToken(newToken);
+      setPendingNavigation('/chats');
       
       return { success: true };
       
@@ -418,15 +431,12 @@ export function AuthProvider({ children }) {
     navigate('/login', { replace: true });
   };
 
-  // CRITICAL FIX: Update authentication logic to only require valid token
-  // The user profile loading can happen asynchronously without affecting auth status
+  // 🔧 FIX: Update authentication logic to only require valid token
   const isAuthenticated = Boolean(
     token && 
     typeof token === 'string' && 
-    token.trim()
-    // REMOVED: user && user.id requirement - this was causing the redirect loop
-    // A valid token is sufficient to consider the user authenticated
-    // User profile data is for display purposes, not authentication validation
+    token.trim() &&
+    !pendingNavigation // Ensure we're not in the middle of a login process
   );
 
   console.log('🔍 Auth state:', {
@@ -434,11 +444,12 @@ export function AuthProvider({ children }) {
     hasUser: !!user,
     isAuthenticated,
     loadingUser,
-    initializing
+    initializing,
+    pendingNavigation
   });
 
-  // Show loader while determining auth status
-  if (loadingUser || initializing) {
+  // 🔧 FIX: Show loader while determining auth status OR during login navigation
+  if (loadingUser || initializing || pendingNavigation) {
     return <LottieLoader />;
   }
 
