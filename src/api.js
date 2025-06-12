@@ -33,8 +33,7 @@ api.interceptors.request.use(
 );
 
 // ———————————————————————————————————————————————
-// 🚨 Global 401 handler → try refresh → retry original
-// FIXED: Don't interfere with auth endpoints
+// 🚨 CRITICAL FIX: Completely disable interceptor interference with auth
 // ———————————————————————————————————————————————
 api.interceptors.response.use(
   response => {
@@ -42,26 +41,28 @@ api.interceptors.response.use(
     return response;
   },
   async error => {
+    const { response, config } = error;
+    
     console.error('❌ Response error:', error.config?.url, error.response?.status, error.response?.data);
     
-    const { response, config } = error;
+    // 🔧 CRITICAL FIX: COMPLETELY IGNORE all auth endpoint errors
+    // Let AuthContext handle all authentication logic
+    if (config?.url?.includes('/auth/')) {
+      console.log('🔓 IGNORING auth endpoint error - let AuthContext handle it:', config.url);
+      return Promise.reject(error);
+    }
+    
+    // Only handle 401s for non-auth endpoints
     if (!response || response.status !== 401 || config._retry) {
       return Promise.reject(error);
     }
     
-    // FIXED: Don't try refresh on these endpoints - prevent interference with login
-    const skipRefresh = [
-      '/auth/login',
-      '/auth/register', 
-      '/auth/forgot-password',
-      '/auth/reset-password',
-      '/auth/refresh',
-    ];
+    // 🔧 CRITICAL FIX: Don't do automatic refresh during login/auth operations
+    // Check if we're currently in an auth operation by looking at localStorage state
+    const isAuthInProgress = localStorage.getItem('auth_in_progress') === 'true';
     
-    // CRITICAL FIX: Check if this is an auth endpoint
-    const isAuthEndpoint = skipRefresh.some(path => config.url?.endsWith(path));
-    if (isAuthEndpoint) {
-      console.log('🔓 Skipping refresh for auth endpoint:', config.url);
+    if (isAuthInProgress) {
+      console.log('🔓 Auth operation in progress, skipping automatic refresh');
       return Promise.reject(error);
     }
     
@@ -69,6 +70,10 @@ api.interceptors.response.use(
     
     try {
       console.log('🔄 Attempting token refresh...');
+      
+      // Mark that we're doing a refresh to prevent AuthContext conflicts
+      localStorage.setItem('refresh_in_progress', 'true');
+      
       const refreshRes = await api.post('/auth/refresh');
       
       // FIXED: Use 'access_token' to match backend response
@@ -80,42 +85,82 @@ api.interceptors.response.use(
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
       config.headers.Authorization = `Bearer ${newToken}`;
       
+      // Clear refresh flag
+      localStorage.removeItem('refresh_in_progress');
+      
       console.log('🔄 Retrying original request...');
       return api(config);
-    } catch (refreshError) {
-      console.warn('🔁 Refresh failed, redirecting to login');
-      // FIXED: Remove 'access_token' key
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      delete api.defaults.headers.common.Authorization;
       
-      // Don't redirect immediately during login process
-      if (!config.url?.includes('/auth/')) {
-        window.location.href = '/login';
+    } catch (refreshError) {
+      console.warn('🔁 Refresh failed');
+      
+      // Clear refresh flag
+      localStorage.removeItem('refresh_in_progress');
+      
+      // Only clear tokens if not in auth flow
+      if (!isAuthInProgress) {
+        console.log('🧹 Clearing tokens due to refresh failure');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        delete api.defaults.headers.common.Authorization;
+        
+        // Only redirect if not already on login page and not in auth flow
+        if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/signup')) {
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 100);
+        }
       }
+      
       return Promise.reject(refreshError);
     }
   }
 );
 
 // ———————————————————————————————————————————————
-// 🛠 AUTH ENDPOINTS
+// 🛠 ENHANCED AUTH ENDPOINTS WITH STATE MANAGEMENT
 // ———————————————————————————————————————————————
-export const sendForgot = ({ email }) =>
-  api.post('/auth/forgot-password', { email });
+export const sendForgot = ({ email }) => {
+  localStorage.setItem('auth_in_progress', 'true');
+  return api.post('/auth/forgot-password', { email })
+    .finally(() => localStorage.removeItem('auth_in_progress'));
+};
 
-export const sendReset = ({ token, new_password }) =>
-  api.post('/auth/reset-password', { token, new_password });
+export const sendReset = ({ token, new_password }) => {
+  localStorage.setItem('auth_in_progress', 'true');
+  return api.post('/auth/reset-password', { token, new_password })
+    .finally(() => localStorage.removeItem('auth_in_progress'));
+};
 
 export const fetchMe = () => api.get('/auth/me');
 
-export const login = creds => api.post('/auth/login', creds);
+export const login = creds => {
+  console.log('🔐 API login call initiated');
+  localStorage.setItem('auth_in_progress', 'true');
+  return api.post('/auth/login', creds)
+    .finally(() => {
+      localStorage.removeItem('auth_in_progress');
+      console.log('🔐 API login call completed');
+    });
+};
 
-export const register = data => api.post('/auth/register', data);
+export const register = data => {
+  localStorage.setItem('auth_in_progress', 'true');
+  return api.post('/auth/register', data)
+    .finally(() => localStorage.removeItem('auth_in_progress'));
+};
 
-export const refreshAccessToken = () => api.post('/auth/refresh');
+export const refreshAccessToken = () => {
+  localStorage.setItem('auth_in_progress', 'true');
+  return api.post('/auth/refresh')
+    .finally(() => localStorage.removeItem('auth_in_progress'));
+};
 
-export const logoutServer = () => api.post('/auth/logout');
+export const logoutServer = () => {
+  localStorage.setItem('auth_in_progress', 'true');
+  return api.post('/auth/logout')
+    .finally(() => localStorage.removeItem('auth_in_progress'));
+};
 
 // ———————————————————————————————————————————————
 // 💬 CHAT ENDPOINTS (Enhanced)
