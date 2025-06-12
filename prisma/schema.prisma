@@ -47,6 +47,7 @@ model Chat {
   title       String   @default("") @db.VarChar(255)
   ownerId     Int
   createdAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
   scenarioKey String?  @db.VarChar(100)
   feature     String   @default("chat") @db.VarChar(50)
 
