@@ -345,11 +345,10 @@ export const defaultVoiceConfig = {
 // ─── TTS Manager Class for Enhanced Error Handling ────────────────────────────────────────────
 export class TTSManager {
     constructor(baseUrl = '') {
-        this.currentRequest = null;
-        this.maxRetries = 3;
-        this.baseDelay = 1000; // 1 second
         this.baseUrl = baseUrl;
-        this.requestTimeout = 30000; // 30 seconds
+        this.currentRequest = null;
+        this.lastStatusCheck = 0;
+        this.statusCheckInterval = 5000; // 5 seconds between status checks
     }
 
     async makeTextToSpeechRequest(text, voiceConfig, retryCount = 0) {
@@ -357,55 +356,35 @@ export class TTSManager {
             // Cancel any existing request
             if (this.currentRequest) {
                 this.currentRequest.abort();
-                console.log('🔄 Cancelled previous TTS request');
-            }
-
-            // Validate input
-            if (!text || text.trim().length === 0) {
-                throw new Error('Text is required for TTS');
-            }
-
-            if (text.length > 5000) {
-                throw new Error('Text too long (max 5000 characters)');
-            }
-
-            // Check voice and profile compatibility
-            const voiceName = voiceConfig?.voiceName || 'en-US-Chirp3-HD-Aoede';
-            const profileId = voiceConfig?.profile || 'default';
-            
-            if (!isProfileCompatible(voiceName, profileId)) {
-                console.warn(`⚠️ Profile ${profileId} not compatible with ${voiceName}, using default`);
-                voiceConfig = { ...voiceConfig, profile: 'default' };
+                this.currentRequest = null;
             }
 
             // Create abort controller for this request
             const controller = new AbortController();
             this.currentRequest = controller;
 
-            // Set up timeout
+            // Set up request timeout
             const timeoutId = setTimeout(() => {
                 controller.abort();
-            }, this.requestTimeout);
+                this.currentRequest = null;
+            }, 30000);
 
             const requestBody = {
-                text: text.trim(),
-                voiceConfig: {
-                    voiceName: voiceConfig?.voiceName || 'en-US-Chirp3-HD-Aoede',
-                    languageCode: voiceConfig?.languageCode || 'en-US',
-                    profile: voiceConfig?.profile || 'default'
-                }
+                text,
+                voice: voiceConfig || defaultVoiceConfig,
+                voice_profile: 'default'
             };
 
             console.log('🎵 Sending TTS request:', {
                 textLength: text.length,
-                voice: requestBody.voiceConfig.voiceName,
-                profile: requestBody.voiceConfig.profile,
-                voiceType: getVoiceType(requestBody.voiceConfig.voiceName),
+                voice: requestBody.voice.voiceName,
+                profile: requestBody.voice.profile,
+                voiceType: getVoiceType(requestBody.voice.voiceName),
                 attempt: retryCount + 1
             });
 
             // Make the request to the correct endpoint
-            const response = await fetch(`${this.baseUrl}/deepspeak-tts`, {
+            const response = await fetch(`${this.baseUrl}/tts`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -438,152 +417,31 @@ export class TTSManager {
             });
             
             return result;
-
         } catch (error) {
-            // Clear the current request reference
-            this.currentRequest = null;
-
             if (error.name === 'AbortError') {
-                if (retryCount < this.maxRetries) {
-                    console.log('⏰ Request timeout, retrying...');
-                    const delay = this.baseDelay * Math.pow(2, retryCount);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    return this.makeTextToSpeechRequest(text, voiceConfig, retryCount + 1);
-                } else {
-                    throw new Error('TTS request timed out after multiple attempts');
-                }
+                console.warn('TTS request aborted');
+                return null;
             }
-
-            if (error.message.includes('Failed to fetch') || 
-                error.message.includes('NetworkError') ||
-                error.message.includes('Client disconnected') ||
-                error.message.includes('fetch')) {
-                
-                // Network error - retry if we haven't exceeded max retries
-                if (retryCount < this.maxRetries) {
-                    const delay = this.baseDelay * Math.pow(2, retryCount); // Exponential backoff
-                    console.log(`🔄 Network error, retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries})`);
-                    
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    return this.makeTextToSpeechRequest(text, voiceConfig, retryCount + 1);
-                } else {
-                    console.error('❌ Max retries exceeded for TTS request');
-                    throw new Error('Network error: Unable to connect to TTS service after multiple attempts');
-                }
-            }
-
-            console.error('❌ TTS request error:', error);
             throw error;
         }
     }
 
-    // Method to cancel current request
-    cancelCurrentRequest() {
-        if (this.currentRequest) {
-            this.currentRequest.abort();
-            this.currentRequest = null;
-            console.log('🚫 TTS request cancelled by user');
+    async checkStatus() {
+        const now = Date.now();
+        if (now - this.lastStatusCheck < this.statusCheckInterval) {
+            return; // Skip if checked recently
         }
-    }
+        this.lastStatusCheck = now;
 
-    // Test connectivity to the backend
-    async testConnection() {
         try {
-            // Test basic connection
-            const response = await fetch(`${this.baseUrl}/tts-test`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    text: 'Connection test',
-                    timestamp: new Date().toISOString()
-                }),
-                signal: AbortSignal.timeout(5000) // 5 second timeout for test
+            const response = await fetch(`${this.baseUrl}/health`, {
+                method: 'GET'
             });
-
-            if (response.ok) {
-                const result = await response.json();
-                console.log('✅ TTS service connection OK:', result);
-                
-                // Test voice capabilities
-                const capabilities = await this.checkVoiceCapabilities('en-US-Chirp3-HD-Aoede');
-                console.log('✅ Voice capabilities check:', capabilities);
-                
-                return true;
-            } else {
-                console.error('❌ TTS service connection failed:', response.status);
-                return false;
-            }
+            return response.ok;
         } catch (error) {
-            console.error('❌ TTS service connection error:', error);
+            console.warn('TTS status check failed:', error);
             return false;
         }
-    }
-
-    // Check voice capabilities
-    async checkVoiceCapabilities(voiceName) {
-        try {
-            const response = await fetch(`${this.baseUrl}/voice-capabilities/${voiceName}`);
-            if (response.ok) {
-                return await response.json();
-            }
-        } catch (error) {
-            console.warn('Could not fetch voice capabilities from server, using local data');
-        }
-        
-        // Fallback to local capabilities
-        return {
-            voice_name: voiceName,
-            capabilities: getVoiceCapabilities(voiceName),
-            recommended_profiles: getCompatibleProfiles(voiceName).map(p => p.id)
-        };
-    }
-
-    // Play audio from base64 data
-    async playAudioFromBase64(base64Data, contentType = 'audio/mp3') {
-        try {
-            const audioBlob = this.base64ToBlob(base64Data, contentType);
-            const audioUrl = URL.createObjectURL(audioBlob);
-            const audio = new Audio(audioUrl);
-            
-            return new Promise((resolve, reject) => {
-                audio.onended = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    resolve();
-                };
-                
-                audio.onerror = (error) => {
-                    URL.revokeObjectURL(audioUrl);
-                    reject(new Error('Audio playback failed'));
-                };
-                
-                audio.play().catch(reject);
-            });
-        } catch (error) {
-            console.error('❌ Audio playback error:', error);
-            throw error;
-        }
-    }
-
-    // Helper method to convert base64 to blob
-    base64ToBlob(base64Data, contentType = '') {
-        const byteCharacters = atob(base64Data);
-        const byteArrays = [];
-
-        for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-            const slice = byteCharacters.slice(offset, offset + 512);
-            const byteNumbers = new Array(slice.length);
-            
-            for (let i = 0; i < slice.length; i++) {
-                byteNumbers[i] = slice.charCodeAt(i);
-            }
-            
-            const byteArray = new Uint8Array(byteNumbers);
-            byteArrays.push(byteArray);
-        }
-
-        return new Blob(byteArrays, { type: contentType });
     }
 }
 
