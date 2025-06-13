@@ -7,19 +7,26 @@ import axios from 'axios';
 
 // 🌐 Base URL configuration with better environment detection
 const getApiBaseUrl = () => {
-  if (process.env.REACT_APP_API_URL) {
-    console.log('🌐 Using API Base URL from env:', process.env.REACT_APP_API_URL);
-    return process.env.REACT_APP_API_URL;
+  let baseUrl = process.env.REACT_APP_API_URL;
+  if (baseUrl) {
+    // Remove trailing slashes
+    baseUrl = baseUrl.replace(/\/+$/, '');
+    // Ensure it ends with /api
+    if (!baseUrl.endsWith('/api')) {
+      baseUrl += '/api';
+    }
+    if (process.env.NODE_ENV === 'production' && !baseUrl.startsWith('https://')) {
+      console.warn('⚠️ Insecure API URL in production! Use HTTPS.');
+    }
+    console.log('🌐 Using API Base URL from env:', baseUrl);
+    return baseUrl;
   }
-  
   if (process.env.NODE_ENV === 'production') {
-    const prodUrl = 'https://api.semanami-ai.com';
+    const prodUrl = 'https://api.semanami-ai.com/api';
     console.log('🚀 Production mode - using:', prodUrl);
     return prodUrl;
   }
-  
-  // Final fallback
-  const fallbackUrl = 'http://localhost:8000';
+  const fallbackUrl = 'http://localhost:8000/api';
   console.log('⚠️ Using fallback URL:', fallbackUrl);
   return fallbackUrl;
 };
@@ -40,6 +47,7 @@ const api = axios.create({
     'Accept': 'application/json'
   }
 });
+console.log('✅ Axios instance baseURL:', api.defaults.baseURL);
 
 // ============================================================================
 // ENHANCED REQUEST INTERCEPTOR WITH BETTER TOKEN MANAGEMENT
@@ -217,7 +225,7 @@ export const fetchMe = () => {
 export const login = async (credentials) => {
   try {
     console.log('📡 Making login request...');
-    const response = await api.post('/api/auth/login', credentials);
+    const response = await api.post('/auth/login', credentials);
     return response.data;
   } catch (error) {
     console.error('❌ Login failed:', error);
