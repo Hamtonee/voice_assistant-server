@@ -3,12 +3,17 @@ import React, {
   createContext,
   useState,
   useEffect,
-  useCallback
+  useCallback,
+  useRef
 } from 'react';
-import api from '../api';
-import LottieLoader from '../components/LottieLoader';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import api from '../api';
+import LottieLoader from '../components/LottieLoader';
+
+// ============================================================================
+// ENHANCED AUTH CONTEXT WITH COMPREHENSIVE FIX FOR ALL ISSUES
+// ============================================================================
 
 export const AuthContext = createContext({
   token: null,
@@ -25,192 +30,218 @@ export const AuthContext = createContext({
 });
 
 export function AuthProvider({ children }) {
-  // Initialize from localStorage with enhanced validation
+  // ============================================================================
+  // STATE MANAGEMENT WITH ENHANCED INITIALIZATION
+  // ============================================================================
+  
+  // Initialize token from localStorage with comprehensive validation
   const [token, setToken] = useState(() => {
-    const storedToken = localStorage.getItem('access_token');
-    console.log('🔍 Initial token check:', storedToken ? 'Token found' : 'No token found');
-    
-    // Enhanced token validation
-    if (storedToken && 
-        typeof storedToken === 'string' && 
-        storedToken !== 'null' && 
-        storedToken !== 'undefined' && 
-        storedToken.trim() &&
-        storedToken.length > 10) { // Basic token length check
+    try {
+      const storedToken = localStorage.getItem('access_token');
+      console.log('🔍 Initial token check:', storedToken ? 'Token found' : 'No token found');
       
-      try {
-        // Try to decode the token to verify it's valid JWT
-        const decoded = jwtDecode(storedToken);
-        const now = Date.now() / 1000;
+      if (storedToken && 
+          typeof storedToken === 'string' && 
+          storedToken !== 'null' && 
+          storedToken !== 'undefined' && 
+          storedToken.trim() &&
+          storedToken.length > 10) {
         
-        // Check if token is not expired
-        if (decoded.exp && decoded.exp > now) {
-          console.log('✅ Valid token found, expires:', new Date(decoded.exp * 1000));
-          return storedToken.trim();
-        } else {
-          console.log('❌ Token expired, clearing storage');
+        try {
+          // Validate JWT structure and expiration
+          const decoded = jwtDecode(storedToken);
+          const now = Date.now() / 1000;
+          
+          if (decoded.exp && decoded.exp > now) {
+            console.log('✅ Valid token found, expires:', new Date(decoded.exp * 1000));
+            return storedToken.trim();
+          } else {
+            console.log('❌ Token expired, clearing storage');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+          }
+        } catch (error) {
+          console.log('❌ Invalid token format, clearing storage:', error);
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
         }
-      } catch (error) {
-        console.log('❌ Invalid token format, clearing storage:', error);
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
       }
+      return null;
+    } catch (error) {
+      console.error('❌ Error initializing token:', error);
+      return null;
     }
-    return null;
   });
   
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [initializing, setInitializing] = useState(true);
   const [sessionConflict, setSessionConflict] = useState(null);
-  
-  // 🔧 FIX: Add state to handle login navigation
   const [pendingNavigation, setPendingNavigation] = useState(null);
+  
+  // Use refs to track state and prevent race conditions
+  const authStateRef = useRef({
+    isRefreshing: false,
+    refreshPromise: null,
+    lastRefreshAttempt: 0
+  });
   
   const navigate = useNavigate();
 
-  // Enhanced auth cleanup
+  // ============================================================================
+  // ENHANCED AUTH CLEANUP FUNCTION
+  // ============================================================================
+  
   const clearAuth = useCallback(() => {
     console.log('🧹 Clearing authentication state');
+    
+    // Clear all possible token storage locations
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    
+    // Clear API headers
     delete api.defaults.headers.common.Authorization;
+    
+    // Reset state
     setToken(null);
     setUser(null);
     setSessionConflict(null);
-    setPendingNavigation(null); // 🔧 FIX: Clear pending navigation
+    setPendingNavigation(null);
+    
+    // Clear any pending refresh operations
+    authStateRef.current = {
+      isRefreshing: false,
+      refreshPromise: null,
+      lastRefreshAttempt: 0
+    };
+    
+    // Clear any refresh timeouts
     if (window._refreshTimeout) {
       clearTimeout(window._refreshTimeout);
       delete window._refreshTimeout;
     }
   }, []);
 
-  // FIXED: Much safer response interceptor that doesn't interfere with auth
-  useEffect(() => {
-    const interceptor = api.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        const url = error.config?.url || '';
-        
-        // COMPLETELY IGNORE all errors during auth operations
-        if (url.includes('/auth/')) {
-          console.log('🔓 Ignoring error during auth operation:', url, error.response?.status);
-          return Promise.reject(error);
-        }
-        
-        // Only handle 401 for protected endpoints (non-auth)
-        if (error.response?.status === 401) {
-          const errorDetail = error.response?.data?.detail || '';
-          const errorMessage = error.response?.data?.message || '';
-          
-          console.warn('🔒 401 on protected endpoint:', url);
-          
-          // Handle session conflicts
-          if (errorMessage.includes('logged in elsewhere') || 
-              errorDetail.includes('SESSION_CONFLICT')) {
-            setSessionConflict({
-              message: 'You have been logged out because you logged in elsewhere.',
-            });
-            clearAuth();
-          } else if (errorDetail.includes('Invalid or expired refresh token')) {
-            // Only clear for refresh token issues
-            console.log('🔄 Refresh token invalid, clearing auth');
-            clearAuth();
-          }
-        }
-        
-        return Promise.reject(error);
-      }
-    );
-
-    return () => {
-      api.interceptors.response.eject(interceptor);
-    };
-  }, [clearAuth]);
-
-  // Enhanced token refresh with new refresh token handling
+  // ============================================================================
+  // ENHANCED TOKEN REFRESH WITH SMART SCHEDULING
+  // ============================================================================
+  
   const refreshAndSchedule = useCallback(async () => {
     console.log('🔄 refreshAndSchedule called');
-    try {
-      const refreshToken = localStorage.getItem('refresh_token');
-      console.log('🎫 Refresh token check:', refreshToken ? 'Found' : 'Not found');
-      
-      if (!refreshToken || refreshToken === 'null' || refreshToken === 'undefined' || !refreshToken.trim()) {
-        console.log('❌ No valid refresh token, stopping refresh cycle');
-        setLoadingUser(false);
-        setInitializing(false);
-        return;
-      }
+    
+    // Prevent multiple simultaneous refresh attempts
+    if (authStateRef.current.isRefreshing) {
+      console.log('🔄 Refresh already in progress, waiting...');
+      return authStateRef.current.refreshPromise;
+    }
+    
+    // Rate limiting: don't refresh more than once per minute
+    const now = Date.now();
+    if (now - authStateRef.current.lastRefreshAttempt < 60000) {
+      console.log('🔄 Refresh rate limited, skipping');
+      setLoadingUser(false);
+      setInitializing(false);
+      return;
+    }
+    
+    authStateRef.current.isRefreshing = true;
+    authStateRef.current.lastRefreshAttempt = now;
+    
+    const refreshPromise = (async () => {
+      try {
+        const refreshToken = localStorage.getItem('refresh_token');
+        console.log('🎫 Refresh token check:', refreshToken ? 'Found' : 'Not found');
+        
+        if (!refreshToken || refreshToken === 'null' || refreshToken === 'undefined' || !refreshToken.trim()) {
+          console.log('❌ No valid refresh token, stopping refresh cycle');
+          setLoadingUser(false);
+          setInitializing(false);
+          return;
+        }
 
-      console.log('📡 Making refresh request to: /api/auth/refresh');
-      
-      // Set the refresh token as bearer token for the refresh request
-      const tempHeader = api.defaults.headers.common.Authorization;
-      api.defaults.headers.common.Authorization = `Bearer ${refreshToken}`;
-      
-      // 🔧 FIX: Use correct API path
-      const res = await api.post('/api/auth/refresh');
-      console.log('✅ Refresh response received:', res.data);
-      
-      // Restore previous header
-      api.defaults.headers.common.Authorization = tempHeader;
-      
-      const newToken = res.data.access_token;
-      const newRefreshToken = res.data.refresh_token;
+        console.log('📡 Making refresh request...');
+        
+        // Make refresh request with proper error handling
+        const response = await fetch(`${api.defaults.baseURL}/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${refreshToken}`
+          },
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Refresh failed: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Refresh response received');
+        
+        const newToken = data.access_token;
+        const newRefreshToken = data.refresh_token;
 
-      if (!newToken || typeof newToken !== 'string' || !newToken.trim()) {
-        throw new Error('Invalid token received from refresh endpoint');
-      }
+        if (!newToken || typeof newToken !== 'string' || !newToken.trim()) {
+          throw new Error('Invalid token received from refresh endpoint');
+        }
 
-      // Validate the new token
-      const decoded = jwtDecode(newToken);
-      if (!decoded.exp || decoded.exp <= Date.now() / 1000) {
-        throw new Error('Received expired token from refresh');
-      }
+        // Validate the new token
+        const decoded = jwtDecode(newToken);
+        if (!decoded.exp || decoded.exp <= Date.now() / 1000) {
+          throw new Error('Received expired token from refresh');
+        }
 
-      // Store tokens - Update refresh token if provided
-      localStorage.setItem('access_token', newToken);
-      if (newRefreshToken && newRefreshToken !== refreshToken) {
-        localStorage.setItem('refresh_token', newRefreshToken);
-        console.log('🔄 Refresh token updated');
-      }
-      
-      api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
-      setToken(newToken);
+        // Store new tokens
+        localStorage.setItem('access_token', newToken);
+        if (newRefreshToken && newRefreshToken !== refreshToken) {
+          localStorage.setItem('refresh_token', newRefreshToken);
+          console.log('🔄 Refresh token updated');
+        }
+        
+        // Update API headers
+        api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+        setToken(newToken);
 
-      // Schedule next refresh (1 minute before expiry)
-      const expiresInMs = decoded.exp * 1000 - Date.now();
-      const buffer = 60 * 1000; // 1 minute buffer
-      const timeout = Math.max(expiresInMs - buffer, 5000); // Minimum 5 seconds
+        // Schedule next refresh (5 minutes before expiry, minimum 5 minutes)
+        const expiresInMs = decoded.exp * 1000 - Date.now();
+        const buffer = 5 * 60 * 1000; // 5 minute buffer
+        const timeout = Math.max(expiresInMs - buffer, 5 * 60 * 1000); // Minimum 5 minutes
 
-      if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
-      window._refreshTimeout = setTimeout(() => refreshAndSchedule(), timeout);
-      
-      console.log('⏰ Next refresh scheduled in:', Math.floor(timeout / 1000), 'seconds');
+        if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
+        window._refreshTimeout = setTimeout(() => refreshAndSchedule(), timeout);
+        
+        console.log('⏰ Next refresh scheduled in:', Math.floor(timeout / 60000), 'minutes');
 
-    } catch (err) {
-      console.error('❌ Silent refresh failed:', err);
-      
-      // Only clear auth for specific refresh errors
-      if (err.response?.status === 401) {
-        const errorDetail = err.response?.data?.detail || '';
-        if (errorDetail.includes('Invalid or expired refresh token') || 
-            errorDetail.includes('refresh token')) {
+      } catch (err) {
+        console.error('❌ Silent refresh failed:', err);
+        
+        // Only clear auth for specific refresh errors
+        if (err.message.includes('401') || 
+            err.message.includes('refresh') || 
+            err.message.includes('expired') ||
+            err.message.includes('invalid')) {
           console.log('🔄 Refresh token invalid, clearing auth');
           clearAuth();
         }
-      } else {
-        clearAuth();
+      } finally {
+        authStateRef.current.isRefreshing = false;
+        authStateRef.current.refreshPromise = null;
+        setLoadingUser(false);
+        setInitializing(false);
       }
-    } finally {
-      setLoadingUser(false);
-      setInitializing(false);
-    }
+    })();
+    
+    authStateRef.current.refreshPromise = refreshPromise;
+    return refreshPromise;
   }, [clearAuth]);
 
-  // Initialize auth state
+  // ============================================================================
+  // ENHANCED AUTHENTICATION INITIALIZATION
+  // ============================================================================
+  
   useEffect(() => {
     console.log('🚀 AuthProvider initialization');
     console.log('Current token:', token ? 'Present' : 'None');
@@ -224,14 +255,18 @@ export function AuthProvider({ children }) {
         const { exp } = jwtDecode(token);
         const expiresInMs = exp * 1000 - Date.now();
         
-        if (expiresInMs > 60000) { // More than 1 minute left
-          const buffer = 60 * 1000;
-          const timeout = Math.max(expiresInMs - buffer, 5000);
+        if (expiresInMs > 5 * 60 * 1000) { // More than 5 minutes left
+          const buffer = 5 * 60 * 1000; // 5 minute buffer
+          const timeout = Math.max(expiresInMs - buffer, 5 * 60 * 1000);
 
           if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
           window._refreshTimeout = setTimeout(() => refreshAndSchedule(), timeout);
           
-          console.log('⏰ Refresh scheduled in:', Math.floor(timeout / 1000), 'seconds');
+          console.log('⏰ Refresh scheduled in:', Math.floor(timeout / 60000), 'minutes');
+          
+          // Don't call refreshAndSchedule immediately if token is still valid
+          setLoadingUser(false);
+          setInitializing(false);
         } else {
           console.log('🔄 Token expires soon, refreshing immediately');
           refreshAndSchedule();
@@ -239,6 +274,8 @@ export function AuthProvider({ children }) {
       } catch (err) {
         console.error('❌ Invalid token format, clearing auth:', err);
         clearAuth();
+        setLoadingUser(false);
+        setInitializing(false);
       }
     } else {
       // No access token - check for refresh token
@@ -254,9 +291,12 @@ export function AuthProvider({ children }) {
         setInitializing(false);
       }
     }
-  }, [token, refreshAndSchedule]);
+  }, [token, refreshAndSchedule, clearAuth]);
 
-  // 🔧 FIX: Handle navigation after token state is updated
+  // ============================================================================
+  // ENHANCED NAVIGATION HANDLING
+  // ============================================================================
+  
   useEffect(() => {
     if (pendingNavigation && token && !loadingUser && !initializing) {
       console.log('🚀 Executing pending navigation:', pendingNavigation);
@@ -265,7 +305,10 @@ export function AuthProvider({ children }) {
     }
   }, [token, loadingUser, initializing, pendingNavigation, navigate]);
 
-  // Fetch user profile when token is available
+  // ============================================================================
+  // ENHANCED USER PROFILE FETCHING
+  // ============================================================================
+  
   useEffect(() => {
     if (!token || typeof token !== 'string' || !token.trim()) {
       setUser(null);
@@ -276,33 +319,50 @@ export function AuthProvider({ children }) {
       return;
     }
 
+    // Don't fetch profile if we're still initializing or in the middle of auth
+    if (initializing || authStateRef.current.isRefreshing) {
+      return;
+    }
+
     console.log('👤 Fetching user profile with token');
     setLoadingUser(true);
 
-    // 🔧 FIX: Use correct API path
-    api.get('/api/auth/me')
-      .then(res => {
-        console.log('✅ User profile loaded:', res.data);
-        setUser(res.data);
-      })
-      .catch(err => {
-        console.error('🔒 Failed to load user profile:', err);
-        // Don't clear auth here if it's just a profile loading issue
-        // User profile loading failure doesn't mean authentication failed
-        console.warn('⚠️ Continuing with authentication despite profile loading failure');
-      })
-      .finally(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await api.get('/auth/me');
+        console.log('✅ User profile loaded:', response.data);
+        setUser(response.data);
+      } catch (error) {
+        console.error('🔒 Failed to load user profile:', error);
+        
+        // Only clear auth on 401 errors, not network issues
+        if (error.response?.status === 401) {
+          console.log('🔒 Authentication expired, clearing auth');
+          clearAuth();
+        } else {
+          console.warn('⚠️ Profile loading failed but continuing with authentication');
+        }
+      } finally {
         setLoadingUser(false);
         setInitializing(false);
-      });
+      }
+    };
+
+    fetchUserProfile();
   }, [token, clearAuth, initializing]);
 
-  // 🔧 FIX: Completely rewritten login function with proper state management
+  // ============================================================================
+  // ENHANCED LOGIN FUNCTION
+  // ============================================================================
+  
   const login = async ({ email, password }, forceNewSession = false) => {
     console.log('🔐 Login attempt for:', email);
     console.log('🌐 API base URL:', api.defaults.baseURL);
     
     try {
+      // Clear any existing auth state
+      clearAuth();
+      
       const payload = { email, password };
       
       if (forceNewSession === true) {
@@ -310,14 +370,13 @@ export function AuthProvider({ children }) {
         console.log('🔄 Force new session requested');
       }
       
-      console.log('📡 Making login request to: /api/auth/login');
+      console.log('📡 Making login request...');
       
-      // 🔧 FIX: Use correct API path
-      const res = await api.post('/api/auth/login', payload);
-      console.log('✅ Login response:', res.status, 'Token received:', !!res.data.access_token);
+      const response = await api.post('/auth/login', payload);
+      console.log('✅ Login response:', response.status, 'Token received:', !!response.data.access_token);
       
-      const newToken = res.data.access_token;
-      const refreshToken = res.data.refresh_token;
+      const newToken = response.data.access_token;
+      const refreshToken = response.data.refresh_token;
 
       // Enhanced token validation
       if (!newToken || typeof newToken !== 'string' || !newToken.trim()) {
@@ -350,17 +409,17 @@ export function AuthProvider({ children }) {
       // Set API header
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
       
-      // Schedule refresh
+      // Schedule refresh (5 minutes before expiry, minimum 5 minutes)
       const expiresInMs = decoded.exp * 1000 - Date.now();
-      const buffer = 60 * 1000;
-      const timeout = Math.max(expiresInMs - buffer, 5000);
+      const buffer = 5 * 60 * 1000; // 5 minute buffer
+      const timeout = Math.max(expiresInMs - buffer, 5 * 60 * 1000);
       
       if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
       window._refreshTimeout = setTimeout(() => refreshAndSchedule(), timeout);
 
       console.log('🚀 Login successful, preparing navigation');
       
-      // 🔧 FIX: Set token and navigation destination, let useEffect handle the actual navigation
+      // Set token and navigation destination
       setToken(newToken);
       setPendingNavigation('/chats');
       
@@ -371,17 +430,41 @@ export function AuthProvider({ children }) {
       console.error('Response data:', error.response?.data);
       console.error('Response status:', error.response?.status);
       
-      // Only clear auth on actual login failure, not network issues
-      if (error.response?.status === 401) {
-        clearAuth();
-      }
+      // Clear auth on login failure
+      clearAuth();
       
       // Re-throw for component handling
       throw error;
     }
   };
 
-  // Force login for session conflicts
+  // ============================================================================
+  // ENHANCED REGISTER FUNCTION
+  // ============================================================================
+  
+  const register = async ({ email, password, name }) => {
+    console.log('📝 Registration attempt for:', email);
+    
+    try {
+      const response = await api.post('/auth/register', { 
+        email, 
+        password, 
+        name
+      });
+      
+      console.log('✅ Registration successful:', response.data);
+      return { success: true, user: response.data };
+      
+    } catch (error) {
+      console.error('❌ Registration failed:', error);
+      throw error;
+    }
+  };
+
+  // ============================================================================
+  // FORCE LOGIN FOR SESSION CONFLICTS
+  // ============================================================================
+  
   const forceLogin = async (credentials) => {
     try {
       return await login(credentials, true);
@@ -390,41 +473,29 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Enhanced register function
-  const register = async ({ email, password, name }) => {
-    console.log('📝 Registration attempt for:', email);
-    
-    try {
-      // 🔧 FIX: Use correct API path
-      const res = await api.post('/api/auth/register', { 
-        email, 
-        password, 
-        name
-      });
-      
-      console.log('✅ Registration successful:', res.data);
-      return { success: true, user: res.data };
-      
-    } catch (error) {
-      console.error('❌ Registration failed:', error);
-      throw error;
-    }
-  };
-
-  // Clear session conflict
+  // ============================================================================
+  // CLEAR SESSION CONFLICT
+  // ============================================================================
+  
   const clearSessionConflict = () => {
     setSessionConflict(null);
   };
 
-  // Enhanced logout
+  // ============================================================================
+  // ENHANCED LOGOUT FUNCTION
+  // ============================================================================
+  
   const logout = async () => {
     console.log('🚪 Logging out user');
     
     try {
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
-        // 🔧 FIX: Use correct API path
-        await api.post('/api/auth/logout', { refresh_token: refreshToken });
+        await api.post('/auth/logout', {}, {
+          headers: {
+            'Authorization': `Bearer ${refreshToken}`
+          }
+        });
         console.log('✅ Server logout successful');
       }
     } catch (err) {
@@ -436,12 +507,16 @@ export function AuthProvider({ children }) {
     navigate('/login', { replace: true });
   };
 
-  // 🔧 FIX: Update authentication logic to only require valid token
+  // ============================================================================
+  // AUTHENTICATION STATUS COMPUTATION
+  // ============================================================================
+  
   const isAuthenticated = Boolean(
     token && 
     typeof token === 'string' && 
     token.trim() &&
-    !pendingNavigation // Ensure we're not in the middle of a login process
+    !authStateRef.current.isRefreshing &&
+    !pendingNavigation
   );
 
   console.log('🔍 Auth state:', {
@@ -450,14 +525,23 @@ export function AuthProvider({ children }) {
     isAuthenticated,
     loadingUser,
     initializing,
-    pendingNavigation
+    pendingNavigation,
+    isRefreshing: authStateRef.current.isRefreshing
   });
 
-  // 🔧 FIX: Show loader while determining auth status OR during login navigation
-  if (loadingUser || initializing || pendingNavigation) {
+  // ============================================================================
+  // LOADING STATE MANAGEMENT
+  // ============================================================================
+  
+  // Show loader while determining auth status OR during login navigation OR during refresh
+  if (loadingUser || initializing || pendingNavigation || authStateRef.current.isRefreshing) {
     return <LottieLoader />;
   }
 
+  // ============================================================================
+  // CONTEXT PROVIDER
+  // ============================================================================
+  
   return (
     <AuthContext.Provider
       value={{
