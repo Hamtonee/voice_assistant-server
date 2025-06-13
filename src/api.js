@@ -307,11 +307,11 @@ export const createScenarioChat = ({ scenarioKey, title, prompt }) => {
 };
 
 export const createFeatureChat = ({ feature, scenarioKey, title, prompt }) => {
-  console.log('💬 Creating feature chat:', { feature, scenarioKey, title });
-  return api.post('/chats', { 
-    scenarioKey, 
-    feature: feature || 'chat',
-    title: title || `${feature} Chat`
+  return api.post('/chats', {
+    feature,
+    scenarioKey,
+    title,
+    prompt
   });
 };
 

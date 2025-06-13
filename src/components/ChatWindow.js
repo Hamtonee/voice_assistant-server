@@ -257,9 +257,7 @@ export default function ChatWindow() {
       };
 
       const config = sessionConfig[feature];
-      const endpoint = '/chats';
-      
-      const { data } = await api.post(endpoint, config);
+      const { data } = await api.post('/chats', config);
       
       setSessions(prev => [data, ...prev]);
       setActiveSessionIds(prev => ({
