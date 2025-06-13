@@ -257,7 +257,7 @@ export default function ChatWindow() {
       };
 
       const config = sessionConfig[feature];
-      const endpoint = feature === 'chat' ? '/chats' : '/chats/feature';
+      const endpoint = '/chats';
       
       const { data } = await api.post(endpoint, config);
       

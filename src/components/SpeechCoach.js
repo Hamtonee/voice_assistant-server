@@ -1,5 +1,7 @@
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic, Send, Volume2, AlertCircle, Loader, RefreshCw, BookOpen, TrendingUp, Lightbulb, Clock, AlertTriangle, Info, X, ChevronDown, CheckCircle, Wifi, WifiOff } from 'lucide-react';
+import { TTSService } from '../services/TTSService';
 import api from '../api';
 
 // Enhanced configs for better coaching experience
@@ -57,7 +59,6 @@ try {
   console.error('❌ [API Configuration Error]:', error.message);
   ENDPOINTS = {
     API_ENDPOINT: '/api/speech-coach',
-    DEEPSPEAK_ENDPOINT: '/api/deepspeak',
     USAGE_ENDPOINT: '/api/usage',
     HEALTH_ENDPOINT: '/api/health',
     LEARNING_PROGRESS_ENDPOINT: '/api/learning-progress'
@@ -65,7 +66,6 @@ try {
 }
 
 const API_ENDPOINT = ENDPOINTS.API_ENDPOINT;
-const DEEPSPEAK_ENDPOINT = ENDPOINTS.DEEPSPEAK_ENDPOINT;
 const USAGE_ENDPOINT = ENDPOINTS.USAGE_ENDPOINT;
 const HEALTH_ENDPOINT = ENDPOINTS.HEALTH_ENDPOINT;
 const LEARNING_PROGRESS_ENDPOINT = ENDPOINTS.LEARNING_PROGRESS_ENDPOINT;
@@ -310,22 +310,17 @@ export default function EnhancedSpeechCoach({
     setIsPlaying(true);
   }, []);
 
+  // Initialize TTS service
+  const ttsService = useMemo(() => new TTSService(process.env.REACT_APP_API_URL || ''), []);
+  
   const speakWithDeepSpeak = useCallback(async (text, voiceConfig, onEndCallback) => {
     try {
       setIsPlaying(true);
       
-      const response = await fetch(DEEPSPEAK_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text, voice: voiceConfig })
-      });
+      const result = await ttsService.makeTextToSpeechRequest(text, voiceConfig);
       
-      if (!response.ok) throw new Error('DeepSpeak request failed');
-      
-      const data = await response.json();
-      
-      if (data.success && data.audio) {
-        const audio = new Audio(`data:audio/mp3;base64,${data.audio}`);
+      if (result?.success && result.audio) {
+        const audio = new Audio(`data:audio/mp3;base64,${result.audio}`);
         ttsRef.current = audio;
         
         audio.onended = () => {
@@ -335,19 +330,19 @@ export default function EnhancedSpeechCoach({
         };
         
         audio.onerror = () => {
-          console.warn('DeepSpeak audio playback failed, falling back to browser TTS');
+          console.warn('TTS audio playback failed, falling back to browser TTS');
           speakWithBrowserTTS(text, voiceConfig, onEndCallback);
         };
         
         await audio.play();
       } else {
-        throw new Error('No audio received from DeepSpeak');
+        throw new Error('No audio received from TTS service');
       }
     } catch (error) {
-      console.warn('DeepSpeak failed, falling back to browser TTS:', error);
+      console.warn('TTS failed, falling back to browser TTS:', error);
       speakWithBrowserTTS(text, voiceConfig, onEndCallback);
     }
-  }, [speakWithBrowserTTS]);
+  }, [speakWithBrowserTTS, ttsService]);
 
   const cancelSpeech = useCallback(() => {
     if (window.speechSynthesis) {
@@ -1254,29 +1249,54 @@ export default function EnhancedSpeechCoach({
 
   // Enhanced initial support checks
   useEffect(() => {
-    const initializeApp = async () => {
-      const status = await checkSystemStatus();
-      setIsSpeechSupported(status.speechRecognition === 'ready');
-      
-      if (status.overallStatus === 'issues' || status.overallStatus === 'error') {
-        setShowStatusPanel(true);
-        setTimeout(() => {
-          setShowStatusPanel(false);
-        }, 10000);
-      }
-      
-      markUserInteraction('session_opened');
-    };
+    if (isUnmountingRef.current) return;
     
+    const initializeApp = async () => {
+      try {
+        // Check TTS availability
+        const ttsAvailable = await ttsService.checkStatus();
+        setDeepSpeakAvailable(ttsAvailable);
+        
+        // Initialize speech recognition
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+          const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+          recognitionRef.current = new SpeechRecognition();
+          recognitionRef.current.continuous = true;
+          recognitionRef.current.interimResults = true;
+          setIsSpeechSupported(true);
+        } else {
+          setIsSpeechSupported(false);
+          setErrorMessage('Speech recognition is not supported in your browser.');
+        }
+        
+        // Load conversation history
+        await loadConversationFromAPI();
+        
+        // Start activity monitoring
+        startActivityMonitoring();
+        
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+        setErrorMessage('Failed to initialize the application. Please try refreshing the page.');
+      }
+    };
+
     initializeApp();
     
-    fetch(DEEPSPEAK_ENDPOINT, { method: 'HEAD' })
-      .then(() => setDeepSpeakAvailable(true))
-      .catch(() => setDeepSpeakAvailable(false));
-      
-    // Initial progress fetch (user-initiated)
-    fetchLearningProgress(true);
-  }, [checkSystemStatus, markUserInteraction, fetchLearningProgress]);
+    return () => {
+      isUnmountingRef.current = true;
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          // Ignore stop errors
+        }
+      }
+      if (activityCheckInterval.current) {
+        clearInterval(activityCheckInterval.current);
+      }
+    };
+  }, [ttsService]);
 
   // Auto-scroll on conversation updates
   useEffect(() => {
