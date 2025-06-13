@@ -1,11 +1,59 @@
+import api from '../api';
+import { ENDPOINTS } from '../config/endpoints';
 import { defaultVoiceConfig } from '../config/voices';
 
 export class TTSService {
-    constructor(baseUrl = '') {
-        this.baseUrl = baseUrl;
-        this.currentRequest = null;
+    constructor() {
         this.lastStatusCheck = 0;
         this.statusCheckInterval = 5000; // 5 seconds between status checks
+        this.isAvailable = false;
+        this.currentRequest = null;
+    }
+
+    async checkStatus() {
+        const now = Date.now();
+        if (now - this.lastStatusCheck < this.statusCheckInterval) {
+            return this.isAvailable;
+        }
+
+        try {
+            const { data } = await api.get(ENDPOINTS.HEALTH);
+            this.isAvailable = data.services?.tts === 'operational';
+            this.lastStatusCheck = now;
+            return this.isAvailable;
+        } catch (error) {
+            console.error('TTS status check failed:', error);
+            this.isAvailable = false;
+            return false;
+        }
+    }
+
+    async synthesize(text, voiceConfig = null) {
+        try {
+            if (this.currentRequest) {
+                this.currentRequest.abort();
+                this.currentRequest = null;
+            }
+
+            const controller = new AbortController();
+            this.currentRequest = controller;
+
+            const { data } = await api.post(ENDPOINTS.TTS, {
+                text,
+                voice: voiceConfig
+            }, {
+                signal: controller.signal
+            });
+
+            this.currentRequest = null;
+            return data;
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('TTS request aborted');
+                return null;
+            }
+            throw error;
+        }
     }
 
     async makeTextToSpeechRequest(text, voiceConfig, retryCount = 0) {
@@ -81,24 +129,4 @@ export class TTSService {
             throw error;
         }
     }
-
-    async checkStatus() {
-        const now = Date.now();
-        if (now - this.lastStatusCheck < this.statusCheckInterval) {
-            return true; // Return cached status if checked recently
-        }
-        this.lastStatusCheck = now;
-
-        try {
-            const response = await fetch(`${this.baseUrl}/health`, {
-                method: 'GET'
-            });
-            return response.ok;
-        } catch (error) {
-            console.warn('TTS status check failed:', error);
-            return false;
-        }
-    }
-}
-
-export default TTSService; 
+} 
