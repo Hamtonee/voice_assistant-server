@@ -7,51 +7,19 @@ import axios from 'axios';
 
 // 🌐 Base URL configuration with better environment detection
 const getApiBaseUrl = () => {
-  // Check if we're in development
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  
-  // Get from environment variable first
-  let baseUrl = process.env.REACT_APP_API_BASE_URL;
-  
-  if (baseUrl) {
-    // Clean up the URL - remove trailing slashes and ensure proper format
-    baseUrl = baseUrl.replace(/\/+$/, '');
-    
-    // Ensure it ends with /api if not already included
-    if (!baseUrl.endsWith('/api')) {
-      baseUrl += '/api';
-    }
-    
-    console.log('🌐 Using API Base URL from env:', baseUrl);
-    return baseUrl;
+  if (process.env.REACT_APP_API_URL) {
+    console.log('🌐 Using API Base URL from env:', process.env.REACT_APP_API_URL);
+    return process.env.REACT_APP_API_URL;
   }
   
-  // Auto-detect based on current location
-  if (typeof window !== 'undefined') {
-    const currentHost = window.location.hostname;
-    const currentProtocol = window.location.protocol;
-    const currentPort = window.location.port;
-    
-    if (isDevelopment || currentHost === 'localhost' || currentHost === '127.0.0.1') {
-      // Development mode - try common development ports
-      const devUrl = `${currentProtocol}//${currentHost}:8000/api`;
-      console.log('🔧 Development mode - using:', devUrl);
-      return devUrl;
-    } else {
-      // Production mode - use same host with /api path
-      let prodUrl;
-      if (currentPort && !['80', '443'].includes(currentPort)) {
-        prodUrl = `${currentProtocol}//${currentHost}:${currentPort}/api`;
-      } else {
-        prodUrl = `${currentProtocol}//${currentHost}/api`;
-      }
-      console.log('🚀 Production mode - using:', prodUrl);
-      return prodUrl;
-    }
+  if (process.env.NODE_ENV === 'production') {
+    const prodUrl = 'https://api.semanami-ai.com';
+    console.log('🚀 Production mode - using:', prodUrl);
+    return prodUrl;
   }
   
   // Final fallback
-  const fallbackUrl = 'http://localhost:8000/api';
+  const fallbackUrl = 'http://localhost:8000';
   console.log('⚠️ Using fallback URL:', fallbackUrl);
   return fallbackUrl;
 };
@@ -64,7 +32,7 @@ console.log('🌐 Final API Base URL:', BASE_URL);
 // ============================================================================
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
+  baseURL: BASE_URL,
   timeout: 60000, // 60 second timeout
   withCredentials: true,
   headers: {
@@ -247,19 +215,13 @@ export const fetchMe = () => {
 };
 
 export const login = async (credentials) => {
-  console.log('🔐 API login call initiated for:', credentials.email);
-  localStorage.setItem('auth_in_progress', 'true');
-  
   try {
-    const response = await api.post('/auth/login', credentials);
-    console.log('✅ Login API call successful');
-    return response;
+    console.log('📡 Making login request...');
+    const response = await api.post('/api/auth/login', credentials);
+    return response.data;
   } catch (error) {
-    console.error('❌ Login API call failed:', error);
+    console.error('❌ Login failed:', error);
     throw error;
-  } finally {
-    localStorage.removeItem('auth_in_progress');
-    console.log('🔐 API login call completed');
   }
 };
 
