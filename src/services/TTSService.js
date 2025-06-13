@@ -1,132 +1,144 @@
 import api from '../api';
-import { ENDPOINTS } from '../config/endpoints';
-import { defaultVoiceConfig } from '../config/voices';
+
+// Constants
+const ENDPOINTS = {
+    TTS: '/tts',  // Updated endpoint
+    VOICES: '/voices'
+};
+
+const defaultVoiceConfig = {
+    voiceName: 'en-US-Standard-A',
+    languageCode: 'en-US',
+    ssmlGender: 'FEMALE',
+    profile: 'default',
+    pitch: 0,
+    speakingRate: 1.0
+};
 
 export class TTSService {
-    constructor() {
-        this.lastStatusCheck = 0;
-        this.statusCheckInterval = 5000; // 5 seconds between status checks
-        this.isAvailable = false;
+    constructor(baseUrl = '') {
+        this.baseUrl = baseUrl;
         this.currentRequest = null;
-    }
-
-    async checkStatus() {
-        const now = Date.now();
-        if (now - this.lastStatusCheck < this.statusCheckInterval) {
-            return this.isAvailable;
-        }
-
-        try {
-            const { data } = await api.get(ENDPOINTS.HEALTH);
-            this.isAvailable = data.services?.tts === 'operational';
-            this.lastStatusCheck = now;
-            return this.isAvailable;
-        } catch (error) {
-            console.error('TTS status check failed:', error);
-            this.isAvailable = false;
-            return false;
-        }
+        this.audioCache = new Map();
+        this.pendingRequests = new Map();
     }
 
     async synthesize(text, voiceConfig = null) {
         try {
-            if (this.currentRequest) {
-                this.currentRequest.abort();
-                this.currentRequest = null;
+            // Check cache first
+            const cacheKey = `${text}-${JSON.stringify(voiceConfig)}`;
+            if (this.audioCache.has(cacheKey)) {
+                console.log('🎵 Using cached TTS audio');
+                return this.audioCache.get(cacheKey);
             }
 
-            const controller = new AbortController();
-            this.currentRequest = controller;
-
-            const { data } = await api.post(ENDPOINTS.TTS, {
-                text,
-                voice: voiceConfig
-            }, {
-                signal: controller.signal
-            });
-
-            this.currentRequest = null;
-            return data;
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                console.log('TTS request aborted');
-                return null;
-            }
-            throw error;
-        }
-    }
-
-    async makeTextToSpeechRequest(text, voiceConfig, retryCount = 0) {
-        try {
             // Cancel any existing request
             if (this.currentRequest) {
                 this.currentRequest.abort();
                 this.currentRequest = null;
             }
 
-            // Create abort controller for this request
+            // Check if there's a pending request for this text
+            if (this.pendingRequests.has(cacheKey)) {
+                console.log('🎵 Using pending TTS request');
+                return this.pendingRequests.get(cacheKey);
+            }
+
             const controller = new AbortController();
             this.currentRequest = controller;
 
-            // Set up request timeout
-            const timeoutId = setTimeout(() => {
-                controller.abort();
-                this.currentRequest = null;
-            }, 30000);
-
-            const requestBody = {
-                text,
-                voice: voiceConfig || defaultVoiceConfig,
-                voice_profile: 'default'
+            // Format voice config to match Google Cloud TTS expectations
+            const formattedVoiceConfig = {
+                voiceName: voiceConfig?.voiceName || defaultVoiceConfig.voiceName,
+                languageCode: voiceConfig?.languageCode || defaultVoiceConfig.languageCode,
+                ssmlGender: voiceConfig?.ssmlGender || defaultVoiceConfig.ssmlGender,
+                profile: voiceConfig?.profile || defaultVoiceConfig.profile,
+                pitch: voiceConfig?.pitch ?? defaultVoiceConfig.pitch,
+                speakingRate: voiceConfig?.speakingRate ?? defaultVoiceConfig.speakingRate
             };
 
-            console.log('🎵 Sending TTS request:', {
-                textLength: text.length,
-                voice: requestBody.voice.voiceName,
-                profile: requestBody.voice.profile,
-                attempt: retryCount + 1
-            });
-
-            // Make the request to the correct endpoint
-            const response = await fetch(`${this.baseUrl}/tts`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(requestBody),
+            const requestPromise = api.post(ENDPOINTS.TTS, {
+                text,
+                voice: formattedVoiceConfig
+            }, {
                 signal: controller.signal,
-                keepalive: true
+                timeout: 30000
             });
 
-            // Clear timeout and current request reference
-            clearTimeout(timeoutId);
+            // Store the pending request
+            this.pendingRequests.set(cacheKey, requestPromise);
+
+            const response = await requestPromise;
             this.currentRequest = null;
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
-                throw new Error(`TTS request failed: ${response.status} - ${errorData.detail || 'Unknown error'}`);
+            // Extract audio data from response
+            const audioData = response.data.audio || response.data.feedbackAudio || response.data.audioContent;
+            if (!audioData) {
+                throw new Error('No audio data in response');
             }
 
-            const result = await response.json();
-            
-            if (result.warning) {
-                console.warn('⚠️ TTS Warning:', result.warning);
-            }
-            
-            console.log('✅ TTS request successful:', {
-                voiceUsed: result.voice_used,
-                profileUsed: result.profile_used,
-                audioDataSize: result.audio?.length || 0
-            });
-            
-            return result;
+            // Create audio blob
+            const audioBlob = new Blob([
+                Uint8Array.from(atob(audioData), c => c.charCodeAt(0))
+            ], { type: 'audio/mp3' });
+
+            const audioUrl = URL.createObjectURL(audioBlob);
+
+            // Cache the result
+            this.audioCache.set(cacheKey, { audioUrl, blob: audioBlob });
+            this.pendingRequests.delete(cacheKey);
+
+            return { audioUrl, blob: audioBlob };
         } catch (error) {
             if (error.name === 'AbortError') {
-                console.warn('TTS request aborted');
+                console.log('🎵 TTS request aborted');
                 return null;
             }
-            throw error;
+
+            // Handle specific error cases
+            if (error.response) {
+                const status = error.response.status;
+                if (status === 404) {
+                    console.error('❌ TTS endpoint not found. Using fallback.');
+                    return this.useBrowserTTS(text);
+                } else if (status === 429) {
+                    console.error('❌ TTS rate limit exceeded');
+                    throw new Error('TTS rate limit exceeded. Please try again later.');
+                }
+            }
+
+            // Network or other errors
+            console.error('❌ TTS request failed:', error);
+            return this.useBrowserTTS(text);
         }
     }
-} 
+
+    async useBrowserTTS(text) {
+        return new Promise((resolve, reject) => {
+            if (!window.speechSynthesis) {
+                reject(new Error('Browser TTS not available'));
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.onend = () => resolve({ success: true, source: 'browser' });
+            utterance.onerror = (event) => reject(new Error(`Browser TTS failed: ${event.error}`));
+
+            window.speechSynthesis.speak(utterance);
+        });
+    }
+
+    clearCache() {
+        this.audioCache.clear();
+        this.pendingRequests.clear();
+    }
+
+    cancelCurrentRequest() {
+        if (this.currentRequest) {
+            this.currentRequest.abort();
+            this.currentRequest = null;
+        }
+    }
+}
+
+export default new TTSService(); 

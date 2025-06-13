@@ -336,8 +336,11 @@ export const addMessage = (chatId, { role, text }) => {
 
 export const renameChat = (chatId, title) => {
   console.log('💬 Renaming chat:', chatId, title);
-  // This endpoint might not exist, so we'll simulate it
-  return Promise.resolve({ data: { success: true, title } });
+  return api.post(`/chats/${chatId}/messages`, { 
+    role: 'system',
+    text: title,
+    metadata: { type: 'rename' }
+  });
 };
 
 export const deleteChat = (chatId) => {
@@ -442,13 +445,13 @@ export const createSpeechSession = (sessionData) => {
 
 export const addSpeechMessage = (sessionId, messageData) => {
   console.log('🎤 Adding speech message to session:', sessionId);
-  return Promise.resolve({ 
-    data: { 
-      ...messageData,
-      id: Date.now(),
-      sessionId,
-      timestamp: Date.now()
-    } 
+  return api.post(`/chats/${sessionId}/messages`, {
+    role: messageData.role || 'user',
+    text: messageData.text,
+    metadata: {
+      type: 'speech',
+      ...messageData.metadata
+    }
   });
 };
 

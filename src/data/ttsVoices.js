@@ -98,99 +98,28 @@ export const ttsVoices = [
 ];
 
 // ─── Enhanced Voice Profiles with Compatibility Information ────────────────────────────────────────────
-export const voiceProfiles = [
-    { 
-        id: 'default', 
-        name: 'Default', 
-        description: 'Balanced and natural speaking style - Works with all voices',
-        settings: {
-            rate: 1.0,        // Normal speaking rate
-            pitch: 0.0,       // Neutral pitch (ignored for incompatible voices)
-            volume: 0.0,      // Normal volume (ignored for incompatible voices)
-            emphasis_words: true,
-            add_pauses: true
-        },
-        compatibility: 'universal' // Works with all voice types
+export const voiceProfiles = {
+    default: {
+        pitch: 0,
+        speakingRate: 1.0
     },
-    { 
-        id: 'slow', 
-        name: 'Learning Mode', 
-        description: 'Slower pace for language learning - Works with all voices',
-        settings: {
-            rate: 0.85,       // Slower for learning
-            pitch: 0.0,       // Neutral pitch
-            volume: 0.0,      // Normal volume
-            emphasis_words: true,
-            add_pauses: true
-        },
-        compatibility: 'universal' // Works with all voice types
+    slow: {
+        pitch: 0,
+        speakingRate: 0.85
     },
-    { 
-        id: 'casual', 
-        name: 'Casual', 
-        description: 'Relaxed, slightly faster - Best with WaveNet/Standard voices',
-        settings: {
-            rate: 1.1,        // Slightly faster
-            pitch: 0.3,       // Slightly higher pitch
-            volume: 0.0,      // Normal volume
-            emphasis_words: true,
-            add_pauses: true
-        },
-        compatibility: 'advanced' // Requires pitch support
+    fast: {
+        pitch: 0,
+        speakingRate: 1.25
     },
-    { 
-        id: 'formal', 
-        name: 'Formal', 
-        description: 'Professional speaking style - Best with WaveNet/Standard voices',
-        settings: {
-            rate: 0.95,       // Slightly slower
-            pitch: -0.2,      // Slightly lower pitch
-            volume: 0.0,      // Normal volume
-            emphasis_words: true,
-            add_pauses: true
-        },
-        compatibility: 'advanced' // Requires pitch support
+    high: {
+        pitch: 4,
+        speakingRate: 1.0
     },
-    { 
-        id: 'expressive', 
-        name: 'Expressive', 
-        description: 'Animated with variation - Best with WaveNet/Journey voices',
-        settings: {
-            rate: 1.05,       // Slightly faster
-            pitch: 0.5,       // Higher pitch for expression
-            volume: 0.0,      // Normal volume
-            emphasis_words: true,
-            add_pauses: true
-        },
-        compatibility: 'advanced' // Requires pitch support
-    },
-    { 
-        id: 'calm', 
-        name: 'Calm', 
-        description: 'Slower and calm - Best with WaveNet voices',
-        settings: {
-            rate: 0.9,        // Slower and calm
-            pitch: -0.3,      // Lower pitch for calmness
-            volume: -2.0,     // Slightly quieter
-            emphasis_words: true,
-            add_pauses: true
-        },
-        compatibility: 'full' // Requires pitch and volume support
-    },
-    { 
-        id: 'energetic', 
-        name: 'Energetic', 
-        description: 'Fast and energetic - Best with WaveNet voices',
-        settings: {
-            rate: 1.15,       // Faster and energetic
-            pitch: 0.4,       // Higher pitch for energy
-            volume: 1.0,      // Slightly louder
-            emphasis_words: true,
-            add_pauses: true
-        },
-        compatibility: 'full' // Requires pitch and volume support
+    low: {
+        pitch: -4,
+        speakingRate: 1.0
     }
-];
+};
 
 // ─── Voice Capability Information ────────────────────────────────────────────
 export const voiceCapabilities = {

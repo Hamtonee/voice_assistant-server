@@ -46,6 +46,7 @@ const VoiceSelector = ({
   const connectionTestInterval = useRef(null);
   const voiceDropdownRef = useRef(null);
   const profileDropdownRef = useRef(null);
+  const ttsServiceRef = useRef(null);
 
   // Enhanced mobile detection with debouncing
   useEffect(() => {
@@ -237,7 +238,7 @@ const VoiceSelector = ({
       
       try {
         console.log('📋 Testing voice library endpoint...');
-        const voicesResponse = await fetch(`${apiUrl}/available-voices`, {
+        const voicesResponse = await fetch(`${apiUrl}/voices`, {
           method: 'GET',
           signal: AbortSignal.timeout(5000)
         });
@@ -247,9 +248,9 @@ const VoiceSelector = ({
           
           try {
             const apiVoices = await voicesResponse.json();
-            if (Array.isArray(apiVoices) && apiVoices.length > 0) {
-              setVoices(apiVoices);
-              console.log(`📋 Loaded ${apiVoices.length} premium voices`);
+            if (Array.isArray(apiVoices?.voices) && apiVoices.voices.length > 0) {
+              setVoices(apiVoices.voices);
+              console.log(`📋 Loaded ${apiVoices.voices.length} premium voices`);
             }
           } catch (e) {
             console.log('📋 Using local voice catalog');
@@ -258,17 +259,9 @@ const VoiceSelector = ({
           console.log('🎤 Testing voice synthesis capability...');
           try {
             const testVoiceConfig = createVoiceConfig(defaultVoice, 'default');
-            const testResponse = await fetch(`${apiUrl}/deepspeak-tts`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                text: 'Test',
-                voice: testVoiceConfig
-              }),
-              signal: AbortSignal.timeout(10000)
-            });
+            const testResponse = await ttsServiceRef.current.synthesize('Test', testVoiceConfig);
             
-            if (testResponse.ok) {
+            if (testResponse?.audioUrl) {
               console.log('✅ Premium Voice Studio ready');
               setApiAvailable(true);
               setConnectionStatus('premium');
@@ -351,7 +344,7 @@ const VoiceSelector = ({
       
       console.log('📤 Premium synthesis request:', requestBody);
 
-      const response = await fetch(`${apiUrl}/deepspeak-tts`, {
+      const response = await fetch(`${apiUrl}/tts`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -664,7 +657,7 @@ const VoiceSelector = ({
       
       try {
         console.log('📋 Testing voice library endpoint...');
-        const voicesResponse = await fetch(`${apiUrl}/available-voices`, {
+        const voicesResponse = await fetch(`${apiUrl}/voices`, {
           method: 'GET',
           signal: AbortSignal.timeout(5000)
         });
@@ -674,9 +667,9 @@ const VoiceSelector = ({
           
           try {
             const apiVoices = await voicesResponse.json();
-            if (Array.isArray(apiVoices) && apiVoices.length > 0) {
-              setVoices(apiVoices);
-              console.log(`📋 Loaded ${apiVoices.length} premium voices`);
+            if (Array.isArray(apiVoices?.voices) && apiVoices.voices.length > 0) {
+              setVoices(apiVoices.voices);
+              console.log(`📋 Loaded ${apiVoices.voices.length} premium voices`);
             }
           } catch (e) {
             console.log('📋 Using local voice catalog');
@@ -685,17 +678,9 @@ const VoiceSelector = ({
           console.log('🎤 Testing voice synthesis capability...');
           try {
             const testVoiceConfig = createVoiceConfig(defaultVoice, 'default');
-            const testResponse = await fetch(`${apiUrl}/deepspeak-tts`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                text: 'Test',
-                voice: testVoiceConfig
-              }),
-              signal: AbortSignal.timeout(10000)
-            });
+            const testResponse = await ttsServiceRef.current.synthesize('Test', testVoiceConfig);
             
-            if (testResponse.ok) {
+            if (testResponse?.audioUrl) {
               console.log('✅ Premium Voice Studio ready');
               setApiAvailable(true);
               setConnectionStatus('premium');
