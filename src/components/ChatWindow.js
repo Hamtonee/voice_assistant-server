@@ -1,5 +1,5 @@
-// src/components/ChatWindow.js - ENHANCED VERSION WITH UPDATED FEATURE NAMES
-import React, { useState, useEffect, useContext } from 'react';
+// src/components/ChatWindow.js - CLEANED VERSION
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import api from '../api';
 import '../assets/styles/ChatWindow.css';
 
@@ -18,7 +18,7 @@ import { AuthContext }          from '../contexts/AuthContext';
 export default function ChatWindow() {
   const { user, logout } = useContext(AuthContext);
 
-  // ─── SIMPLIFIED Responsive State ─────────────────────
+  // ─── Consolidated Responsive State ─────────────────────
   const [viewport, setViewport] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -27,7 +27,29 @@ export default function ChatWindow() {
 
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
 
-  // Enhanced viewport tracking
+  // ─── Consolidated Session State ─────────────────────────
+  const [sessions, setSessions] = useState([]);
+  const [activeSessionIds, setActiveSessionIds] = useState({
+    chat: null,
+    sema: null,
+    tusome: null
+  });
+  const [selectedFeature, setSelectedFeature] = useState('chat');
+  const [scenario, setScenario] = useState(null);
+
+  // ─── UI State ─────────────────────────────────────────
+  const [titleGenQueue, setTitleGenQueue] = useState(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [alwaysListen, setAlwaysListen] = useState(false);
+  const [usageSummary, setUsageSummary] = useState(null);
+
+  // ─── Voice System State ─────────────────────────────────
+  const [selectedVoice, setSelectedVoice] = useState(() => 
+    createVoiceConfig('en-US-Chirp3-HD-Aoede', 'default')
+  );
+  const [voiceSystemReady, setVoiceSystemReady] = useState(false);
+
+  // ─── Responsive Management ─────────────────────────────
   useEffect(() => {
     const updateViewport = () => {
       const width = window.innerWidth;
@@ -36,7 +58,7 @@ export default function ChatWindow() {
 
       setViewport({ width, height, isMobile });
 
-      // Auto-close sidebar on mobile, auto-open on desktop
+      // Auto-manage sidebar based on screen size
       if (isMobile && sidebarOpen) {
         setSidebarOpen(false);
       } else if (!isMobile && !sidebarOpen && width > 1024) {
@@ -44,27 +66,22 @@ export default function ChatWindow() {
       }
     };
     
-    let timeoutId;
-    const debouncedResize = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(updateViewport, 100);
-    };
+    const debouncedResize = (() => {
+      let timeoutId;
+      return () => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(updateViewport, 100);
+      };
+    })();
     
     window.addEventListener('resize', debouncedResize);
-    return () => {
-      window.removeEventListener('resize', debouncedResize);
-      clearTimeout(timeoutId);
-    };
+    return () => window.removeEventListener('resize', debouncedResize);
   }, [sidebarOpen]);
 
-  // ─── SIMPLIFIED Sidebar Management ──────────────────────
+  // ─── Sidebar Management ─────────────────────────────────
   useEffect(() => {
-    // Apply single sidebar class to body for CSS targeting
     document.body.classList.toggle('sidebar-open', sidebarOpen);
-    
-    return () => {
-      document.body.classList.remove('sidebar-open');
-    };
+    return () => document.body.classList.remove('sidebar-open');
   }, [sidebarOpen]);
 
   // Close sidebar when clicking outside on mobile
@@ -82,66 +99,344 @@ export default function ChatWindow() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [viewport.isMobile, sidebarOpen]);
 
-  // ─── Feature State ─────────────────────
-  const [selectedFeature, setSelectedFeature] = useState('chat');
-
-  // ─── Chat sessions ──────────────────────────────────
-  const [chatInstances, setChatInstances] = useState([]);
-  const [activeChatId,   setActiveChatId]   = useState(null);
-  const [scenario,       setScenario]       = useState(null);
-
-  // ─── SpeechCoach ("sema") ───────────────────────────
-  const [semaInstances,    setSemaInstances]    = useState([]);
-  const [activeSemaChatId, setActiveSemaChatId] = useState(null);
-
-  // ─── Reading ("tusome") ────────────────────────────
-  const [tusomeInstances, setTusomeInstances] = useState([]);
-  const [activeTusomeId,  setActiveTusomeId]  = useState(null);
-
-  // ─── UI state ──────────────────────────────────
-  const [titleGenQueue, setTitleGenQueue]   = useState(new Set());
-  const [searchQuery,   setSearchQuery]     = useState('');
-  const [alwaysListen,  setAlwaysListen]    = useState(false);
-
-  // ─── NEW: Daily usage and session management state ─────
-  const [usageSummary, setUsageSummary] = useState(null);
-
-  // ─── Voice System ─────────────────────
-  const [selectedVoice, setSelectedVoice] = useState(() => {
-    const defaultVoiceName = 'en-US-Chirp3-HD-Aoede';
-    return createVoiceConfig(defaultVoiceName, 'default');
-  });
-
-  const [voiceSystemReady, setVoiceSystemReady] = useState(false);
-
-  // Voice initialization
+  // ─── Voice System Initialization ─────────────────────────
   useEffect(() => {
     const initializeVoiceSystem = async () => {
       try {
-        console.log('Initializing voice system...');
-        
-        if (!selectedVoice || !selectedVoice.voiceName) {
-          const defaultConfig = createVoiceConfig('en-US-Chirp3-HD-Aoede', 'default');
-          setSelectedVoice(defaultConfig);
+        // Load saved voice preference
+        const savedVoice = localStorage.getItem('selectedVoice');
+        if (savedVoice) {
+          const parsedVoice = JSON.parse(savedVoice);
+          const voiceExists = ttsVoices.find(v => v.name === parsedVoice.voiceName);
+          if (voiceExists) {
+            setSelectedVoice(parsedVoice);
+            console.log('Restored saved voice:', parsedVoice.voiceName);
+          }
         }
         
         setVoiceSystemReady(true);
         console.log('Voice system ready');
       } catch (error) {
         console.error('Voice system initialization error:', error);
-        const fallbackConfig = createVoiceConfig('en-US-Chirp3-HD-Aoede', 'default');
-        setSelectedVoice(fallbackConfig);
         setVoiceSystemReady(true);
       }
     };
 
     initializeVoiceSystem();
-  }, [selectedVoice]);
+  }, []);
 
-  // Voice change handler
-  const handleVoiceChange = (newVoiceConfig) => {
+  // ─── Data Fetching ─────────────────────────────────────
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch sessions and usage summary in parallel
+        const [sessionsRes, usageRes] = await Promise.all([
+          api.get('/chats'),
+          api.get('/usage-summary')
+        ]);
+        
+        setSessions(sessionsRes.data || []);
+        setUsageSummary(usageRes.data.usage_summary);
+        
+        // Set initial active sessions
+        const chats = sessionsRes.data || [];
+        const chatSessions = chats.filter(c => c.feature === 'chat');
+        const semaSessions = chats.filter(c => c.feature === 'sema');
+        const tusomeSessions = chats.filter(c => c.feature === 'tusome');
+        
+        setActiveSessionIds({
+          chat: chatSessions.length ? chatSessions[0].id : null,
+          sema: semaSessions.length ? semaSessions[0].id : null,
+          tusome: tusomeSessions.length ? tusomeSessions[0].id : null
+        });
+        
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      }
+    };
+
+    fetchData();
+    
+    // Periodic usage summary updates
+    const intervalId = setInterval(async () => {
+      try {
+        const { data } = await api.get('/usage-summary');
+        setUsageSummary(data.usage_summary);
+      } catch (error) {
+        console.error('Failed to fetch usage summary:', error);
+      }
+    }, 30 * 60 * 1000);
+    
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // ─── Title Generation ─────────────────────────────────
+  useEffect(() => {
+    if (selectedFeature !== 'chat') return;
+
+    const chatSessions = sessions.filter(s => s.feature === 'chat');
+    chatSessions.forEach(chat => {
+      if (!chat.title && !titleGenQueue.has(chat.id) && chat.messages.length >= 2) {
+        setTitleGenQueue(prev => new Set([...prev, chat.id]));
+        const msgs = chat.messages
+          .filter(m => m.role === 'user')
+          .slice(0, 2)
+          .map(m => m.text);
+
+        generateTitleForChat('chat', scenario?.label, chat.id, msgs)
+          .then(title => {
+            setSessions(prev =>
+              prev.map(s => s.id === chat.id ? { ...s, title } : s)
+            );
+            setTitleGenQueue(prev => {
+              const next = new Set([...prev]);
+              next.delete(chat.id);
+              return next;
+            });
+          });
+      }
+    });
+  }, [sessions, scenario, selectedFeature, titleGenQueue]);
+
+  // ─── Utility Functions ─────────────────────────────────
+  const getSessionsByFeature = useCallback((feature) => {
+    return sessions.filter(s => s.feature === feature);
+  }, [sessions]);
+
+  const getCurrentActiveId = useCallback(() => {
+    return activeSessionIds[selectedFeature];
+  }, [activeSessionIds, selectedFeature]);
+
+  const checkSessionContent = useCallback(async (sessionId, feature) => {
+    if (!sessionId) return false;
+    
     try {
-      if (!newVoiceConfig || !newVoiceConfig.voiceName) {
+      const { data } = await api.get(`/chats/${sessionId}`);
+      return data.messages?.some(msg => msg.role === 'user') || false;
+    } catch (error) {
+      console.error('Error checking session content:', error);
+      return false;
+    }
+  }, []);
+
+  const closeSidebarOnMobile = useCallback(() => {
+    if (viewport.isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [viewport.isMobile]);
+
+  // ─── Session Management ─────────────────────────────────
+  const createNewSession = useCallback(async (feature, forceNew = true) => {
+    try {
+      const currentId = activeSessionIds[feature];
+      
+      // Check if current session has content before creating new one
+      if (forceNew && currentId) {
+        const hasContent = await checkSessionContent(currentId, feature);
+        if (!hasContent) {
+          console.log(`Current ${feature} session is empty, not creating new one`);
+          return;
+        }
+      }
+
+      const sessionConfig = {
+        chat: {
+          feature: 'chat',
+          title: 'New Chat',
+          scenarioKey: null
+        },
+        sema: {
+          feature: 'sema',
+          title: 'Sema Session',
+          prompt: 'Welcome to Sema! How can I help you practice speaking?'
+        },
+        tusome: {
+          feature: 'tusome',
+          title: 'New Reading'
+        }
+      };
+
+      const config = sessionConfig[feature];
+      const endpoint = feature === 'chat' ? '/chats' : '/chats/feature';
+      
+      const { data } = await api.post(endpoint, config);
+      
+      setSessions(prev => [data, ...prev]);
+      setActiveSessionIds(prev => ({
+        ...prev,
+        [feature]: data.id
+      }));
+      
+      closeSidebarOnMobile();
+      console.log(`Created new ${feature} session:`, data.id);
+      
+      return data;
+    } catch (error) {
+      console.error(`Failed to create new ${feature} session:`, error);
+    }
+  }, [activeSessionIds, checkSessionContent, closeSidebarOnMobile]);
+
+  const selectSession = useCallback((sessionId) => {
+    setActiveSessionIds(prev => ({
+      ...prev,
+      [selectedFeature]: sessionId
+    }));
+    
+    // Handle chat-specific logic
+    if (selectedFeature === 'chat') {
+      const session = sessions.find(s => s.id === sessionId);
+      setScenario(
+        session?.scenarioKey
+          ? availableScenarios.find(s => s.key === session.scenarioKey)
+          : null
+      );
+    }
+    
+    closeSidebarOnMobile();
+  }, [selectedFeature, sessions, closeSidebarOnMobile]);
+
+  const deleteSession = useCallback(async (sessionId) => {
+    try {
+      await api.delete(`/chats/${sessionId}`);
+      
+      setSessions(prev => {
+        const filtered = prev.filter(s => s.id !== sessionId);
+        return filtered;
+      });
+      
+      // Handle active session reassignment
+      setActiveSessionIds(prev => {
+        if (prev[selectedFeature] === sessionId) {
+          const remainingSessions = sessions.filter(s => 
+            s.feature === selectedFeature && s.id !== sessionId
+          );
+          
+          if (remainingSessions.length > 0) {
+            return {
+              ...prev,
+              [selectedFeature]: remainingSessions[0].id
+            };
+          } else {
+            // Create new session when last one is deleted for sema/tusome
+            if (selectedFeature !== 'chat') {
+              createNewSession(selectedFeature, false);
+            }
+            return {
+              ...prev,
+              [selectedFeature]: null
+            };
+          }
+        }
+        return prev;
+      });
+      
+      // Handle chat-specific scenario reset
+      if (selectedFeature === 'chat' && activeSessionIds.chat === sessionId) {
+        setScenario(null);
+      }
+      
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+    }
+  }, [selectedFeature, sessions, activeSessionIds, createNewSession]);
+
+  const renameSession = useCallback(async (sessionId, newTitle) => {
+    try {
+      await api.put(`/chats/${sessionId}`, { title: newTitle });
+      setSessions(prev => 
+        prev.map(s => s.id === sessionId ? { ...s, title: newTitle } : s)
+      );
+    } catch (error) {
+      console.error('Failed to rename session:', error);
+    }
+  }, []);
+
+  // ─── Feature and Scenario Handlers ─────────────────────
+  const handleSelectFeature = useCallback((feature) => {
+    setSelectedFeature(feature);
+    
+    // Auto-create session if none exists for the feature
+    const featureSessions = sessions.filter(s => s.feature === feature);
+    if (featureSessions.length === 0) {
+      createNewSession(feature, false);
+    }
+    
+    // Reset scenario for non-chat features
+    if (feature !== 'chat') {
+      setScenario(null);
+    }
+  }, [sessions, createNewSession]);
+
+  const handleSelectScenario = useCallback(async (key) => {
+    const scen = availableScenarios.find(s => s.key === key);
+    if (!scen) return;
+    
+    try {
+      const currentChatId = activeSessionIds.chat;
+      
+      // Check if current chat has content before creating new one
+      let shouldCreateNew = true;
+      if (currentChatId) {
+        const hasContent = await checkSessionContent(currentChatId, 'chat');
+        if (!hasContent) {
+          // Update existing empty chat with new scenario
+          try {
+            await api.put(`/chats/${currentChatId}`, {
+              scenarioKey: key,
+              title: scen.label
+            });
+            
+            setScenario(scen);
+            setSessions(prev => 
+              prev.map(s => s.id === currentChatId ? 
+                { ...s, scenarioKey: key, title: scen.label } : s
+              )
+            );
+            
+            closeSidebarOnMobile();
+            console.log('Updated existing empty chat with new scenario');
+            return;
+          } catch (updateError) {
+            console.warn('Failed to update existing chat, creating new one:', updateError);
+          }
+        }
+      }
+
+      if (shouldCreateNew) {
+        setScenario({ ...scen, loading: true });
+        
+        const { data } = await api.post('/chats/scenario', {
+          scenarioKey: key,
+          title: scen.label,
+          prompt: scen.prompt,
+        });
+        
+        setScenario(scen);
+        setSessions(prev => [data, ...prev]);
+        setActiveSessionIds(prev => ({
+          ...prev,
+          chat: data.id
+        }));
+        
+        closeSidebarOnMobile();
+        console.log('Created new scenario chat');
+      }
+    } catch (error) {
+      console.error('Failed to create scenario chat:', error);
+      setScenario(null);
+    }
+  }, [activeSessionIds.chat, checkSessionContent, closeSidebarOnMobile]);
+
+  const handleChangeScenario = useCallback(() => {
+    setScenario(null);
+    setActiveSessionIds(prev => ({ ...prev, chat: null }));
+    window.scrollTo(0, 0);
+  }, []);
+
+  // ─── Voice Handler ─────────────────────────────────────
+  const handleVoiceChange = useCallback((newVoiceConfig) => {
+    try {
+      if (!newVoiceConfig?.voiceName) {
         console.warn('Invalid voice configuration received');
         return;
       }
@@ -165,507 +460,139 @@ export default function ChatWindow() {
     } catch (error) {
       console.error('Error handling voice change:', error);
     }
-  };
-
-  // Load saved voice preference
-  useEffect(() => {
-    try {
-      const savedVoice = localStorage.getItem('selectedVoice');
-      if (savedVoice) {
-        const parsedVoice = JSON.parse(savedVoice);
-        const voiceExists = ttsVoices.find(v => v.name === parsedVoice.voiceName);
-        if (voiceExists) {
-          setSelectedVoice(parsedVoice);
-          console.log('Restored saved voice:', parsedVoice.voiceName);
-        }
-      }
-    } catch (error) {
-      console.log('Could not load saved voice preference:', error);
-    }
   }, []);
 
-  // ─── NEW: Fetch usage summary on component mount and periodically ─────
-  useEffect(() => {
-    const fetchUsageSummary = async () => {
-      try {
-        const { data } = await api.get('/usage-summary');
-        setUsageSummary(data.usage_summary);
-      } catch (error) {
-        console.error('Failed to fetch usage summary:', error);
-      }
-    };
-
-    fetchUsageSummary();
-    
-    // Fetch usage summary every 30 minutes
-    const intervalId = setInterval(fetchUsageSummary, 30 * 60 * 1000);
-    
-    return () => clearInterval(intervalId);
-  }, []);
-
-  // ─── Load sessions whenever feature changes ─────
-  useEffect(() => {
-    const fetchChats = async () => {
-      try {
-        const res   = await api.get('/chats');
-        const chats = res.data || [];
-
-        if (selectedFeature === 'chat') {
-          const filtered = chats.filter(c => c.feature === 'chat');
-          setChatInstances(filtered);
-          if (filtered.length) setActiveChatId(filtered[0].id);
-
-        } else if (selectedFeature === 'sema') {
-          const filtered = chats.filter(c => c.feature === 'sema');
-          setSemaInstances(filtered);
-          if (filtered.length) setActiveSemaChatId(filtered[0].id);
-
-        } else {
-          const filtered = chats.filter(c => c.feature === 'tusome');
-          setTusomeInstances(filtered);
-          if (filtered.length) setActiveTusomeId(filtered[0].id);
-        }
-      } catch (err) {
-        console.error('Failed to load sessions', err);
-      }
-    };
-
-    fetchChats();
-    if (selectedFeature !== 'chat') {
-      setScenario(null);
-    }
-  }, [selectedFeature]);
-
-  // ─── Auto-generate titles for new chats ────────────
-  useEffect(() => {
-    if (selectedFeature !== 'chat') return;
-
-    chatInstances.forEach(chat => {
-      if (!chat.title && !titleGenQueue.has(chat.id) && chat.messages.length >= 2) {
-        setTitleGenQueue(prev => new Set([...prev, chat.id]));
-        const msgs = chat.messages
-          .filter(m => m.role === 'user')
-          .slice(0,2)
-          .map(m => m.text);
-
-        generateTitleForChat('chat', scenario?.label, chat.id, msgs)
-          .then(title => {
-            setChatInstances(prev =>
-              prev.map(c => c.id === chat.id ? { ...c, title } : c)
-            );
-            setTitleGenQueue(prev => {
-              const next = new Set([...prev]);
-              next.delete(chat.id);
-              return next;
-            });
-          });
-      }
-    });
-  }, [chatInstances, scenario, selectedFeature, titleGenQueue]);
-
-  // ─── NEW: Enhanced session creation with validation ───────────────────────────
-  
-  // Check if current chat has meaningful content
-  const checkCurrentChatContent = async (chatId, feature) => {
-    if (!chatId) return false;
-    
-    try {
-      const { data } = await api.get(`/chats/${chatId}`);
-      // Check if chat has any user messages (meaningful content)
-      const hasUserMessages = data.messages?.some(msg => msg.role === 'user');
-      return hasUserMessages;
-    } catch (error) {
-      console.error('Error checking chat content:', error);
-      return false;
-    }
-  };
-
-  const handleNewSemaChat = async (forceNew = true) => {
-    try {
-      // Check if current session has content before creating new one
-      if (forceNew && activeSemaChatId) {
-        const hasContent = await checkCurrentChatContent(activeSemaChatId, 'sema');
-        if (!hasContent) {
-          console.log('Current sema session is empty, not creating new one');
-          return;
-        }
-      }
-
-      const { data } = await api.post('/chats/feature', {
-        feature: 'sema',
-        title:   'Sema Session',
-        prompt:  'Welcome to Sema! How can I help you practice speaking?',
-      });
-      setSemaInstances(prev => [data, ...prev]);
-      setActiveSemaChatId(data.id);
-      
-      if (viewport.isMobile) {
-        setSidebarOpen(false);
-      }
-
-      console.log('Created new sema session:', data.id);
-    } catch (err) {
-      console.error('Failed to create new sema session', err);
-    }
-  };
-
-  const handleNewTusomeChat = async (forceNew = true) => {
-    try {
-      // Check if current session has content before creating new one
-      if (forceNew && activeTusomeId) {
-        const hasContent = await checkCurrentChatContent(activeTusomeId, 'tusome');
-        if (!hasContent) {
-          console.log('Current tusome session is empty, not creating new one');
-          return;
-        }
-      }
-
-      const { data } = await api.post('/chats/feature', {
-        feature: 'tusome',
-        title:   'New Reading',
-      });
-      setTusomeInstances(prev => [data, ...prev]);
-      setActiveTusomeId(data.id);
-      
-      if (viewport.isMobile) {
-        setSidebarOpen(false);
-      }
-
-      console.log('Created new tusome session:', data.id);
-    } catch (err) {
-      console.error('Failed to create new tusome session', err);
-    }
-  };
-
-  // ─── Enhanced scenario handlers with validation ──────────────────────
-  const handleSelectScenario = async key => {
-    console.log('Scenario selection started:', key);
-    const scen = availableScenarios.find(s => s.key === key);
-    if (!scen) return;
-    
-    try {
-      // Check if current chat has content before creating new one
-      let shouldCreateNew = true;
-      if (activeChatId) {
-        const hasContent = await checkCurrentChatContent(activeChatId, 'chat');
-        if (!hasContent) {
-          console.log('Current chat is empty, reusing for new scenario');
-          shouldCreateNew = false;
-          
-          // Update existing empty chat with new scenario
-          try {
-            await api.put(`/chats/${activeChatId}`, {
-              scenarioKey: key,
-              title: scen.label
-            });
-            
-            setScenario(scen);
-            setChatInstances(prev => 
-              prev.map(c => c.id === activeChatId ? { ...c, scenarioKey: key, title: scen.label } : c)
-            );
-            
-            if (viewport.isMobile) {
-              setSidebarOpen(false);
-            }
-            
-            console.log('Updated existing empty chat with new scenario');
-            return;
-          } catch (updateError) {
-            console.warn('Failed to update existing chat, creating new one:', updateError);
-            shouldCreateNew = true;
-          }
-        }
-      }
-
-      if (shouldCreateNew) {
-        setScenario({ ...scen, loading: true });
-        
-        const { data } = await api.post('/chats/scenario', {
-          scenarioKey: key,
-          title:       scen.label,
-          prompt:      scen.prompt,
-        });
-        
-        setScenario(scen);
-        setChatInstances(prev => [data, ...prev]);
-        setActiveChatId(data.id);
-        
-        if (viewport.isMobile) {
-          setSidebarOpen(false);
-        }
-        
-        console.log('Scenario selection completed - new chat created');
-      }
-    } catch (err) {
-      console.error('Failed to create new scenario chat', err);
-      setScenario(null);
-    }
-  };
-
-  const handleChangeScenario = () => {
-    setScenario(null);
-    setActiveChatId(null);
-    window.scrollTo(0, 0);
-  };
-
-  // ─── Loading existing chat ─────────────────────────
-  const handleLoadChat = id => {
-    setActiveChatId(id);
-    const sess = chatInstances.find(c => c.id === id);
-    setScenario(
-      sess?.scenarioKey
-        ? availableScenarios.find(s => s.key === sess.scenarioKey)
-        : null
-    );
-    
-    if (viewport.isMobile) {
-      setSidebarOpen(false);
-    }
-  };
-
-  // ─── Feature & chat selection ──────────────────────
-  const handleSelectFeature = feat => {
-    setSelectedFeature(feat);
-    if (feat === 'sema') handleNewSemaChat(false); // Don't force new on feature switch
-    else if (feat === 'tusome') handleNewTusomeChat(false); // Don't force new on feature switch
-    else handleChangeScenario();
-  };
-
-  // ─── Enhanced new chat handler with validation parameter ──────────────────────
-  const handleNewChat = (forceNew = true) => {
-    if (selectedFeature === 'sema') handleNewSemaChat(forceNew);
-    else if (selectedFeature === 'tusome') handleNewTusomeChat(forceNew);
-    else if (forceNew) {
-      // For chat feature, creating "new chat" means going to scenario picker
-      handleChangeScenario();
-    } else {
-      // Don't create new, just reset to scenario picker
-      handleChangeScenario();
-    }
-  };
-
-  const handleSelectChat = id => {
-    if (selectedFeature === 'sema')       setActiveSemaChatId(id);
-    else if (selectedFeature === 'tusome') setActiveTusomeId(id);
-    else handleLoadChat(id);
-  };
-
-  // ─── NEW: Handle new session creation from child components ─────
-  const handleNewSpeechSession = (newSessionId) => {
-    console.log('Creating new sema session from child:', newSessionId);
-    handleNewSemaChat(true);
-  };
-
-  const handleNewReadingSession = (newSessionId) => {
-    console.log('Creating new tusome session from child:', newSessionId);
-    handleNewTusomeChat(true);
-  };
-
-  // Toggle sidebar
-  const handleToggleSidebar = () => {
-    setSidebarOpen(prev => !prev);
-  };
-
-  // Handle delete and rename
-  const handleRenameChat = async (id, newTitle) => {
-    try {
-      await api.put(`/chats/${id}`, { title: newTitle });
-      
-      if (selectedFeature === 'chat') {
-        setChatInstances(prev => 
-          prev.map(c => c.id === id ? { ...c, title: newTitle } : c)
-        );
-      } else if (selectedFeature === 'sema') {
-        setSemaInstances(prev => 
-          prev.map(c => c.id === id ? { ...c, title: newTitle } : c)
-        );
-      } else {
-        setTusomeInstances(prev => 
-          prev.map(c => c.id === id ? { ...c, title: newTitle } : c)
-        );
-      }
-    } catch (err) {
-      console.error('Failed to rename chat', err);
-    }
-  };
-
-  const handleDeleteChat = async (id) => {
-    try {
-      await api.delete(`/chats/${id}`);
-      
-      if (selectedFeature === 'chat') {
-        setChatInstances(prev => {
-          const filtered = prev.filter(c => c.id !== id);
-          if (activeChatId === id && filtered.length) {
-            setActiveChatId(filtered[0].id);
-            const firstChat = filtered[0];
-            setScenario(
-              firstChat?.scenarioKey
-                ? availableScenarios.find(s => s.key === firstChat.scenarioKey)
-                : null
-            );
-          } else if (activeChatId === id) {
-            setActiveChatId(null);
-            setScenario(null);
-          }
-          return filtered;
-        });
-      } else if (selectedFeature === 'sema') {
-        setSemaInstances(prev => {
-          const filtered = prev.filter(c => c.id !== id);
-          if (activeSemaChatId === id && filtered.length) {
-            setActiveSemaChatId(filtered[0].id);
-          } else if (activeSemaChatId === id && filtered.length === 0) {
-            handleNewSemaChat(false); // Create new session when last one is deleted
-          }
-          return filtered;
-        });
-      } else {
-        setTusomeInstances(prev => {
-          const filtered = prev.filter(c => c.id !== id);
-          if (activeTusomeId === id && filtered.length) {
-            setActiveTusomeId(filtered[0].id);
-          } else if (activeTusomeId === id && filtered.length === 0) {
-            handleNewTusomeChat(false); // Create new session when last one is deleted
-          }
-          return filtered;
-        });
-      }
-    } catch (err) {
-      console.error('Failed to delete chat', err);
-    }
-  };
-
-  // ─── NEW: Check if current chat has content (for sidebar) ─────
-  const hasCurrentChatContent = async () => {
-    const currentId = selectedFeature === 'sema' 
-      ? activeSemaChatId 
-      : selectedFeature === 'tusome' 
-        ? activeTusomeId 
-        : activeChatId;
-        
-    if (!currentId) return false;
-    
-    return await checkCurrentChatContent(currentId, selectedFeature);
-  };
-
-  // ─── Render Logic ─────────────────────
-  const displayedChatInstances = scenario
-    ? chatInstances.filter(c => c.scenarioKey === scenario.key)
-    : chatInstances;
-
-  const currentInstances = selectedFeature === 'sema'
-    ? semaInstances
-    : selectedFeature === 'tusome'
-      ? tusomeInstances
-      : displayedChatInstances;
-
-  const currentActiveId = selectedFeature === 'sema'
-    ? activeSemaChatId
-    : selectedFeature === 'tusome'
-      ? activeTusomeId
-      : activeChatId;
-
+  // ─── Computed Values ─────────────────────────────────
+  const currentSessions = getSessionsByFeature(selectedFeature);
+  const displayedSessions = scenario 
+    ? currentSessions.filter(s => s.scenarioKey === scenario.key)
+    : currentSessions;
+  const currentActiveId = getCurrentActiveId();
   const isPickerOpen = selectedFeature === 'chat' && !scenario;
 
-  // FIXED: Updated header title logic with new feature names
-  let headerTitle = '';
-  if (selectedFeature === 'chat') {
-    if (isPickerOpen) {
-      // Scenario picker is open
-      headerTitle = (!viewport.isMobile || !sidebarOpen) ? 'Select a Chat Scenario' : '';
-    } else if (scenario) {
-      // Scenario is selected - show scenario name only when sidebar is closed on mobile
-      headerTitle = (!viewport.isMobile || !sidebarOpen) ? (scenario.label || 'Chat') : '';
-    } else {
-      // Fallback for chat feature
-      headerTitle = (!viewport.isMobile || !sidebarOpen) ? 'Chat' : '';
+  // Header title logic
+  const getHeaderTitle = () => {
+    if (viewport.isMobile && sidebarOpen) return '';
+    
+    if (selectedFeature === 'chat') {
+      if (isPickerOpen) return 'Select a Chat Scenario';
+      if (scenario) return scenario.label || 'Chat';
+      return 'Chat';
     }
-  } else if (selectedFeature === 'sema') {
-    headerTitle = (!viewport.isMobile || !sidebarOpen) ? 'Sema' : '';
-  } else {
-    headerTitle = (!viewport.isMobile || !sidebarOpen) ? 'Tusome' : '';
-  }
-
-  // Header props
-  const headerProps = {
-    feature:          selectedFeature,
-    sidebarOpen:      sidebarOpen,
-    onToggleSidebar:  handleToggleSidebar,
-    searchQuery,
-    onSearchChange:   setSearchQuery,
-    title:            headerTitle,
-    scenario,
-    selectedVoice:    selectedVoice,
-    onVoiceChange:    handleVoiceChange,
-    onChangeScenario: handleChangeScenario,
-    userName:         user?.name,
-    onLogout:         logout,
-    usageSummary:     usageSummary // Pass usage summary to header
+    
+    return selectedFeature === 'sema' ? 'Sema' : 'Tusome';
   };
 
-  if (!user) return null;
+  // ─── Event Handlers ─────────────────────────────────────
+  const handleNewChat = (forceNew = true) => createNewSession(selectedFeature, forceNew);
+  const handleNewSession = () => createNewSession(selectedFeature, true);
+  const handleToggleSidebar = () => setSidebarOpen(prev => !prev);
+
+  // ─── Component Props ─────────────────────────────────────
+  const headerProps = {
+    feature: selectedFeature,
+    sidebarOpen,
+    onToggleSidebar: handleToggleSidebar,
+    searchQuery,
+    onSearchChange: setSearchQuery,
+    title: getHeaderTitle(),
+    scenario,
+    selectedVoice,
+    onVoiceChange: handleVoiceChange,
+    onChangeScenario: handleChangeScenario,
+    userName: user?.name,
+    onLogout: logout,
+    usageSummary
+  };
+
+  const sidebarProps = {
+    selectedFeature,
+    onSelectFeature: handleSelectFeature,
+    onNewChat: handleNewChat,
+    chatInstances: displayedSessions,
+    activeChatId: currentActiveId,
+    onSelectChat: selectSession,
+    onRenameChat: renameSession,
+    onDeleteChat: deleteSession,
+    currentScenarioKey: scenario?.key,
+    hasCurrentChatContent: () => checkSessionContent(currentActiveId, selectedFeature),
+    usageSummary
+  };
+
+  // ─── Render ─────────────────────────────────────────────
+  if (!user) return <div>Loading user...</div>;
+
+  // Fallback for no chats and no scenario
+  if (selectedFeature === 'chat' && !scenario && currentSessions.length === 0) {
+    return (
+      <>
+        <FeatureHeader {...headerProps} />
+        <div className={`app-container ${sidebarOpen ? 'sidebar-open' : ''}`}>
+          <aside className="sidebar">
+            <ChatSidebar {...sidebarProps} />
+          </aside>
+          <div className="no-chats-message">
+            <h2>Welcome!</h2>
+            <p>No chats yet. Click "New Chat" or select a scenario to start your first conversation.</p>
+            <div className="scenario-wrapper">
+              <ScenarioPicker
+                scenarios={availableScenarios}
+                onSelect={handleSelectScenario}
+                onClose={handleChangeScenario}
+                usageSummary={usageSummary}
+              />
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
       <FeatureHeader {...headerProps} />
-
       <div className={`app-container ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <aside className="sidebar">
-          <ChatSidebar
-            selectedFeature={selectedFeature}
-            onSelectFeature={handleSelectFeature}
-            onNewChat={handleNewChat}
-            chatInstances={currentInstances}
-            activeChatId={currentActiveId}
-            onSelectChat={handleSelectChat}
-            onRenameChat={handleRenameChat}
-            onDeleteChat={handleDeleteChat}
-            currentScenarioKey={scenario?.key}
-            hasCurrentChatContent={hasCurrentChatContent}
-            usageSummary={usageSummary}
-          />
+          <ChatSidebar {...sidebarProps} />
         </aside>
 
-        {/* SIMPLIFIED Scenario picker */}
+        {/* Scenario picker */}
         {isPickerOpen && (
           <div className="scenario-wrapper">
             <ScenarioPicker
               scenarios={availableScenarios}
               onSelect={handleSelectScenario}
               onClose={handleChangeScenario}
-              usageSummary={usageSummary} // Pass usage summary to scenario picker
+              usageSummary={usageSummary}
             />
           </div>
         )}
 
-        {/* Main content when not showing picker */}
-        {(!isPickerOpen || selectedFeature !== 'chat') && voiceSystemReady && (
+        {/* Main content */}
+        {!isPickerOpen && voiceSystemReady && (
           <div className="chat-content">
             {selectedFeature === 'sema' && (
               <SpeechCoach
-                sessionId={activeSemaChatId}
+                sessionId={currentActiveId}
                 selectedVoice={selectedVoice}
                 sidebarOpen={sidebarOpen}
-                onNewSession={handleNewSpeechSession}
+                onNewSession={handleNewSession}
               />
             )}
-
             {selectedFeature === 'tusome' && (
               <ReadingPassage 
-                sessionId={activeTusomeId} 
+                sessionId={currentActiveId}
                 selectedVoice={selectedVoice}
                 viewport={viewport}
                 sidebarState={{ isOpen: sidebarOpen }}
-                onNewSession={handleNewReadingSession}
+                onNewSession={handleNewSession}
               />
             )}
-
             {selectedFeature === 'chat' && scenario && (
               <ChatDetail
-                chatInstances={chatInstances}
-                setChatInstances={setChatInstances}
-                activeChatId={activeChatId}
+                chatInstances={currentSessions}
+                setChatInstances={setSessions}
+                activeChatId={currentActiveId}
                 scenario={scenario}
                 alwaysListen={alwaysListen}
                 selectedVoice={selectedVoice}
@@ -676,8 +603,8 @@ export default function ChatWindow() {
             )}
           </div>
         )}
-        
-        {/* Loading state for voice system */}
+
+        {/* Voice system loading */}
         {!voiceSystemReady && (
           <div className="voice-system-loading">
             <div className="loading-spinner">🎙️</div>
