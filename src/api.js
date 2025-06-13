@@ -64,7 +64,7 @@ console.log('🌐 Final API Base URL:', BASE_URL);
 // ============================================================================
 
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: process.env.REACT_APP_API_URL,
   timeout: 60000, // 60 second timeout
   withCredentials: true,
   headers: {
