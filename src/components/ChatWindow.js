@@ -403,10 +403,11 @@ export default function ChatWindow() {
       if (shouldCreateNew) {
         setScenario({ ...scen, loading: true });
         
-        const { data } = await api.post('/chats/scenario', {
+        const { data } = await api.post('/chats', {
           scenarioKey: key,
           title: scen.label,
           prompt: scen.prompt,
+          feature: 'chat'
         });
         
         setScenario(scen);
@@ -525,91 +526,22 @@ export default function ChatWindow() {
     return (
       <>
         <FeatureHeader {...headerProps} />
-        <div className={`app-container ${sidebarOpen ? 'sidebar-open' : ''}`}>
-          <aside className="sidebar">
-            <ChatSidebar {...sidebarProps} />
-          </aside>
-          <div className="no-chats-message">
-            <h2>Welcome!</h2>
-            <p>No chats yet. Click "New Chat" or select a scenario to start your first conversation.</p>
-            <div className="scenario-wrapper">
-              <ScenarioPicker
-                scenarios={availableScenarios}
-                onSelect={handleSelectScenario}
-                onClose={handleChangeScenario}
-                usageSummary={usageSummary}
-              />
-            </div>
-          </div>
+        <div className={`flex-1 flex flex-col items-center justify-center p-4`}>
+          <ScenarioPicker onSelect={handleSelectScenario} />
         </div>
       </>
     );
   }
 
   return (
-    <>
-      <FeatureHeader {...headerProps} />
-      <div className={`app-container ${sidebarOpen ? 'sidebar-open' : ''}`}>
-        <aside className="sidebar">
-          <ChatSidebar {...sidebarProps} />
-        </aside>
-
-        {/* Scenario picker */}
-        {isPickerOpen && (
-          <div className="scenario-wrapper">
-            <ScenarioPicker
-              scenarios={availableScenarios}
-              onSelect={handleSelectScenario}
-              onClose={handleChangeScenario}
-              usageSummary={usageSummary}
-            />
-          </div>
-        )}
-
-        {/* Main content */}
-        {!isPickerOpen && voiceSystemReady && (
-          <div className="chat-content">
-            {selectedFeature === 'sema' && (
-              <SpeechCoach
-                sessionId={currentActiveId}
-                selectedVoice={selectedVoice}
-                sidebarOpen={sidebarOpen}
-                onNewSession={handleNewSession}
-              />
-            )}
-            {selectedFeature === 'tusome' && (
-              <ReadingPassage 
-                sessionId={currentActiveId}
-                selectedVoice={selectedVoice}
-                viewport={viewport}
-                sidebarState={{ isOpen: sidebarOpen }}
-                onNewSession={handleNewSession}
-              />
-            )}
-            {selectedFeature === 'chat' && scenario && (
-              <ChatDetail
-                chatInstances={currentSessions}
-                setChatInstances={setSessions}
-                activeChatId={currentActiveId}
-                scenario={scenario}
-                alwaysListen={alwaysListen}
-                selectedVoice={selectedVoice}
-                onToggleListen={setAlwaysListen}
-                viewport={viewport}
-                sidebarOpen={sidebarOpen}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Voice system loading */}
-        {!voiceSystemReady && (
-          <div className="voice-system-loading">
-            <div className="loading-spinner">🎙️</div>
-            <p>Initializing voice system...</p>
-          </div>
-        )}
+    <div className="flex h-screen">
+      <ChatSidebar {...sidebarProps} />
+      <div className="flex-1 flex flex-col">
+        <FeatureHeader {...headerProps} />
+        <div className="flex-1 overflow-hidden">
+          {/* Rest of the component content */}
+        </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -889,9 +889,10 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
 
   // Usage warning banner renderer
   const renderUsageWarning = () => {
-    if (!showUsageWarning || !usageSummary?.reading_article) return null;
+    if (!showUsageWarning || !usageSummary || !usageSummary.reading_article) return null;
 
     const readingUsage = usageSummary.reading_article;
+    if (!readingUsage || typeof readingUsage.remaining === 'undefined') return null;
 
     return (
       <div className="usage-warning-banner">
