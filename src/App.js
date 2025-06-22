@@ -38,56 +38,118 @@ function PublicRoute({ children }) {
   return isAuthenticated ? <Navigate to="/chats" replace /> : children;
 }
 
+// Add error boundary to catch any errors
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('App Error Boundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ 
+          padding: '20px', 
+          textAlign: 'center', 
+          fontFamily: 'Arial, sans-serif',
+          maxWidth: '600px',
+          margin: '50px auto'
+        }}>
+          <h1>Something went wrong</h1>
+          <p>We're sorry, but something unexpected happened.</p>
+          <details style={{ marginTop: '20px', textAlign: 'left' }}>
+            <summary>Error details</summary>
+            <pre style={{ backgroundColor: '#f5f5f5', padding: '10px', overflow: 'auto' }}>
+              {this.state.error?.toString()}
+            </pre>
+          </details>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={{
+              marginTop: '20px',
+              padding: '10px 20px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export default function App() {
+  // Add debugging
+  React.useEffect(() => {
+    console.log('🚀 App component mounted');
+  }, []);
+
   return (
-    <div className="App">
-      <Routes>
-        {/* Public Routes - redirect to /chats if already authenticated */}
-        <Route 
-          path="/" 
-          element={
-            <PublicRoute>
-              <LandingPage />
-            </PublicRoute>
-          } 
-        />
-        <Route 
-          path="/login" 
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          } 
-        />
-        <Route 
-          path="/signup" 
-          element={
-            <PublicRoute>
-              <SignUp />
-            </PublicRoute>
-          } 
-        />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        
-        {/* Legal Pages - Always accessible */}
-        <Route path="/terms" element={<TermsOfService />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/cookies" element={<CookiePolicy />} />
-        
-        {/* Protected Routes */}
-        <Route
-          path="/chats/*"
-          element={
-            <PrivateRoute>
-              <ChatWindow />
-            </PrivateRoute>
-          }
-        />
-        
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </div>
+    <ErrorBoundary>
+      <div className="App">
+        <Routes>
+          {/* Public Routes - redirect to /chats if already authenticated */}
+          <Route 
+            path="/" 
+            element={
+              <PublicRoute>
+                <LandingPage />
+              </PublicRoute>
+            } 
+          />
+          <Route 
+            path="/login" 
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            } 
+          />
+          <Route 
+            path="/signup" 
+            element={
+              <PublicRoute>
+                <SignUp />
+              </PublicRoute>
+            } 
+          />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          
+          {/* Legal Pages - Always accessible */}
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/cookies" element={<CookiePolicy />} />
+          
+          {/* Protected Routes */}
+          <Route
+            path="/chats/*"
+            element={
+              <PrivateRoute>
+                <ChatWindow />
+              </PrivateRoute>
+            }
+          />
+          
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+    </ErrorBoundary>
   );
 }

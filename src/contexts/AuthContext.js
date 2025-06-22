@@ -198,37 +198,25 @@ export function AuthProvider({ children }) {
         localStorage.setItem('access_token', newToken);
         if (newRefreshToken && newRefreshToken !== refreshToken) {
           localStorage.setItem('refresh_token', newRefreshToken);
-          console.log('🔄 Refresh token updated');
         }
-        
-        // Update API headers
-        api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+
+        // Update state
         setToken(newToken);
+        api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
 
-        // Schedule next refresh (5 minutes before expiry, minimum 5 minutes)
-        const expiresInMs = decoded.exp * 1000 - Date.now();
-        const buffer = 5 * 60 * 1000; // 5 minute buffer
-        const timeout = Math.max(expiresInMs - buffer, 5 * 60 * 1000); // Minimum 5 minutes
+        // Schedule next refresh
+        scheduleTokenRefresh(decoded.exp);
 
-        if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
-        window._refreshTimeout = setTimeout(() => refreshAndSchedule(), timeout);
+        console.log('✅ Token refreshed successfully');
         
-        console.log('⏰ Next refresh scheduled in:', Math.floor(timeout / 60000), 'minutes');
-
-      } catch (err) {
-        console.error('❌ Silent refresh failed:', err);
+        // Fetch user profile after successful refresh
+        await fetchUserProfile();
         
-        // Only clear auth for specific refresh errors
-        if (err.message.includes('401') || 
-            err.message.includes('refresh') || 
-            err.message.includes('expired') ||
-            err.message.includes('invalid')) {
-          console.log('🔄 Refresh token invalid, clearing auth');
-          clearAuth();
-        }
+      } catch (error) {
+        console.error('❌ Token refresh failed:', error);
+        clearAuth();
       } finally {
         authStateRef.current.isRefreshing = false;
-        authStateRef.current.refreshPromise = null;
         setLoadingUser(false);
         setInitializing(false);
       }
@@ -239,225 +227,152 @@ export function AuthProvider({ children }) {
   }, [clearAuth]);
 
   // ============================================================================
-  // ENHANCED AUTHENTICATION INITIALIZATION
+  // SMART TOKEN REFRESH SCHEDULING
   // ============================================================================
   
-  useEffect(() => {
-    console.log('🚀 AuthProvider initialization');
-    console.log('Current token:', token ? 'Present' : 'None');
-    console.log('API base URL:', api.defaults.baseURL);
+  const scheduleTokenRefresh = useCallback((expTimestamp) => {
+    if (window._refreshTimeout) {
+      clearTimeout(window._refreshTimeout);
+    }
     
-    if (token && typeof token === 'string' && token.trim()) {
-      console.log('✅ Valid token found, setting up API header and refresh schedule');
-      api.defaults.headers.common.Authorization = `Bearer ${token}`;
-
-      try {
-        const { exp } = jwtDecode(token);
-        const expiresInMs = exp * 1000 - Date.now();
-        
-        if (expiresInMs > 5 * 60 * 1000) { // More than 5 minutes left
-          const buffer = 5 * 60 * 1000; // 5 minute buffer
-          const timeout = Math.max(expiresInMs - buffer, 5 * 60 * 1000);
-
-          if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
-          window._refreshTimeout = setTimeout(() => refreshAndSchedule(), timeout);
-          
-          console.log('⏰ Refresh scheduled in:', Math.floor(timeout / 60000), 'minutes');
-          
-          // Don't call refreshAndSchedule immediately if token is still valid
-          setLoadingUser(false);
-          setInitializing(false);
-        } else {
-          console.log('🔄 Token expires soon, refreshing immediately');
-          refreshAndSchedule();
-        }
-      } catch (err) {
-        console.error('❌ Invalid token format, clearing auth:', err);
-        clearAuth();
-        setLoadingUser(false);
-        setInitializing(false);
-      }
-    } else {
-      // No access token - check for refresh token
-      const refreshToken = localStorage.getItem('refresh_token');
-      console.log('🎫 Checking for refresh token:', refreshToken ? 'Found' : 'Not found');
-      
-      if (refreshToken && refreshToken !== 'null' && refreshToken !== 'undefined' && refreshToken.trim()) {
-        console.log('🔄 Attempting to refresh with existing refresh token');
-        refreshAndSchedule();
-      } else {
-        console.log('❌ No tokens found, user not authenticated');
-        setLoadingUser(false);
-        setInitializing(false);
-      }
-    }
-  }, [token, refreshAndSchedule, clearAuth]);
-
-  // ============================================================================
-  // ENHANCED NAVIGATION HANDLING
-  // ============================================================================
-  
-  useEffect(() => {
-    if (pendingNavigation && token && !loadingUser && !initializing) {
-      console.log('🚀 Executing pending navigation:', pendingNavigation);
-      navigate(pendingNavigation, { replace: true });
-      setPendingNavigation(null);
-    }
-  }, [token, loadingUser, initializing, pendingNavigation, navigate]);
+    const now = Date.now() / 1000;
+    const timeUntilExpiry = expTimestamp - now;
+    
+    // Refresh when 80% of the token lifetime has passed, but at least 5 minutes before expiry
+    const refreshTime = Math.max(timeUntilExpiry * 0.8, timeUntilExpiry - 300);
+    const refreshDelay = Math.max(refreshTime * 1000, 60000); // At least 1 minute
+    
+    console.log(`⏰ Scheduling token refresh in ${Math.round(refreshDelay / 1000)} seconds`);
+    
+    window._refreshTimeout = setTimeout(() => {
+      console.log('⏰ Scheduled refresh triggered');
+      refreshAndSchedule();
+    }, refreshDelay);
+  }, [refreshAndSchedule]);
 
   // ============================================================================
   // ENHANCED USER PROFILE FETCHING
   // ============================================================================
   
-  useEffect(() => {
-    if (!token || typeof token !== 'string' || !token.trim()) {
-      setUser(null);
-      if (initializing) {
-        setLoadingUser(false);
-        setInitializing(false);
-      }
-      return;
-    }
-
-    // Don't fetch profile if we're still initializing or in the middle of auth
-    if (initializing || authStateRef.current.isRefreshing) {
-      return;
-    }
-
-    console.log('👤 Fetching user profile with token');
-    setLoadingUser(true);
-
-    const fetchUserProfile = async () => {
-      try {
-        const response = await api.get('/auth/me');
-        console.log('✅ User profile loaded:', response.data);
+  const fetchUserProfile = async () => {
+    try {
+      console.log('👤 Fetching user profile...');
+      const response = await api.get('/auth/me');
+      
+      if (response.data) {
+        console.log('✅ User profile fetched successfully');
         setUser(response.data);
-      } catch (error) {
-        console.error('🔒 Failed to load user profile:', error);
-        
-        // Only clear auth on 401 errors, not network issues
-        if (error.response?.status === 401) {
-          console.log('🔒 Authentication expired, clearing auth');
-          clearAuth();
-        } else {
-          console.warn('⚠️ Profile loading failed but continuing with authentication');
-        }
-      } finally {
-        setLoadingUser(false);
-        setInitializing(false);
+        return response.data;
+      } else {
+        throw new Error('No user data received');
       }
-    };
-
-    fetchUserProfile();
-  }, [token, clearAuth, initializing]);
+    } catch (error) {
+      console.error('❌ Failed to fetch user profile:', error);
+      
+      if (error.response?.status === 401) {
+        console.log('🔄 Token invalid, attempting refresh...');
+        await refreshAndSchedule();
+      } else {
+        clearAuth();
+      }
+      throw error;
+    }
+  };
 
   // ============================================================================
   // ENHANCED LOGIN FUNCTION
   // ============================================================================
   
   const login = async ({ email, password }, forceNewSession = false) => {
-    console.log('🔐 Login attempt for:', email);
-    console.log('🌐 API base URL:', api.defaults.baseURL);
-    
     try {
-      // Clear any existing auth state
-      clearAuth();
+      setLoadingUser(true);
+      console.log('🔐 Attempting login for:', email);
       
-      const payload = { email, password };
+      const response = await api.post('/auth/login', { 
+        email: email.trim().toLowerCase(), 
+        password,
+        force_new_session: forceNewSession 
+      });
       
-      if (forceNewSession === true) {
-        payload.forceNewSession = true;
-        console.log('🔄 Force new session requested');
+      const { access_token, refresh_token, user: userData } = response.data;
+      
+      if (!access_token) {
+        throw new Error('No access token received');
       }
       
-      console.log('📡 Making login request...');
-      
-      const response = await api.post('/auth/login', payload);
-      console.log('✅ Login response:', response.status, 'Token received:', !!response.data.access_token);
-      
-      const newToken = response.data.access_token;
-      const refreshToken = response.data.refresh_token;
-
-      // Enhanced token validation
-      if (!newToken || typeof newToken !== 'string' || !newToken.trim()) {
-        throw new Error('Invalid access token received');
+      // Validate token
+      const decoded = jwtDecode(access_token);
+      if (!decoded.exp || decoded.exp <= Date.now() / 1000) {
+        throw new Error('Received expired token');
       }
-
-      // Validate token structure
-      let decoded;
-      try {
-        decoded = jwtDecode(newToken);
-        if (!decoded.exp || decoded.exp <= Date.now() / 1000) {
-          throw new Error('Received expired token');
-        }
-      } catch (decodeError) {
-        throw new Error('Invalid token format received');
-      }
-
-      console.log('🎫 Storing tokens and setting up auth');
-
-      // Clear session conflict
-      setSessionConflict(null);
-
+      
       // Store tokens
-      localStorage.setItem('access_token', newToken);
-      if (refreshToken) {
-        localStorage.setItem('refresh_token', refreshToken);
-        console.log('🔄 Refresh token stored');
+      localStorage.setItem('access_token', access_token);
+      if (refresh_token) {
+        localStorage.setItem('refresh_token', refresh_token);
       }
+      
+      // Update state
+      setToken(access_token);
+      setUser(userData || { email });
+      setSessionConflict(null);
       
       // Set API header
-      api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+      api.defaults.headers.common.Authorization = `Bearer ${access_token}`;
       
-      // Schedule refresh (5 minutes before expiry, minimum 5 minutes)
-      const expiresInMs = decoded.exp * 1000 - Date.now();
-      const buffer = 5 * 60 * 1000; // 5 minute buffer
-      const timeout = Math.max(expiresInMs - buffer, 5 * 60 * 1000);
+      // Schedule refresh
+      scheduleTokenRefresh(decoded.exp);
       
-      if (window._refreshTimeout) clearTimeout(window._refreshTimeout);
-      window._refreshTimeout = setTimeout(() => refreshAndSchedule(), timeout);
-
-      console.log('🚀 Login successful, preparing navigation');
+      console.log('✅ Login successful');
       
-      // Set token and navigation destination
-      setToken(newToken);
-      setPendingNavigation('/chats');
+      // Handle pending navigation
+      if (pendingNavigation) {
+        navigate(pendingNavigation);
+        setPendingNavigation(null);
+      }
       
-      return { success: true };
+      return { success: true, user: userData || { email } };
       
     } catch (error) {
       console.error('❌ Login failed:', error);
-      console.error('Response data:', error.response?.data);
-      console.error('Response status:', error.response?.status);
       
-      // Clear auth on login failure
-      clearAuth();
+      if (error.response?.status === 409) {
+        setSessionConflict({
+          message: error.response.data?.detail || 'Session conflict detected',
+          email
+        });
+        return { success: false, sessionConflict: true };
+      }
       
-      // Re-throw for component handling
       throw error;
+    } finally {
+      setLoadingUser(false);
     }
   };
 
   // ============================================================================
-  // ENHANCED REGISTER FUNCTION
+  // ENHANCED REGISTRATION FUNCTION
   // ============================================================================
   
   const register = async ({ email, password, name }) => {
-    console.log('📝 Registration attempt for:', email);
-    
     try {
-      const response = await api.post('/auth/register', { 
-        email, 
-        password, 
-        name
+      setLoadingUser(true);
+      console.log('📝 Attempting registration for:', email);
+      
+      const response = await api.post('/auth/register', {
+        email: email.trim().toLowerCase(),
+        password,
+        name: name?.trim() || ''
       });
       
-      console.log('✅ Registration successful:', response.data);
+      console.log('✅ Registration successful');
       return { success: true, user: response.data };
       
     } catch (error) {
       console.error('❌ Registration failed:', error);
       throw error;
+    } finally {
+      setLoadingUser(false);
     }
   };
 
@@ -466,11 +381,9 @@ export function AuthProvider({ children }) {
   // ============================================================================
   
   const forceLogin = async (credentials) => {
-    try {
-      return await login(credentials, true);
-    } catch (error) {
-      throw error;
-    }
+    console.log('🔄 Force login initiated');
+    setSessionConflict(null);
+    return await login(credentials, true);
   };
 
   // ============================================================================
@@ -478,6 +391,7 @@ export function AuthProvider({ children }) {
   // ============================================================================
   
   const clearSessionConflict = () => {
+    console.log('🧹 Clearing session conflict');
     setSessionConflict(null);
   };
 
@@ -486,78 +400,132 @@ export function AuthProvider({ children }) {
   // ============================================================================
   
   const logout = async () => {
-    console.log('🚪 Logging out user');
-    
     try {
+      console.log('👋 Logging out...');
+      
+      // Try to revoke the refresh token on the server
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
-        await api.post('/auth/logout', {}, {
-          headers: {
-            'Authorization': `Bearer ${refreshToken}`
-          }
-        });
-        console.log('✅ Server logout successful');
+        try {
+          await api.post('/auth/logout', {}, {
+            headers: { Authorization: `Bearer ${refreshToken}` }
+          });
+        } catch (error) {
+          console.warn('⚠️ Logout request failed, but continuing with local cleanup:', error);
+        }
       }
-    } catch (err) {
-      console.warn('⚠️ Server logout failed:', err);
-      // Continue with local logout anyway
+      
+      clearAuth();
+      console.log('✅ Logout completed');
+      navigate('/');
+      
+    } catch (error) {
+      console.error('❌ Logout error:', error);
+      // Even if logout fails, clear local state
+      clearAuth();
+      navigate('/');
     }
-    
-    clearAuth();
-    navigate('/login', { replace: true });
   };
 
   // ============================================================================
-  // AUTHENTICATION STATUS COMPUTATION
+  // INITIALIZATION EFFECT WITH TIMEOUT PROTECTION
   // ============================================================================
   
-  const isAuthenticated = Boolean(
-    token && 
-    typeof token === 'string' && 
-    token.trim() &&
-    !authStateRef.current.isRefreshing &&
-    !pendingNavigation
-  );
+  useEffect(() => {
+    const initializeAuth = async () => {
+      console.log('🚀 Initializing authentication...');
+      
+      // Set a timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.warn('⚠️ Auth initialization timeout, forcing completion');
+        setLoadingUser(false);
+        setInitializing(false);
+      }, 10000); // 10 second timeout
+      
+      try {
+        if (token) {
+          console.log('🎫 Token found, setting up API and fetching user...');
+          
+          // Set API authorization header
+          api.defaults.headers.common.Authorization = `Bearer ${token}`;
+          
+          try {
+            // Validate token and get user data
+            const decoded = jwtDecode(token);
+            const now = Date.now() / 1000;
+            
+            if (decoded.exp <= now) {
+              console.log('❌ Token expired, attempting refresh...');
+              await refreshAndSchedule();
+            } else {
+              console.log('✅ Token valid, fetching user profile...');
+              await fetchUserProfile();
+              scheduleTokenRefresh(decoded.exp);
+            }
+          } catch (error) {
+            console.error('❌ Token validation failed:', error);
+            await refreshAndSchedule();
+          }
+        } else {
+          console.log('❌ No token found, user not authenticated');
+          setLoadingUser(false);
+          setInitializing(false);
+        }
+      } catch (error) {
+        console.error('❌ Auth initialization failed:', error);
+        clearAuth();
+      } finally {
+        clearTimeout(timeoutId);
+        setLoadingUser(false);
+        setInitializing(false);
+      }
+    };
 
-  console.log('🔍 Auth state:', {
-    hasToken: !!token,
-    hasUser: !!user,
-    isAuthenticated,
+    initializeAuth();
+    
+    // Cleanup function
+    return () => {
+      if (window._refreshTimeout) {
+        clearTimeout(window._refreshTimeout);
+      }
+    };
+  }, []); // Only run once on mount
+
+  // ============================================================================
+  // CONTEXT VALUE WITH COMPUTED PROPERTIES
+  // ============================================================================
+  
+  const contextValue = {
+    token,
+    user,
+    isAuthenticated: Boolean(token && user),
     loadingUser,
     initializing,
-    pendingNavigation,
-    isRefreshing: authStateRef.current.isRefreshing
-  });
+    sessionConflict,
+    login,
+    register,
+    logout,
+    setUser,
+    clearSessionConflict,
+    forceLogin,
+  };
 
   // ============================================================================
-  // LOADING STATE MANAGEMENT
+  // RENDER WITH LOADING STATE MANAGEMENT
   // ============================================================================
   
-  // Show loader while determining auth status OR during login navigation OR during refresh
-  if (loadingUser || initializing || pendingNavigation || authStateRef.current.isRefreshing) {
+  // Show loading only during initial setup, not during normal operations
+  if (initializing) {
     return <LottieLoader />;
   }
 
-  // ============================================================================
-  // CONTEXT PROVIDER
-  // ============================================================================
-  
+  // Fallback safety check - if loading is stuck for too long, show children anyway
+  if (loadingUser) {
+    console.warn('⚠️ LoadingUser state detected, but initializing is false. This might indicate a stuck state.');
+  }
+
   return (
-    <AuthContext.Provider
-      value={{
-        token,
-        user,
-        isAuthenticated,
-        loadingUser,
-        sessionConflict,
-        login,
-        register,
-        logout,
-        setUser,
-        clearSessionConflict,
-        forceLogin,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
