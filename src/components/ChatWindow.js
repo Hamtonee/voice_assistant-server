@@ -11,10 +11,11 @@ import {
 import FeatureHeader from './FeatureHeader';
 import ChatSidebar from './ChatSidebar';
 import LottieLoader from './LottieLoader';
+import ScenarioPicker from './ScenarioPicker'; // Direct import for testing
 
 // Lazy loaded components
 import { 
-  LazyScenarioPicker,
+  // LazyScenarioPicker, // Temporarily disabled
   LazySpeechCoach,
   LazyReadingPassage,
   LazyChatDetail
@@ -161,13 +162,11 @@ const ChatWindow = () => {
         console.log('📋 Showing scenario picker');
         return (
           <div className="scenario-wrapper">
-            <Suspense fallback={<LottieLoader />}>
-              <LazyScenarioPicker 
-                scenarios={scenarios} 
-                onSelect={handleSelectScenario}
-                onClose={null}
-              />
-            </Suspense>
+            <ScenarioPicker 
+              scenarios={scenarios} 
+              onSelect={handleSelectScenario}
+              onClose={null}
+            />
           </div>
         );
       }
