@@ -11,15 +11,17 @@ import {
 import FeatureHeader from './FeatureHeader';
 import ChatSidebar from './ChatSidebar';
 import LottieLoader from './LottieLoader';
-import ScenarioPicker from './ScenarioPicker'; // Direct import for testing
 
 // Lazy loaded components
 import { 
-  // LazyScenarioPicker, // Temporarily disabled
+  LazyScenarioPicker,
   LazySpeechCoach,
   LazyReadingPassage,
   LazyChatDetail
 } from './LazyComponents';
+
+// Direct import for ScenarioPicker (if lazy loading fails)
+import ScenarioPicker from './ScenarioPicker';
 
 // Data imports
 import { availableScenarios } from '../data/rolePlayScenarios';
@@ -209,8 +211,104 @@ const ChatWindow = () => {
       </div>
     );
 
-    // Always show debug component for now
-    return <DebugComponent />;
+    // Show debug component only if needed for debugging
+    // return <DebugComponent />;
+
+    // Chat Feature
+    if (selectedFeature === 'chat') {
+      if (needsScenarioSelection()) {
+        console.log('📋 Showing scenario picker');
+        return (
+          <div className="scenario-wrapper">
+            <Suspense fallback={<LottieLoader />}>
+              <ScenarioPicker 
+                scenarios={scenarios}
+                onSelect={handleSelectScenario}
+              />
+            </Suspense>
+          </div>
+        );
+      }
+
+      if (scenario && isFeatureReady()) {
+        console.log('💬 Showing chat detail');
+        return (
+          <div className="scenario-content">
+            <div className="scenario-header">
+              <h1>{scenario.label}</h1>
+              <p>{scenario.description}</p>
+            </div>
+            <Suspense fallback={<LottieLoader />}>
+              <LazyChatDetail 
+                sessionId={getCurrentActiveId(selectedFeature)}
+                scenario={scenario}
+                selectedVoice={selectedVoice}
+                viewport={viewport}
+                sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
+                onNewSession={handleNewSession}
+              />
+            </Suspense>
+          </div>
+        );
+      }
+
+      // Chat fallback - if no scenario but in chat mode
+      console.log('💬 Chat fallback - showing welcome');
+      return (
+        <div className="welcome-container">
+          <h2>💬 Chat Feature</h2>
+          <p>Loading scenarios...</p>
+          <p>Available scenarios: {scenarios?.length || 0}</p>
+        </div>
+      );
+    }
+
+    // Sema Feature
+    if (selectedFeature === 'sema') {
+      console.log('🎤 Showing speech coach');
+      return (
+        <div className="feature-container">
+          <Suspense fallback={<LottieLoader />}>
+            <LazySpeechCoach 
+              sessionId={getCurrentActiveId(selectedFeature)}
+              selectedVoice={selectedVoice}
+              sidebarOpen={sidebarOpen}
+              onNewSession={handleNewSession}
+            />
+          </Suspense>
+        </div>
+      );
+    }
+
+    // Tusome Feature
+    if (selectedFeature === 'tusome') {
+      console.log('📚 Showing reading passage');
+      return (
+        <div className="feature-container">
+          <Suspense fallback={<LottieLoader />}>
+            <LazyReadingPassage 
+              sessionId={getCurrentActiveId(selectedFeature)}
+              selectedVoice={selectedVoice}
+              viewport={viewport}
+              sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
+              onNewSession={handleNewSession}
+            />
+          </Suspense>
+        </div>
+      );
+    }
+
+    // Default fallback
+    return (
+      <div className="welcome-container">
+        <h2>🎯 Debug Info</h2>
+        <p>Selected Feature: {selectedFeature}</p>
+        <p>Scenario: {scenario ? 'Yes' : 'No'}</p>
+        <p>Needs Scenario Selection: {needsScenarioSelection() ? 'Yes' : 'No'}</p>
+        <p>Is Feature Ready: {isFeatureReady() ? 'Yes' : 'No'}</p>
+        <p>Available Scenarios: {scenarios?.length || 0}</p>
+      </div>
+    );
   }
 };
 
