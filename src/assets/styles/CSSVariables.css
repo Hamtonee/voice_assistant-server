@@ -46,15 +46,17 @@
   --font-weight-bold: 700;
   
   /* Z-index scale */
-  --z-base: 0;
-  --z-content: 100;
-  --z-sidebar: 1000;
-  --z-header: 1100;
-  --z-dropdown: 2000;
-  --z-overlay: 3000;
-  --z-modal: 4000;
-  --z-tooltip: 5000;
-  --z-toast: 6000;
+  --z-base: 1;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-fixed: 30;
+  --z-mobile-backdrop: 40;
+  --z-modal-backdrop: 50;
+  --z-sidebar: 60;
+  --z-header: 70;
+  --z-modal: 80;
+  --z-toast: 90;
+  --z-tooltip: 100;
   
   /* Responsive breakpoints */
   --breakpoint-xs: 320px;
