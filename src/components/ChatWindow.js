@@ -541,25 +541,55 @@ export default function ChatWindow() {
   // ─── Render ─────────────────────────────────────────────
   if (!user) return <div>Loading user...</div>;
 
-  // Fallback for no chats and no scenario
-  if (selectedFeature === 'chat' && !scenario && currentSessions.length === 0) {
-    return (
-      <>
-        <FeatureHeader {...headerProps} />
-        <div className={`flex-1 flex flex-col items-center justify-center p-4`}>
-          <ScenarioPicker scenarios={availableScenarios} onSelect={handleSelectScenario} />
-        </div>
-      </>
-    );
-  }
-
   return (
     <div className="flex h-screen">
+      {/* Always render sidebar */}
       <ChatSidebar {...sidebarProps} />
+      
       <div className="flex-1 flex flex-col">
         <FeatureHeader {...headerProps} />
+        
         <div className="flex-1 overflow-hidden">
-          {/* Rest of the component content */}
+          {/* Show scenario picker when chat feature is selected but no scenario */}
+          {selectedFeature === 'chat' && !scenario ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-4">
+              <ScenarioPicker 
+                scenarios={availableScenarios} 
+                onSelect={handleSelectScenario}
+                onClose={null}
+              />
+            </div>
+          ) : (
+            // Show main content for other features or when scenario is selected
+            <div className="flex-1 flex flex-col">
+              {/* Main chat/content area */}
+              <div className="flex-1 p-4">
+                {selectedFeature === 'chat' && scenario && (
+                  <div className="text-center py-8">
+                    <h2 className="text-xl font-semibold mb-2">{scenario.label}</h2>
+                    <p className="text-gray-600 mb-4">{scenario.subtitle}</p>
+                    <p className="text-sm text-gray-500">
+                      Chat interface loading...
+                    </p>
+                  </div>
+                )}
+                
+                {selectedFeature === 'sema' && (
+                  <div className="text-center py-8">
+                    <h2 className="text-xl font-semibold mb-2">Sema Feature</h2>
+                    <p className="text-gray-600">Sema content loading...</p>
+                  </div>
+                )}
+                
+                {selectedFeature === 'tusome' && (
+                  <div className="text-center py-8">
+                    <h2 className="text-xl font-semibold mb-2">Tusome Feature</h2>
+                    <p className="text-gray-600">Tusome content loading...</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
