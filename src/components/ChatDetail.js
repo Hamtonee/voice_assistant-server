@@ -763,18 +763,15 @@ export default function ChatDetail({
   // Load chat when activeChatId changes
   useEffect(() => {
     if (!activeChatId) return;
-    const inst = chatInstances.find(c => c.id === activeChatId);
+    const inst = Array.isArray(chatInstances) 
+      ? chatInstances.find(c => c.id === activeChatId)
+      : null;
     if (inst?.messages) {
       setConversation(normalize(inst.messages));
-      setConnectionStatus('connected');
     } else {
-      loadFullChat();
+      setConversation([]);
     }
-    
-    setTimeout(() => {
-      historyRef.current?.scrollTo({ top: historyRef.current.scrollHeight, behavior: 'auto' });
-    }, 0);
-  }, [activeChatId, chatInstances, loadFullChat]);
+  }, [activeChatId, chatInstances]);
 
   // Initialize recognition
   useEffect(() => {
