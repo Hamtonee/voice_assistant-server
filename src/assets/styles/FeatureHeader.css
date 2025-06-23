@@ -1,84 +1,10 @@
 /* src/assets/styles/FeatureHeader.css */
-/* ENHANCED CSS - Unified Dark/Light Mode Theme System */
+/* PIXEL PERFECT Header with Unified Theme System */
 
-/*─────────────────────────────────────────────────────
-  Global variables - ENHANCED WITH UNIFIED THEMES
-─────────────────────────────────────────────────────*/
-:root {
-  --header-height: 3rem;
-  
-  /* Enhanced modern color palette */
-  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --accent-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-  --success-gradient: linear-gradient(135deg, #a8f5d3 0%, #7fd8a5 100%);
-  --warning-gradient: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
-  --error-gradient: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
-  
-  /* Modern shadows */
-  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-medium: 0 12px 40px rgba(0, 0, 0, 0.15);
-  --shadow-strong: 0 20px 60px rgba(0, 0, 0, 0.25);
-  --shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
-  
-  /* Border radius */
-  --border-radius-sm: 6px;
-  --border-radius-md: 8px;
-  --border-radius-lg: 12px;
-  --border-radius-xl: 16px;
-  
-  /* Modern transitions */
-  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  
-  /* Theme transition duration */
-  --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-}
+/* Import master variables */
+@import './CSSVariables.css';
 
-/* DARK THEME (Default) */
-[data-theme="dark"] {
-  --bg-primary: #1a1d29;
-  --bg-secondary: #242837;
-  --bg-tertiary: #2d3142;
-  --text-primary: #f7fafc;
-  --text-secondary: #e2e8f0;
-  --text-accent: #a8f5d3;
-  --text-muted: #94a3b8;
-  
-  /* Glass effects */
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-hover: rgba(255, 255, 255, 0.08);
-  --glass-active: rgba(255, 255, 255, 0.12);
-  
-  /* Dark theme specific shadows */
-  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.4);
-  --shadow-medium: 0 12px 40px rgba(0, 0, 0, 0.5);
-  --shadow-strong: 0 20px 60px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 20px rgba(168, 245, 211, 0.3);
-}
-
-/* LIGHT THEME - ENHANCED CONTRAST */
-[data-theme="light"] {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f9fa;
-  --bg-tertiary: #e9ecef;
-  --text-primary: #1a202c;
-  --text-secondary: #2d3748;
-  --text-accent: #2d7d32;
-  --text-muted: #4a5568;
-  
-  /* Glass effects for light mode */
-  --glass-bg: rgba(0, 0, 0, 0.03);
-  --glass-border: rgba(0, 0, 0, 0.12);
-  --glass-hover: rgba(0, 0, 0, 0.05);
-  --glass-active: rgba(0, 0, 0, 0.08);
-  
-  /* Light theme specific shadows */
-  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.08);
-  --shadow-medium: 0 12px 40px rgba(0, 0, 0, 0.1);
-  --shadow-strong: 0 20px 60px rgba(0, 0, 0, 0.15);
-  --shadow-glow: 0 0 20px rgba(45, 125, 50, 0.3);
-}
+/* Theme variables are now imported from CSSVariables.css */
 
 /*─────────────────────────────────────────────────────
   Base header - WITH ENHANCED THEME TRANSITIONS
@@ -91,12 +17,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1rem;
+  padding: 0 var(--header-padding);
   height: var(--header-height);
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
   backdrop-filter: blur(20px);
-  box-shadow: var(--shadow-soft);
-  z-index: 100;
+  box-shadow: var(--shadow-sm);
+  z-index: var(--z-header);
   font-family: 'Poppins', sans-serif;
   color: var(--text-primary);
   border-bottom: 1px solid var(--glass-border);
@@ -104,12 +30,7 @@
   transition: var(--theme-transition);
 }
 
-/* ENHANCED THEME TRANSITION FOR ALL ELEMENTS */
-.feature-header *,
-.feature-header *::before,
-.feature-header *::after {
-  transition: var(--theme-transition) !important;
-}
+/* Selective transitions for header elements */
 
 /*─────────────────────────────────────────────────────
   Mobile Title - IMPROVED VISIBILITY

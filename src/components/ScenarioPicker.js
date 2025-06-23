@@ -13,8 +13,7 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
   const observerRef = useRef(null);
   const imageCache = useRef(new Map());
 
-  // Temporary debugging
-  console.log('🎭 ScenarioPicker received scenarios:', scenarios?.length || 'UNDEFINED', Array.isArray(scenarios) ? 'IS_ARRAY' : 'NOT_ARRAY');
+
 
   // Preload images for better performance
   const preloadImage = useCallback((src, key) => {
@@ -53,13 +52,14 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
     });
   }, [preloadedImages]);
 
-  // Preload ALL images immediately for better UX
+  // Preload images more efficiently - only first 6 images immediately
   useEffect(() => {
     if (!scenarios || scenarios.length === 0) return;
 
-    // Preload all images immediately
+    // Preload only first 6 images immediately for better performance
     const imagesToPreload = scenarios
       .filter(s => s.image)
+      .slice(0, 6) // Only first 6 images
       .map(s => ({ src: s.image, key: s.key }));
 
     const preloadPromises = imagesToPreload.map(({ src, key }) => {
@@ -68,11 +68,31 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
         [key]: true
       }));
       return preloadImage(src, key).catch(() => {
-        console.warn(`Failed to preload image for ${key}`);
+        // Image preload failed - continue without blocking
       });
     });
 
     Promise.allSettled(preloadPromises);
+
+    // Preload remaining images after a delay
+    if (scenarios.length > 6) {
+      setTimeout(() => {
+        const remainingImages = scenarios
+          .filter(s => s.image)
+          .slice(6)
+          .map(s => ({ src: s.image, key: s.key }));
+
+        remainingImages.forEach(({ src, key }) => {
+          setImageLoadingStates(prev => ({
+            ...prev,
+            [key]: true
+          }));
+          preloadImage(src, key).catch(() => {
+            // Image preload failed - continue without blocking
+          });
+        });
+      }, 1000);
+    }
   }, [scenarios, preloadImage]);
 
   // Optimized image loading handlers (moved before early return)
@@ -170,7 +190,7 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
       await new Promise(resolve => setTimeout(resolve, 300));
       onSelect(scenarioKey);
     } catch (error) {
-      console.error('Error selecting scenario:', error);
+      // Reset loading state on error
       setLoadingScenario(null);
     }
   };

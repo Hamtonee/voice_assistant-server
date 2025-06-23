@@ -1,7 +1,10 @@
-/* src/assets/styles/ChatWindow.css - ENHANCED FOR UNIFIED DARK/LIGHT MODE */
+/* src/assets/styles/ChatWindow.css - PIXEL PERFECT LAYOUT */
+
+/* Import master variables */
+@import './CSSVariables.css';
 
 /*─────────────────────────────────────────────────────
-  Prevent any overflow on the page & fill height
+  Base HTML/Body Setup for Perfect Layout
 ─────────────────────────────────────────────────────*/
 html, body {
   margin: 0;
@@ -9,99 +12,35 @@ html, body {
   height: 100%;
   overflow: hidden;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-sizing: border-box;
 }
 
-/*─────────────────────────────────────────────────────
-  Custom Properties - ENHANCED UNIFIED THEME SYSTEM
-─────────────────────────────────────────────────────*/
-:root {
-  /* Layout dimensions */
-  --header-height: 3rem;
-  --sidebar-width: 300px;
-  --chat-padding: 24px;
-  --input-height: 56px;
-  --input-container-height: 80px;
-  --border-radius-lg: 20px;
-  --border-radius-md: 12px;
-  --border-radius-sm: 8px;
-  --mic-bottom-offset: 80px;
-
-  /* Enhanced Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  
-  /* Transitions */
-  --transition-fast: 0.2s ease;
-  --transition-med: 0.3s ease;
-  --transition-layout: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-
-  /* Z-index layers */
-  --z-modal: 10000;
-  --z-error: 9000;
-  --z-input: 8000;
-  --z-controls: 7000; 
-  --z-sidebar: 1500;
-  --z-content: 1000;
+/* Ensure all elements inherit box-sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-/* DARK THEME (Default) */
+/* Theme variables are now imported from CSSVariables.css */
+
+/* Chat-specific color mappings */
 [data-theme="dark"] {
-  /* Modern Color Palette */
-  --accent-color: #6366f1;
-  --accent-hover: #5855eb;
-  --accent-light: rgba(99, 102, 241, 0.1);
-  --background-color: #1a1d29;
-  --sidebar-bg: #1a1d29;
-  --bot-bg: #2d3748;
-  --user-bg: #6366f1;
-  --text-primary: #f7fafc;
-  --text-muted: #a0aec0;
-  --bg-input: #2d3748;
-  --button-bg: #2d3748;
-  --border-color: #4a5568;
-  
-  /* Dark theme specific shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+  --chat-user-bg: var(--accent-primary);
+  --chat-bot-bg: var(--bg-tertiary);
+  --chat-input-bg: var(--bg-tertiary);
+  --chat-sidebar-bg: var(--bg-secondary);
 }
 
-/* LIGHT THEME - ENHANCED CONTRAST */
 [data-theme="light"] {
-  /* Modern Color Palette with HIGH CONTRAST */
-  --accent-color: #6366f1;
-  --accent-hover: #5855eb;
-  --accent-light: rgba(99, 102, 241, 0.1);
-  --background-color: #f9fafb;
-  --sidebar-bg: #ffffff;
-  --bot-bg: #f3f4f6;
-  --user-bg: #6366f1;
-  --text-primary: #1a202c;
-  --text-muted: #4a5568;
-  --bg-input: #ffffff;
-  --button-bg: #ffffff;
-  --border-color: #e2e8f0;
-  
-  /* Light theme specific shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-/* Mobile header height override */
-@media (max-width: 768px) {
-  :root {
-    --header-height: 2rem;
-  }
+  --chat-user-bg: var(--accent-primary);
+  --chat-bot-bg: var(--bg-tertiary);
+  --chat-input-bg: var(--bg-elevated);
+  --chat-sidebar-bg: var(--bg-elevated);
 }
 
 /*─────────────────────────────────────────────────────
-  ENHANCED App Container with Better Grid Management
+  PIXEL PERFECT App Container - Main Layout Grid
 ─────────────────────────────────────────────────────*/
 .app-container {
   position: fixed;
@@ -112,82 +51,76 @@ html, body {
   display: grid;
   grid-template-columns: var(--sidebar-width) 1fr;
   grid-template-areas: "sidebar content";
-  background: var(--background-color);
+  background: var(--bg-primary);
   overflow: hidden;
-  transition: grid-template-columns var(--transition-layout), var(--theme-transition);
-  box-sizing: border-box;
+  transition: grid-template-columns var(--transition-layout);
+  border: none;
+  margin: 0;
+  padding: 0;
 }
 
+/* Sidebar collapsed state */
 .app-container:not(.sidebar-open) {
   grid-template-columns: 0 1fr;
 }
 
-/* ENHANCED THEME TRANSITIONS FOR ALL ELEMENTS */
-.app-container *,
-.app-container *::before,
-.app-container *::after {
-  transition: var(--theme-transition) !important;
-}
-
-/* Mobile: Block layout instead of grid */
+/* Mobile: Full height with header offset */
 @media (max-width: 768px) {
   .app-container {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: block;
     grid-template-columns: none;
     grid-template-areas: none;
-    height: 100vh !important;
-    padding-top: var(--header-height) !important;
-    box-sizing: border-box;
+    height: calc(100vh - var(--header-height));
+    width: 100vw;
   }
 }
 
 /*─────────────────────────────────────────────────────
-  ENHANCED Sidebar with Better Positioning
+  PIXEL PERFECT Sidebar Positioning
 ─────────────────────────────────────────────────────*/
 .sidebar {
   grid-area: sidebar;
   position: relative;
   width: 100%;
   height: 100%;
-  background: var(--sidebar-bg);
+  background: var(--chat-sidebar-bg);
   color: var(--text-primary);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   z-index: var(--z-sidebar);
-  box-sizing: border-box;
-  border-right: 1px solid var(--border-color);
-  isolation: isolate;
-  transition: transform var(--transition-layout), var(--theme-transition);
+  border-right: 1px solid var(--border-primary);
   transform: translateX(0);
+  transition: transform var(--transition-layout);
 }
 
+/* Sidebar collapsed state - grid handles the width */
 .app-container:not(.sidebar-open) .sidebar {
   transform: translateX(-100%);
 }
 
-/* Enhanced mobile sidebar overlay */
+/* Mobile sidebar overlay */
 @media (max-width: 768px) {
   .sidebar {
-    position: fixed !important;
-    top: var(--header-height) !important;
-    left: 0 !important;
-    height: calc(100vh - var(--header-height)) !important;
-    width: var(--sidebar-width) !important;
-    transform: translateX(-100%) !important;
-    transition: transform var(--transition-layout), var(--theme-transition) !important;
-    z-index: var(--z-sidebar) !important;
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    height: calc(100vh - var(--header-height));
+    width: var(--sidebar-width);
+    transform: translateX(-100%);
+    transition: transform var(--transition-layout);
+    z-index: var(--z-sidebar);
     box-shadow: var(--shadow-xl);
     grid-area: none;
   }
   
   .app-container.sidebar-open .sidebar {
-    transform: translateX(0) !important;
+    transform: translateX(0);
   }
 }
 
@@ -200,12 +133,13 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--background-color);
+  background: var(--bg-primary);
   height: 100%;
   width: 100%;
-  box-sizing: border-box;
-  min-width: 0; /* Prevents grid overflow */
-  transition: var(--theme-transition);
+  min-width: 0;
+  border: none;
+  margin: 0;
+  padding: 0;
 }
 
 /* Mobile positioning - ensure content fills available space */
@@ -229,7 +163,7 @@ html, body {
   right: 0;
   width: 100%;
   height: 100%;
-  background: var(--background-color);
+  background: var(--bg-primary);
   z-index: 5;
   overflow: hidden;
   box-sizing: border-box;
@@ -247,7 +181,7 @@ html, body {
   right: 0;
   width: 100%;
   height: 100%;
-  background: var(--background-color);
+  background: var(--bg-primary);
   overflow-y: auto;
   overflow-x: hidden;
   padding: 20px;
@@ -277,7 +211,7 @@ html, body {
   flex-direction: column;
   overflow: hidden;
   padding: var(--chat-padding);
-  background: var(--background-color);
+  background: var(--bg-primary);
   position: relative;
   box-sizing: border-box;
   height: 100%;
@@ -328,7 +262,7 @@ html, body {
   gap: var(--chat-padding);
   padding-bottom: calc(var(--input-container-height) + var(--chat-padding));
   scrollbar-width: thin;
-  scrollbar-color: var(--accent-color) transparent;
+  scrollbar-color: var(--accent-primary) transparent;
   box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
   width: 100%;
@@ -340,7 +274,7 @@ html, body {
 }
 
 .chat-history::-webkit-scrollbar-thumb {
-  background: var(--accent-color);
+  background: var(--accent-primary);
   border-radius: 2px;
 }
 
@@ -380,16 +314,16 @@ html, body {
 
 .chat-bubble.bot {
   align-self: flex-start;
-  background: var(--bot-bg);
+  background: var(--chat-bot-bg);
   color: var(--text-primary);
   border-bottom-left-radius: 6px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-primary);
   font-weight: 500;
 }
 
 .chat-bubble.user {
   align-self: flex-end;
-  background: linear-gradient(135deg, var(--user-bg) 0%, var(--accent-hover) 100%);
+  background: linear-gradient(135deg, var(--chat-user-bg) 0%, var(--accent-hover) 100%);
   color: #ffffff;
   border-bottom-right-radius: 6px;
   box-shadow: var(--shadow-md);
