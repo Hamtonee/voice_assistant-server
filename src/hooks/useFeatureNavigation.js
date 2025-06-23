@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 export const useFeatureNavigation = () => {
   // Feature navigation state
@@ -6,8 +6,8 @@ export const useFeatureNavigation = () => {
   const [scenario, setScenario] = useState(null);
   const [selectedVoice, setSelectedVoice] = useState(null);
 
-  // Available features configuration
-  const features = [
+  // Available features configuration - memoized to prevent re-renders
+  const features = useMemo(() => [
     { 
       id: 'chat', 
       label: 'Chat', 
@@ -26,7 +26,7 @@ export const useFeatureNavigation = () => {
       icon: '📚',
       description: 'Reading comprehension with AI discussions'
     }
-  ];
+  ], []);
 
   // Feature selection handler
   const handleFeatureSelect = useCallback((featureId) => {
@@ -61,7 +61,7 @@ export const useFeatureNavigation = () => {
   // Get current feature configuration
   const getCurrentFeature = useCallback(() => {
     return features.find(f => f.id === selectedFeature);
-  }, [selectedFeature]);
+  }, [selectedFeature, features]);
 
   // Check if current feature needs scenario selection
   const needsScenarioSelection = useCallback(() => {

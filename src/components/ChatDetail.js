@@ -158,19 +158,6 @@ export default function ChatDetail({
       text: m.text,
     }));
 
-  const loadFullChat = useCallback(async () => {
-    try {
-      setConnectionStatus('connecting');
-      const { data } = await api.get(`/chats/${activeChatId}`);
-      setConversation(normalize(data.messages));
-      setConnectionStatus('connected');
-    } catch (err) {
-      console.error("Error loading chat:", err);
-      setConnectionStatus('error');
-      setUserFriendlyErrorMessage('network_error');
-    }
-  }, [activeChatId, setUserFriendlyErrorMessage]);
-
   // SIMPLIFIED: Audio playback with better error handling
   const playAudio = useCallback(async (audioB64, fallbackText, voiceConfig) => {
     console.log('🎵 [playAudio] Starting audio playback');

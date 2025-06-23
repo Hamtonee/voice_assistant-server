@@ -5,13 +5,12 @@ import '../assets/styles/SpeechCoach.css';
 
 export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onNewSession }) {
   const [isRecording, setIsRecording] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [feedback, setFeedback] = useState('');
   const [error, setError] = useState(null);
   const [ttsAvailable, setTTSAvailable] = useState(false);
   const [isSpeechSupported, setIsSpeechSupported] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [correctedSentence, setCorrectedSentence] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
@@ -135,11 +134,9 @@ export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onN
         ttsRef.current = audio;
         
         audio.onended = () => {
-          setIsPlaying(false);
           ttsRef.current = null;
         };
 
-        setIsPlaying(true);
         await audio.play();
       }
 
