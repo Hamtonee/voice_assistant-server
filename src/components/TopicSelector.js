@@ -7,11 +7,11 @@ const TopicSelector = ({ topics, onSelectTopic }) => {
     <div className="topic-selector">
       <h3>Select a Topic</h3>
       <ul>
-        {topics.map((topic, index) => (
+        {Array.isArray(topics) ? topics.map((topic, index) => (
           <li key={index} onClick={() => onSelectTopic(topic)}>
             {topic}
           </li>
-        ))}
+        )) : null}
       </ul>
     </div>
   );

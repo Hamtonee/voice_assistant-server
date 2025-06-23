@@ -169,17 +169,17 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
   }
 
   // Preserve category order
-  const categoryOrder = Array.from(new Set(scenarios.map(s => s.category)));
+  const categoryOrder = Array.from(new Set(Array.isArray(scenarios) ? scenarios.map(s => s.category) : []));
 
   // Filter by search term
-  const filtered = scenarios.filter(s => {
+  const filtered = Array.isArray(scenarios) ? scenarios.filter(s => {
     const term = search.toLowerCase();
     return (
       s.label.toLowerCase().includes(term) ||
       (s.subtitle || '').toLowerCase().includes(term) ||
       s.category.toLowerCase().includes(term)
     );
-  });
+  }) : [];
 
   const handleScenarioSelect = async (scenarioKey) => {
     if (loadingScenario) return; // Prevent double-clicks

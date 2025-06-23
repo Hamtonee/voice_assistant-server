@@ -116,7 +116,7 @@ const ChatWindow = () => {
   const scenarios = availableScenarios || [];
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       {/* Feature Header */}
       <FeatureHeader {...headerProps} />
       
