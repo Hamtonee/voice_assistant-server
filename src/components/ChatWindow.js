@@ -119,29 +119,26 @@ const ChatWindow = () => {
   return (
     <div className={`app-container ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       {/* Feature Header */}
-      <FeatureHeader {...headerProps} />
+      <div style={{ gridArea: 'header' }}>
+        <FeatureHeader {...headerProps} />
+      </div>
       
-      {/* Main Layout Container */}
-      <div className="chat-layout">
-        
-        {/* Sidebar */}
-        <div className="sidebar">
-          <ChatSidebar {...sidebarProps} />
-        </div>
-        
-        {/* Mobile Sidebar Backdrop */}
-        {viewport.isMobile && sidebarOpen && (
-          <div 
-            className="mobile-backdrop"
-            onClick={toggleSidebar}
-          />
-        )}
-        
-        {/* Main Content Area */}
-        <div className="chat-content">
-          {renderMainContent()}
-        </div>
-        
+      {/* Sidebar */}
+      <div className="sidebar">
+        <ChatSidebar {...sidebarProps} />
+      </div>
+      
+      {/* Mobile Sidebar Backdrop */}
+      {viewport.isMobile && sidebarOpen && (
+        <div 
+          className="mobile-backdrop"
+          onClick={toggleSidebar}
+        />
+      )}
+      
+      {/* Main Content Area */}
+      <div className="chat-content">
+        {renderMainContent()}
       </div>
     </div>
   );
@@ -156,141 +153,64 @@ const ChatWindow = () => {
       scenariosLength: scenarios?.length || 0
     });
 
-    // Chat Feature
-    if (selectedFeature === 'chat') {
-      if (needsScenarioSelection()) {
-        console.log('📋 Showing scenario picker');
-        return (
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: 0,
-            right: 0,
-            background: '#1a1d29',
-            color: '#f7fafc',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2rem',
-            fontSize: '18px',
-            zIndex: 1000
-          }}>
-            <h2 style={{ margin: '0 0 1rem 0' }}>🎯 Scenario Picker Debug</h2>
-            <p>Available scenarios: {scenarios?.length || 0}</p>
-            <p>This should be visible if CSS positioning works</p>
-            <button 
-              onClick={() => handleSelectScenario('test')}
-              style={{
-                padding: '1rem 2rem',
-                fontSize: '16px',
-                background: '#3182ce',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer'
-              }}
-            >
-              Test Selection
-            </button>
-          </div>
-        );
-      }
-
-      if (scenario && isFeatureReady()) {
-        console.log('💬 Showing chat detail');
-        return (
-          <div className="scenario-content">
-            <div className="scenario-header">
-              <h1>{scenario.label}</h1>
-              <p>{scenario.description}</p>
-            </div>
-            <Suspense fallback={<LottieLoader />}>
-              <LazyChatDetail 
-                sessionId={getCurrentActiveId(selectedFeature)}
-                scenario={scenario}
-                selectedVoice={selectedVoice}
-                viewport={viewport}
-                sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
-                onNewSession={handleNewSession}
-              />
-            </Suspense>
-          </div>
-        );
-      }
-
-      // Chat fallback - if no scenario but in chat mode
-      console.log('💬 Chat fallback - showing welcome');
-      return (
-        <div className="welcome-container">
-          <h2>💬 Chat Feature</h2>
-          <p>Loading scenarios...</p>
-          <p>Available scenarios: {scenarios?.length || 0}</p>
-        </div>
-      );
-    }
-
-    // Sema Feature
-    if (selectedFeature === 'sema') {
-      console.log('🎤 Showing speech coach');
-      return (
-        <div className="feature-container">
-          <Suspense fallback={<LottieLoader />}>
-            <LazySpeechCoach 
-              sessionId={getCurrentActiveId(selectedFeature)}
-              selectedVoice={selectedVoice}
-              sidebarOpen={sidebarOpen}
-              onNewSession={handleNewSession}
-            />
-          </Suspense>
-        </div>
-      );
-    }
-
-    // Tusome Feature
-    if (selectedFeature === 'tusome') {
-      console.log('📚 Showing reading passage');
-      return (
-        <div className="feature-container">
-          <Suspense fallback={<LottieLoader />}>
-            <LazyReadingPassage 
-              sessionId={getCurrentActiveId(selectedFeature)}
-              selectedVoice={selectedVoice}
-              viewport={viewport}
-              sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
-              onNewSession={handleNewSession}
-            />
-          </Suspense>
-        </div>
-      );
-    }
-
-    // Default fallback
-    return (
+    // Add emergency debug component that's guaranteed to be visible
+    const DebugComponent = () => (
       <div style={{
-        position: 'absolute',
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: '#1a1d29',
-        color: '#f7fafc',
+        position: 'fixed',
+        top: '70px',
+        left: '310px',
+        right: '10px',
+        bottom: '10px',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '2rem',
-        fontSize: '18px'
+        fontSize: '18px',
+        zIndex: 9999,
+        borderRadius: '12px',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+        border: '2px solid #fff'
       }}>
-        <h2 style={{ margin: '0 0 1rem 0' }}>🎯 Debug Info</h2>
-        <p>Selected Feature: {selectedFeature}</p>
-        <p>Scenario: {scenario ? 'Yes' : 'No'}</p>
-        <p>Needs Scenario Selection: {needsScenarioSelection() ? 'Yes' : 'No'}</p>
-        <p>Is Feature Ready: {isFeatureReady() ? 'Yes' : 'No'}</p>
-        <p>Available Scenarios: {scenarios?.length || 0}</p>
+        <h1 style={{ margin: '0 0 2rem 0', fontSize: '2rem', textAlign: 'center' }}>
+          🚀 EMERGENCY DEBUG MODE
+        </h1>
+        <div style={{ textAlign: 'center', lineHeight: '1.8' }}>
+          <p><strong>Selected Feature:</strong> {selectedFeature}</p>
+          <p><strong>Scenario:</strong> {scenario ? scenario.label : 'None'}</p>
+          <p><strong>Needs Scenario Selection:</strong> {needsScenarioSelection() ? 'YES' : 'NO'}</p>
+          <p><strong>Is Feature Ready:</strong> {isFeatureReady() ? 'YES' : 'NO'}</p>
+          <p><strong>Available Scenarios:</strong> {scenarios?.length || 0}</p>
+          <p><strong>Sidebar Open:</strong> {sidebarOpen ? 'YES' : 'NO'}</p>
+        </div>
+        <button 
+          onClick={() => {
+            console.log('🔥 Test button clicked');
+            if (selectedFeature === 'chat') {
+              handleSelectScenario({ key: 'test', label: 'Test Scenario', description: 'Test' });
+            }
+          }}
+          style={{
+            marginTop: '2rem',
+            padding: '1rem 2rem',
+            fontSize: '18px',
+            background: '#fff',
+            color: '#667eea',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold'
+          }}
+        >
+          🎯 Test Chat Selection
+        </button>
       </div>
     );
+
+    // Always show debug component for now
+    return <DebugComponent />;
   }
 };
 

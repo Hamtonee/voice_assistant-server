@@ -44,13 +44,16 @@ html, body {
 ─────────────────────────────────────────────────────*/
 .app-container {
   position: fixed;
-  top: var(--header-height);
+  top: 0;
   bottom: 0;
   left: 0;
   right: 0;
   display: grid;
+  grid-template-rows: var(--header-height) 1fr;
   grid-template-columns: var(--sidebar-width) 1fr;
-  grid-template-areas: "sidebar content";
+  grid-template-areas: 
+    "header header"
+    "sidebar content";
   background: var(--bg-primary);
   overflow: hidden;
   transition: grid-template-columns var(--transition-layout);
@@ -62,6 +65,9 @@ html, body {
 /* Sidebar collapsed state */
 .app-container:not(.sidebar-open) {
   grid-template-columns: 0 1fr;
+  grid-template-areas: 
+    "header header"
+    "content content";
 }
 
 /* Mobile: Full height with header offset */
