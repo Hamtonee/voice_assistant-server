@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TTSService } from '../services/TTSService';
 import api from '../api';
+import '../assets/styles/SpeechCoach.css';
 
 export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onNewSession }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -162,7 +163,7 @@ export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onN
   }, []);
 
   return (
-    <div className="speech-coach">
+    <div className={`speech-coach ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="controls">
         <button
           onClick={isRecording ? handleStopRecording : handleStartRecording}

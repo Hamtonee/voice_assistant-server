@@ -537,112 +537,81 @@ export default function ChatWindow() {
   if (!user) return <div>Loading user...</div>;
 
   return (
-    <div className="app-container">
-      {/* Main Layout Container */}
-      <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
-        
-        {/* Sidebar */}
-        {sidebarOpen && (
-          <div className={`
-            ${viewport.isMobile 
-              ? 'fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-gray-800 shadow-xl' 
-              : 'relative w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700'
-            }
-          `}>
-      <ChatSidebar {...sidebarProps} />
-          </div>
-        )}
-        
-        {/* Mobile Sidebar Backdrop */}
-        {viewport.isMobile && sidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setSidebarOpen(false)}
+    <div className={`app-container ${sidebarOpen ? 'sidebar-open' : ''}`}>
+      {/* Feature Header - Fixed at Top */}
+      <FeatureHeader {...headerProps} />
+      
+      {/* Sidebar */}
+      <div className="sidebar">
+        <ChatSidebar {...sidebarProps} />
+      </div>
+      
+      {/* Mobile Sidebar Backdrop */}
+      {viewport.isMobile && sidebarOpen && (
+        <div 
+          className="mobile-backdrop"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
+      {/* Main Content Area */}
+      <div className="chat-content">
+            
+        {/* Chat - Scenario Picker */}
+        {selectedFeature === 'chat' && !scenario && (
+          <ScenarioPicker 
+            scenarios={availableScenarios} 
+            onSelect={handleSelectScenario}
+            onClose={null}
           />
         )}
         
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-          
-          {/* Feature Header - Fixed at Top */}
-          <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-30">
-        <FeatureHeader {...headerProps} />
-          </div>
-          
-          {/* Content Area - Below Header */}
-          <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
-            
-            {/* Chat - Scenario Picker */}
-            {selectedFeature === 'chat' && !scenario && (
-              <ScenarioPicker 
-                scenarios={availableScenarios} 
-                onSelect={handleSelectScenario}
-                onClose={null}
-              />
-            )}
-            
-            {/* Chat - Selected Scenario */}
-            {selectedFeature === 'chat' && scenario && (
-              <div className="h-full flex flex-col">
-                <div className="flex-1 overflow-auto p-6">
-                  <div className="max-w-4xl mx-auto">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                      <div className="flex items-center justify-between mb-6">
-                        <div>
-                          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {scenario.label}
-                          </h1>
-                          {scenario.subtitle && (
-                            <p className="text-gray-600 dark:text-gray-300 mt-1">
-                              {scenario.subtitle}
-                            </p>
-                          )}
-                        </div>
-                        <button
-                          onClick={handleChangeScenario}
-                          className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                        >
-                          Change Scenario
-                        </button>
-                      </div>
-                      
-                      <div className="flex items-center justify-center py-12">
-                        <div className="text-center">
-                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                          <p className="text-gray-500 dark:text-gray-400">
-                            Loading chat interface...
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+        {/* Chat - Selected Scenario */}
+        {selectedFeature === 'chat' && scenario && (
+          <div className="scenario-wrapper">
+            <div className="scenario-content">
+              <div className="scenario-header">
+                <div>
+                  <h1>{scenario.label}</h1>
+                  {scenario.subtitle && <p>{scenario.subtitle}</p>}
                 </div>
+                <button onClick={handleChangeScenario}>
+                  Change Scenario
+                </button>
               </div>
-            )}
-            
-            {/* Sema Feature - Using SpeechCoach Component */}
-            {selectedFeature === 'sema' && (
-              <SpeechCoach 
-                sessionId={getCurrentActiveId()}
-                selectedVoice={selectedVoice}
-                sidebarOpen={sidebarOpen}
-                onNewSession={handleNewSession}
-              />
-            )}
-            
-            {/* Tusome Feature - Using ReadingPassage Component */}
-            {selectedFeature === 'tusome' && (
-              <ReadingPassage 
-                sessionId={getCurrentActiveId()}
-                selectedVoice={selectedVoice}
-                viewport={viewport}
-                sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
-                onNewSession={handleNewSession}
-              />
-            )}
-            
+              <div className="scenario-loading">
+                <div className="loading-spinner"></div>
+                <p>Loading chat interface...</p>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+        
+        {/* Sema Feature - Using SpeechCoach Component */}
+        {selectedFeature === 'sema' && (
+          <div className="feature-container">
+            <SpeechCoach 
+              sessionId={getCurrentActiveId()}
+              selectedVoice={selectedVoice}
+              sidebarOpen={sidebarOpen}
+              onNewSession={handleNewSession}
+            />
+          </div>
+        )}
+        
+        {/* Tusome Feature - Using ReadingPassage Component */}
+        {selectedFeature === 'tusome' && (
+          <div className="feature-container">
+            <ReadingPassage 
+              sessionId={getCurrentActiveId()}
+              selectedVoice={selectedVoice}
+              viewport={viewport}
+              sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
+              onNewSession={handleNewSession}
+            />
+          </div>
+        )}
+        
       </div>
     </div>
   );
