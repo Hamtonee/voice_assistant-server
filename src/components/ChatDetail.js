@@ -600,7 +600,7 @@ export default function ChatDetail({
         const responseAudio = responseData.audio || responseData.replyAudio;
         
         console.log('✅ Processing response:', {
-          textLength: responseText.length,
+          textLength: (responseText || '').length,
           hasAudio: !!responseAudio
         });
 

@@ -310,7 +310,7 @@ export class TTSManager {
             };
 
             console.log('🎵 Sending TTS request:', {
-                textLength: text.length,
+                textLength: (text || '').length,
                 voice: requestBody.voice.voiceName,
                 profile: requestBody.voice.profile,
                 voiceType: getVoiceType(requestBody.voice.voiceName),
