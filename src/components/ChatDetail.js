@@ -351,12 +351,14 @@ export default function ChatDetail({
         }
         
         let interim = '';
-        for (let i = evt.resultIndex; i < evt.results.length; i++) {
-          const r = evt.results[i];
-          if (r.isFinal) {
-            finalRef.current.push(r[0].transcript.trim());
-          } else {
-            interim += r[0].transcript;
+        if (evt.results && Array.isArray(evt.results)) {
+          for (let i = evt.resultIndex; i < evt.results.length; i++) {
+            const r = evt.results[i];
+            if (r.isFinal) {
+              finalRef.current.push(r[0].transcript.trim());
+            } else {
+              interim += r[0].transcript;
+            }
           }
         }
         

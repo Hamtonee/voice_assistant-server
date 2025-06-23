@@ -54,7 +54,7 @@ const VoiceTestPanel = ({ isVisible, onClose }) => {
       
       if (response.ok && data.feedbackAudio) {
         addResult('Voice Selection', 'success', `Voice ${selectedVoice} working`, {
-          audioLength: data.feedbackAudio.length,
+          audioLength: (data.feedbackAudio || '').length,
           voiceUsed: data.voice_used,
           responseText: data.feedbackText
         });
