@@ -555,10 +555,13 @@ export default function ChatWindow() {
         <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
           {/* Chat Scenario Picker */}
           {selectedFeature === 'chat' && !scenario && (
-            <div className="w-full h-full">
-              {/* Debug info */}
-              <div className="p-4 bg-yellow-100 text-black text-sm">
-                Debug: availableScenarios length = {availableScenarios?.length || 'undefined'}
+            <div className="w-full h-full bg-yellow-50 p-4">
+              <div className="bg-red-100 p-4 mb-4 text-black">
+                <h3>Debug Info:</h3>
+                <p>selectedFeature: {selectedFeature}</p>
+                <p>scenario: {scenario ? 'EXISTS' : 'NULL'}</p>
+                <p>availableScenarios length: {availableScenarios?.length || 'undefined'}</p>
+                <p>Condition result: {(selectedFeature === 'chat' && !scenario) ? 'TRUE - Should render' : 'FALSE'}</p>
               </div>
               <ScenarioPicker 
                 scenarios={availableScenarios} 
