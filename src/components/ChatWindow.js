@@ -542,195 +542,111 @@ export default function ChatWindow() {
   if (!user) return <div>Loading user...</div>;
 
   return (
-    <div className="app-container flex h-screen overflow-hidden bg-white dark:bg-gray-900">
-      {/* Sidebar - Mobile overlay on small screens */}
-      {sidebarOpen && (
-        <div className={`flex-shrink-0 ${viewport.isMobile ? 'absolute inset-y-0 left-0 z-50 w-80' : ''}`}>
-          <ChatSidebar {...sidebarProps} />
-        </div>
-      )}
-      
-      {/* Mobile backdrop */}
-      {viewport.isMobile && sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-      
-      {/* Main Content Area */}
-      <div className="flex flex-col flex-1 h-full overflow-hidden">
-        {/* Feature Header */}
-        <div className="flex-shrink-0">
-          <FeatureHeader {...headerProps} />
-        </div>
+    <div className="app-container">
+      {/* Main Layout Container */}
+      <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
         
-        {/* Main Content - properly positioned below header with consistent spacing */}
-        <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
-          {/* Chat Feature - Scenario Picker */}
-          {selectedFeature === 'chat' && !scenario && (
-            <div className="h-full min-h-0">
+        {/* Sidebar */}
+        {sidebarOpen && (
+          <div className={`
+            ${viewport.isMobile 
+              ? 'fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-gray-800 shadow-xl' 
+              : 'relative w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700'
+            }
+          `}>
+            <ChatSidebar {...sidebarProps} />
+          </div>
+        )}
+        
+        {/* Mobile Sidebar Backdrop */}
+        {viewport.isMobile && sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+          
+          {/* Feature Header - Fixed at Top */}
+          <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-30">
+            <FeatureHeader {...headerProps} />
+          </div>
+          
+          {/* Content Area - Below Header */}
+          <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
+            
+            {/* Chat - Scenario Picker */}
+            {selectedFeature === 'chat' && !scenario && (
               <ScenarioPicker 
                 scenarios={availableScenarios} 
                 onSelect={handleSelectScenario}
                 onClose={null}
               />
-            </div>
-          )}
-          
-          {/* Chat Feature - Selected Scenario Interface */}
-          {selectedFeature === 'chat' && scenario && (
-            <div className="h-full min-h-0 flex flex-col">
-              <div className="flex-1 overflow-auto p-4 md:p-6">
-                <div className="max-w-6xl mx-auto">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 md:p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                          {scenario.label}
-                        </h2>
-                        {scenario.subtitle && (
-                          <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mt-1">
-                            {scenario.subtitle}
+            )}
+            
+            {/* Chat - Selected Scenario */}
+            {selectedFeature === 'chat' && scenario && (
+              <div className="h-full flex flex-col">
+                <div className="flex-1 overflow-auto p-6">
+                  <div className="max-w-4xl mx-auto">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {scenario.label}
+                          </h1>
+                          {scenario.subtitle && (
+                            <p className="text-gray-600 dark:text-gray-300 mt-1">
+                              {scenario.subtitle}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={handleChangeScenario}
+                          className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          Change Scenario
+                        </button>
+                      </div>
+                      
+                      <div className="flex items-center justify-center py-12">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                          <p className="text-gray-500 dark:text-gray-400">
+                            Loading chat interface...
                           </p>
-                        )}
-                      </div>
-                      <button
-                        onClick={handleChangeScenario}
-                        className="px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                      >
-                        Change Scenario
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-center py-8 md:py-12">
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 md:h-12 md:w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <p className="text-sm md:text-base text-gray-500 dark:text-gray-400">
-                          Loading chat interface...
-                        </p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-          
-          {/* Sema Feature */}
-          {selectedFeature === 'sema' && (
-            <div className="h-full min-h-0 flex flex-col">
-              <div className="flex-1 overflow-auto p-4 md:p-6">
-                <div className="max-w-6xl mx-auto">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 md:p-6">
-                    {/* Cache buster indicator */}
-                    <div className="bg-green-200 dark:bg-green-800 p-2 mb-4 rounded text-center text-sm">
-                      🚀 SEMA INTERFACE - Updated v1.2.3
-                    </div>
-                    <div className="flex items-center mb-4 md:mb-6">
-                      <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mr-3 md:mr-4 flex-shrink-0">
-                        <svg className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
-                        </svg>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                          Sema - Speech Enhancement
-                        </h2>
-                        <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mt-1">
-                          Advanced speech therapy and pronunciation practice
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* Sema Interface Content */}
-                    <div className="space-y-4 md:space-y-6">
-                      {/* Quick Start Options */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                          <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Pronunciation Practice</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Work on specific sounds and words</p>
-                        </div>
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                          <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Fluency Training</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Improve speech flow and rhythm</p>
-                        </div>
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                          <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Voice Analysis</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Get detailed feedback on your speech</p>
-                        </div>
-                      </div>
-
-                      <div className="text-center py-8">
-                        <button className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
-                          Start Speech Session
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Tusome Feature */}
-          {selectedFeature === 'tusome' && (
-            <div className="h-full min-h-0 flex flex-col">
-              <div className="flex-1 overflow-auto p-4 md:p-6">
-                <div className="max-w-6xl mx-auto">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 md:p-6">
-                    {/* Cache buster indicator */}
-                    <div className="bg-orange-200 dark:bg-orange-800 p-2 mb-4 rounded text-center text-sm">
-                      📚 TUSOME INTERFACE - Updated v1.2.3
-                    </div>
-                    <div className="flex items-center mb-4 md:mb-6">
-                      <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center mr-3 md:mr-4 flex-shrink-0">
-                        <svg className="w-5 h-5 md:w-6 md:h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.168 18.477 18.582 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                        </svg>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                          Tusome - Reading Practice
-                        </h2>
-                        <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mt-1">
-                          Interactive reading exercises and comprehension training
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* Tusome Interface Content */}
-                    <div className="space-y-4 md:space-y-6">
-                      {/* Reading Levels */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                          <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Beginner</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Simple words and sentences</p>
-                        </div>
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                          <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Intermediate</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Short paragraphs and stories</p>
-                        </div>
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                          <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Advanced</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Complex texts and articles</p>
-                        </div>
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                          <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Comprehension</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Reading with questions</p>
-                        </div>
-                      </div>
-
-                      <div className="text-center py-8">
-                        <button className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium">
-                          Start Reading Session
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+            
+            {/* Sema Feature - Using SpeechCoach Component */}
+            {selectedFeature === 'sema' && (
+              <SpeechCoach 
+                sessionId={getCurrentActiveId()}
+                selectedVoice={selectedVoice}
+                sidebarOpen={sidebarOpen}
+                onNewSession={handleNewSession}
+              />
+            )}
+            
+            {/* Tusome Feature - Using ReadingPassage Component */}
+            {selectedFeature === 'tusome' && (
+              <ReadingPassage 
+                sessionId={getCurrentActiveId()}
+                selectedVoice={selectedVoice}
+                viewport={viewport}
+                sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
+                onNewSession={handleNewSession}
+              />
+            )}
+            
+          </div>
         </div>
       </div>
     </div>
