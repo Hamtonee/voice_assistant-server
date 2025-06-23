@@ -161,12 +161,39 @@ const ChatWindow = () => {
       if (needsScenarioSelection()) {
         console.log('📋 Showing scenario picker');
         return (
-          <div className="scenario-wrapper">
-            <ScenarioPicker 
-              scenarios={scenarios} 
-              onSelect={handleSelectScenario}
-              onClose={null}
-            />
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: '#1a1d29',
+            color: '#f7fafc',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2rem',
+            fontSize: '18px',
+            zIndex: 1000
+          }}>
+            <h2 style={{ margin: '0 0 1rem 0' }}>🎯 Scenario Picker Debug</h2>
+            <p>Available scenarios: {scenarios?.length || 0}</p>
+            <p>This should be visible if CSS positioning works</p>
+            <button 
+              onClick={() => handleSelectScenario('test')}
+              style={{
+                padding: '1rem 2rem',
+                fontSize: '16px',
+                background: '#3182ce',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer'
+              }}
+            >
+              Test Selection
+            </button>
           </div>
         );
       }
