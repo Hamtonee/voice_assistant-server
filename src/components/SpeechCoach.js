@@ -71,10 +71,12 @@ export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onN
       setError(null);
 
       recognitionRef.current.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0].transcript)
-          .join('');
-        setTranscript(transcript);
+        if (event.results && Array.isArray(event.results)) {
+          const transcript = Array.from(event.results)
+            .map(result => result[0].transcript)
+            .join('');
+          setTranscript(transcript);
+        }
       };
 
       recognitionRef.current.onerror = (event) => {
@@ -211,7 +213,7 @@ export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onN
         <div className="analysis">
           <h3>Detailed Analysis</h3>
           <ul>
-            {Object.entries(analysis).map(([key, value]) => (
+            {Object.entries(analysis || {}).map(([key, value]) => (
               <li key={key}>
                 <strong>{key}:</strong> {typeof value === 'object' ? JSON.stringify(value) : value}
               </li>
@@ -220,7 +222,7 @@ export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onN
         </div>
       )}
 
-      {suggestions.length > 0 && (
+      {Array.isArray(suggestions) && suggestions.length > 0 && (
         <div className="suggestions">
           <h3>Suggestions for Improvement</h3>
           <ul>
@@ -231,13 +233,13 @@ export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onN
         </div>
       )}
 
-      {vocabulary.length > 0 && (
+      {Array.isArray(vocabulary) && vocabulary.length > 0 && (
         <div className="vocabulary">
           <h3>New Vocabulary</h3>
           <ul>
             {vocabulary.map((word, index) => (
               <li key={index}>
-                <strong>{word.word}</strong>: {word.definition}
+                <strong>{word?.word || 'Unknown'}</strong>: {word?.definition || 'No definition available'}
               </li>
             ))}
           </ul>
