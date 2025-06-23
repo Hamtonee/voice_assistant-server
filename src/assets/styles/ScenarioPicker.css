@@ -137,10 +137,43 @@
   max-height: none !important;
   transform: none !important;
   background: #f9fafb !important;
+  padding: 1rem !important;
+  overflow-y: auto !important;
 }
 
 .dark .scenario-modal-embedded .scenario-container {
   background: #111827 !important;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .scenario-modal-embedded .scenario-container {
+    padding: 0.75rem !important;
+  }
+  
+  .scenario-modal-embedded .scenario-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+    gap: 1rem !important;
+  }
+  
+  .scenario-modal-embedded .scenario-card {
+    min-height: 200px !important;
+  }
+}
+
+/* Ensure proper spacing in embedded mode */
+.scenario-modal-embedded .scenario-search-wrapper {
+  margin-bottom: 1.5rem !important;
+}
+
+.scenario-modal-embedded .scenario-category-block {
+  margin-bottom: 2rem !important;
+}
+
+.scenario-modal-embedded .category-heading {
+  margin-bottom: 1rem !important;
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
 }
 
 /* PIXEL PERFECT CONTAINER - FILLS ENTIRE AVAILABLE SPACE with Theme Support */
