@@ -102,104 +102,19 @@ export default function FeatureHeader({
   const overflowRef = useRef(null);
   const voiceSelectorRef = useRef(null);
 
-  // ENHANCED: Toggle dark mode function with better feedback
+  // FIXED: Simplified toggle dark mode function
   const toggleDarkMode = useCallback(() => {
     const newMode = !darkMode;
     setDarkMode(newMode);
-    
-    // Store user's explicit preference
     localStorage.setItem('darkMode', JSON.stringify(newMode));
-    
-    // ENHANCED: Visual feedback for theme change
-    const feedbackElement = document.createElement('div');
-    feedbackElement.textContent = `Switched to ${newMode ? 'dark' : 'light'} mode`;
-    feedbackElement.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: ${newMode ? '#4a5568' : '#f7fafc'};
-      color: ${newMode ? '#f7fafc' : '#1a202c'};
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      z-index: 10000;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      opacity: 0;
-      transform: translateY(-10px);
-      transition: all 0.3s ease;
-      pointer-events: none;
-    `;
-    
-    document.body.appendChild(feedbackElement);
-    
-    // Animate in
-    requestAnimationFrame(() => {
-      feedbackElement.style.opacity = '1';
-      feedbackElement.style.transform = 'translateY(0)';
-    });
-    
-    // Remove after delay
-    setTimeout(() => {
-      feedbackElement.style.opacity = '0';
-      feedbackElement.style.transform = 'translateY(-10px)';
-      setTimeout(() => {
-        if (document.body.contains(feedbackElement)) {
-          document.body.removeChild(feedbackElement);
-        }
-      }, 300);
-    }, 2000);
-    
     console.log(`Dark mode ${newMode ? 'enabled' : 'disabled'} by user`);
   }, [darkMode]);
 
-  // ENHANCED: Reset to system preference function
+  // FIXED: Simplified reset to system preference function
   const resetToSystemTheme = useCallback(() => {
-    // Remove user preference
     localStorage.removeItem('darkMode');
-    
-    // Set to current system preference
     const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     setDarkMode(systemPrefersDark);
-    
-    // Visual feedback
-    const feedbackElement = document.createElement('div');
-    feedbackElement.textContent = `Following system theme (${systemPrefersDark ? 'dark' : 'light'})`;
-    feedbackElement.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: ${systemPrefersDark ? '#4a5568' : '#f7fafc'};
-      color: ${systemPrefersDark ? '#f7fafc' : '#1a202c'};
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      z-index: 10000;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      opacity: 0;
-      transform: translateY(-10px);
-      transition: all 0.3s ease;
-      pointer-events: none;
-    `;
-    
-    document.body.appendChild(feedbackElement);
-    
-    requestAnimationFrame(() => {
-      feedbackElement.style.opacity = '1';
-      feedbackElement.style.transform = 'translateY(0)';
-    });
-    
-    setTimeout(() => {
-      feedbackElement.style.opacity = '0';
-      feedbackElement.style.transform = 'translateY(-10px)';
-      setTimeout(() => {
-        if (document.body.contains(feedbackElement)) {
-          document.body.removeChild(feedbackElement);
-        }
-      }, 300);
-    }, 2500);
-    
     console.log('Reset to system theme preference');
   }, []);
 
@@ -373,29 +288,32 @@ export default function FeatureHeader({
     setVoiceSelectorOpen(prev => !prev);
   }, []);
 
-  // Handle voice selection change from dropdown
+  // FIXED: Simplified voice selection change handler
   const handleVoiceDropdownChange = useCallback((voiceName) => {
     try {
-      const currentConfig = getCurrentVoiceConfig();
-      const newConfig = createVoiceConfig(voiceName, currentConfig.profile);
-      
-      if (newConfig && onVoiceChange) {
+      if (onVoiceChange && voiceName) {
+        const currentConfig = getCurrentVoiceConfig();
+        const newConfig = createVoiceConfig(voiceName, currentConfig?.profile || 'default');
         onVoiceChange(newConfig);
       }
     } catch (error) {
       console.error('Error updating voice:', error);
+      // Fallback: try with basic config
+      if (onVoiceChange && voiceName) {
+        onVoiceChange(createVoiceConfig(voiceName, 'default'));
+      }
     }
   }, [getCurrentVoiceConfig, onVoiceChange]);
 
-  // Handle voice change from full selector
+  // FIXED: Simplified voice selector change handler
   const handleVoiceSelectorChange = useCallback((voiceConfig) => {
     try {
-      if (onVoiceChange) {
+      if (onVoiceChange && voiceConfig) {
         const normalizedConfig = typeof voiceConfig === 'string' 
           ? createVoiceConfig(voiceConfig, 'default')
           : voiceConfig;
-        
         onVoiceChange(normalizedConfig);
+        setVoiceSelectorOpen(false); // Close modal after selection
       }
     } catch (error) {
       console.error('Error updating voice from selector:', error);
@@ -416,12 +334,13 @@ export default function FeatureHeader({
     }, 100);
   }, []);
 
-  // Get display information
+  // FIXED: Get display information with better error handling
   const currentVoiceConfig = getCurrentVoiceConfig();
   const currentVoiceName = currentVoiceConfig?.voiceName || 'en-US-Chirp3-HD-Aoede';
-  // Defensive check: ensure ttsVoices is an array before calling find
-  const currentVoiceObj = Array.isArray(ttsVoices) ? ttsVoices.find(v => v.name === currentVoiceName) : null;
-  const currentVoiceLabel = currentVoiceObj?.label || currentVoiceName;
+  const currentVoiceObj = Array.isArray(ttsVoices) && ttsVoices.length > 0 
+    ? ttsVoices.find(v => v && v.name === currentVoiceName) 
+    : null;
+  const currentVoiceLabel = currentVoiceObj?.label || currentVoiceName.split('-').pop() || 'Voice';
   const currentProfileLabel = currentVoiceConfig?.profileConfig?.name || 'Default';
 
   // Get grouped voices for better organization
@@ -604,11 +523,13 @@ export default function FeatureHeader({
                         onChange={e => handleVoiceDropdownChange(e.target.value)}
                         className="mobile-voice-select"
                       >
-                        {Array.isArray(ttsVoices) ? ttsVoices.map(v => (
-                          <option key={v.name} value={v.name}>
-                            {v.label}
+                        {Array.isArray(ttsVoices) && ttsVoices.length > 0 ? ttsVoices.map(v => (
+                          <option key={v?.name || Math.random()} value={v?.name || ''}>
+                            {v?.label || v?.name || 'Unknown Voice'}
                           </option>
-                        )) : null}
+                        )) : (
+                          <option value={currentVoiceName}>{currentVoiceLabel}</option>
+                        )}
                       </select>
                     </div>
                   </li>
