@@ -1,5 +1,5 @@
 // src/components/ChatWindow.js - CLEANED VERSION
-import React, { useEffect, useContext } from 'react';
+import React, { useEffect, useContext, Suspense } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import { 
   useSessionManagement, 
@@ -10,10 +10,15 @@ import {
 // Component imports
 import FeatureHeader from './FeatureHeader';
 import ChatSidebar from './ChatSidebar';
-import ScenarioPicker from './ScenarioPicker';
-import SpeechCoach from './SpeechCoach';
-import ReadingPassage from './ReadingPassage';
-import ChatDetail from './ChatDetail';
+import LottieLoader from './LottieLoader';
+
+// Lazy loaded components
+import { 
+  LazyScenarioPicker,
+  LazySpeechCoach,
+  LazyReadingPassage,
+  LazyChatDetail
+} from './LazyComponents';
 
 // Data imports
 import { availableScenarios } from '../data/rolePlayScenarios';
@@ -26,8 +31,6 @@ const ChatWindow = () => {
 
   // Custom hooks for state management
   const {
-    sessions,
-    activeSessionIds,
     getSessionsByFeature,
     getCurrentActiveId,
     createNewSession,
@@ -149,11 +152,13 @@ const ChatWindow = () => {
       if (needsScenarioSelection()) {
         return (
           <div className="scenario-wrapper">
-            <ScenarioPicker 
-              scenarios={scenarios} 
-              onSelect={handleSelectScenario}
-              onClose={null}
-            />
+            <Suspense fallback={<LottieLoader />}>
+              <LazyScenarioPicker 
+                scenarios={scenarios} 
+                onSelect={handleSelectScenario}
+                onClose={null}
+              />
+            </Suspense>
           </div>
         );
       }
@@ -165,14 +170,16 @@ const ChatWindow = () => {
               <h1>{scenario.label}</h1>
               <p>{scenario.description}</p>
             </div>
-            <ChatDetail 
-              sessionId={getCurrentActiveId(selectedFeature)}
-              scenario={scenario}
-              selectedVoice={selectedVoice}
-              viewport={viewport}
-              sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
-              onNewSession={handleNewSession}
-            />
+            <Suspense fallback={<LottieLoader />}>
+              <LazyChatDetail 
+                sessionId={getCurrentActiveId(selectedFeature)}
+                scenario={scenario}
+                selectedVoice={selectedVoice}
+                viewport={viewport}
+                sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
+                onNewSession={handleNewSession}
+              />
+            </Suspense>
           </div>
         );
       }
@@ -182,12 +189,14 @@ const ChatWindow = () => {
     if (selectedFeature === 'sema') {
       return (
         <div className="feature-container">
-          <SpeechCoach 
-            sessionId={getCurrentActiveId(selectedFeature)}
-            selectedVoice={selectedVoice}
-            sidebarOpen={sidebarOpen}
-            onNewSession={handleNewSession}
-          />
+          <Suspense fallback={<LottieLoader />}>
+            <LazySpeechCoach 
+              sessionId={getCurrentActiveId(selectedFeature)}
+              selectedVoice={selectedVoice}
+              sidebarOpen={sidebarOpen}
+              onNewSession={handleNewSession}
+            />
+          </Suspense>
         </div>
       );
     }
@@ -196,13 +205,15 @@ const ChatWindow = () => {
     if (selectedFeature === 'tusome') {
       return (
         <div className="feature-container">
-          <ReadingPassage 
-            sessionId={getCurrentActiveId(selectedFeature)}
-            selectedVoice={selectedVoice}
-            viewport={viewport}
-            sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
-            onNewSession={handleNewSession}
-          />
+          <Suspense fallback={<LottieLoader />}>
+            <LazyReadingPassage 
+              sessionId={getCurrentActiveId(selectedFeature)}
+              selectedVoice={selectedVoice}
+              viewport={viewport}
+              sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
+              onNewSession={handleNewSession}
+            />
+          </Suspense>
         </div>
       );
     }

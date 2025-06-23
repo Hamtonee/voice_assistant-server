@@ -1,694 +1,299 @@
-// src/components/FeatureHeader.js - FIXED Desktop Voice Selector Modal with Proper Positioning and Scrolling
+// src/components/FeatureHeader.js - Optimized Version
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { FiMenu, FiX, FiSearch, FiMoreVertical, FiVolume2, FiSettings, FiMoon, FiSun } from 'react-icons/fi';
+import { FiMenu, FiX, FiSearch, FiMoreVertical, FiVolume2, FiMoon, FiSun } from 'react-icons/fi';
 import Avatar from './Avatar';
 import VoiceSelector from './VoiceSelector';
 import '../assets/styles/FeatureHeader.css';
-import { ttsVoices, createVoiceConfig, getVoicesByType } from '../data/ttsVoices';
 
-export default function FeatureHeader({
-  feature,
-  sidebarOpen,
-  onToggleSidebar,
-  searchQuery,
-  onSearchChange,
-  title = '',
-  scenario,
-  selectedVoice,
-  onVoiceChange,
-  onChangeScenario,
-  userName = '',
-  onLogout,
-}) {
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
-  const [overflowOpen, setOverflowOpen] = useState(false);
-  const [voiceSelectorOpen, setVoiceSelectorOpen] = useState(false);
-  
-  // ENHANCED: Comprehensive dark mode state management
+// Custom hook for dark mode management
+const useDarkMode = () => {
   const [darkMode, setDarkMode] = useState(() => {
-    // Check if user has an explicit preference stored
     const userPreference = localStorage.getItem('darkMode');
-    
     if (userPreference !== null) {
-      // User has explicitly chosen a theme - use their choice
       return JSON.parse(userPreference);
     }
-    
-    // No user preference - follow system preference
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return true; // System is in dark mode
-    }
-    
-    // System is in light mode or doesn't support dark mode detection
-    return false;
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches || false;
   });
-  
-  // ENHANCED: Listen for system theme changes (when user hasn't set explicit preference)
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    const handleSystemThemeChange = (e) => {
-      // Only follow system changes if user hasn't set explicit preference
-      const userPreference = localStorage.getItem('darkMode');
-      if (userPreference === null) {
-        setDarkMode(e.matches);
-        // Apply to document immediately
-        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-      }
-    };
-    
-    // Modern browsers
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', handleSystemThemeChange);
-    } else {
-      // Fallback for older browsers
-      mediaQuery.addListener(handleSystemThemeChange);
-    }
-    
-    return () => {
-      if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener('change', handleSystemThemeChange);
-      } else {
-        mediaQuery.removeListener(handleSystemThemeChange);
-      }
-    };
-  }, []);
 
-  // ENHANCED: Apply dark mode to document root with better integration
   useEffect(() => {
     const theme = darkMode ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', theme);
-    
-    // ENHANCED: Also update meta theme-color for mobile browsers
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', darkMode ? '#2E3440' : '#FFFFFF');
-    } else {
-      // Create meta theme-color if it doesn't exist
-      const meta = document.createElement('meta');
-      meta.name = 'theme-color';
-      meta.content = darkMode ? '#2E3440' : '#FFFFFF';
-      document.getElementsByTagName('head')[0].appendChild(meta);
-    }
-    
-    // ENHANCED: Update body class for additional styling hooks
     document.body.classList.toggle('dark-theme', darkMode);
     document.body.classList.toggle('light-theme', !darkMode);
-    
-    console.log(`Theme switched to: ${theme}`);
   }, [darkMode]);
+
+  const toggleDarkMode = useCallback(() => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem('darkMode', JSON.stringify(newMode));
+  }, [darkMode]);
+
+  return { darkMode, toggleDarkMode };
+};
+
+// Custom hook for dropdown management
+const useDropdownManager = () => {
+  const [openDropdowns, setOpenDropdowns] = useState({
+    avatar: false,
+    overflow: false,
+    voiceSelector: false
+  });
+
+  const toggleDropdown = useCallback((name) => {
+    setOpenDropdowns(prev => ({
+      ...prev,
+      [name]: !prev[name]
+    }));
+  }, []);
+
+  const closeAllDropdowns = useCallback(() => {
+    setOpenDropdowns({
+      avatar: false,
+      overflow: false,
+      voiceSelector: false
+    });
+  }, []);
+
+  const closeDropdown = useCallback((name) => {
+    setOpenDropdowns(prev => ({
+      ...prev,
+      [name]: false
+    }));
+  }, []);
+
+  return {
+    openDropdowns,
+    toggleDropdown,
+    closeAllDropdowns,
+    closeDropdown
+  };
+};
+
+export default function FeatureHeader({
+  sidebarOpen,
+  onToggleSidebar,
+  selectedFeature,
+  scenario,
+  onClearScenario,
+  user,
+  selectedVoice,
+  onVoiceSelect
+}) {
+  const { darkMode, toggleDarkMode } = useDarkMode();
+  const { openDropdowns, toggleDropdown, closeAllDropdowns, closeDropdown } = useDropdownManager();
+  
+  const [searchQuery, setSearchQuery] = useState('');
   
   const avatarRef = useRef(null);
   const overflowRef = useRef(null);
   const voiceSelectorRef = useRef(null);
 
-  // FIXED: Simplified toggle dark mode function
-  const toggleDarkMode = useCallback(() => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    localStorage.setItem('darkMode', JSON.stringify(newMode));
-    console.log(`Dark mode ${newMode ? 'enabled' : 'disabled'} by user`);
-  }, [darkMode]);
-
-  // FIXED: Simplified reset to system preference function
-  const resetToSystemTheme = useCallback(() => {
-    localStorage.removeItem('darkMode');
-    const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setDarkMode(systemPrefersDark);
-    console.log('Reset to system theme preference');
-  }, []);
-
-  // ENHANCED: Improved mobile detection with debouncing
-  useEffect(() => {
-    let timeoutId;
+  // Get feature display information
+  const getFeatureInfo = () => {
+    const featureMap = {
+      chat: { 
+        title: scenario ? scenario.label : 'Chat', 
+        subtitle: scenario ? 'Role-play Conversation' : 'Select a Scenario',
+        showBackButton: !!scenario
+      },
+      sema: { 
+        title: 'Sema', 
+        subtitle: 'Speech Coaching',
+        showBackButton: false
+      },
+      tusome: { 
+        title: 'Tusome', 
+        subtitle: 'Reading Practice',
+        showBackButton: false
+      }
+    };
     
-    const handleResize = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        // Close voice selector when switching viewport sizes
-        if (voiceSelectorOpen) {
-          setVoiceSelectorOpen(false);
+    return featureMap[selectedFeature] || { title: 'Voice Assistant', subtitle: '', showBackButton: false };
+  };
+
+  const featureInfo = getFeatureInfo();
+
+  // Handle click outside dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const refs = [
+        { ref: avatarRef, dropdown: 'avatar' },
+        { ref: overflowRef, dropdown: 'overflow' },
+        { ref: voiceSelectorRef, dropdown: 'voiceSelector' }
+      ];
+
+      refs.forEach(({ ref, dropdown }) => {
+        if (openDropdowns[dropdown] && ref.current && !ref.current.contains(event.target)) {
+          closeDropdown(dropdown);
         }
-      }, 100);
+      });
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      clearTimeout(timeoutId);
-    };
-  }, [voiceSelectorOpen]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openDropdowns, closeDropdown]);
 
-  // ENHANCED: Better click outside handler with improved event handling
-  useEffect(() => {
-    function handleClickOutside(event) {
-      let shouldClose = false;
-      
-      // Check avatar menu
-      if (avatarMenuOpen && avatarRef.current && !avatarRef.current.contains(event.target)) {
-        setAvatarMenuOpen(false);
-        shouldClose = true;
-      }
-      
-      // Check overflow menu
-      if (overflowOpen && overflowRef.current && !overflowRef.current.contains(event.target)) {
-        setOverflowOpen(false);
-        shouldClose = true;
-      }
-      
-      // Prevent event propagation if we closed something
-      if (shouldClose) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    }
-    
-    document.addEventListener('mousedown', handleClickOutside, true);
-    document.addEventListener('touchstart', handleClickOutside, true);
-    
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside, true);
-      document.removeEventListener('touchstart', handleClickOutside, true);
-    };
-  }, [avatarMenuOpen, overflowOpen]);
-
-  // Handle escape key for voice selector and menus
+  // Handle escape key
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
-        if (voiceSelectorOpen) {
-          setVoiceSelectorOpen(false);
-          event.preventDefault();
-        } else if (overflowOpen) {
-          setOverflowOpen(false);
-          event.preventDefault();
-        } else if (avatarMenuOpen) {
-          setAvatarMenuOpen(false);
-          event.preventDefault();
-        }
+        closeAllDropdowns();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [voiceSelectorOpen, overflowOpen, avatarMenuOpen]);
+  }, [closeAllDropdowns]);
 
-  // FIXED: Prevent body scroll when voice selector is open (both mobile and desktop)
-  useEffect(() => {
-    if (voiceSelectorOpen) {
-      // Store original styles
-      const originalOverflow = document.body.style.overflow;
-      const originalPosition = document.body.style.position;
-      const originalTop = document.body.style.top;
-      const originalWidth = document.body.style.width;
-      
-      // Get current scroll position before fixing
-      const scrollY = window.scrollY;
-      
-      // Apply fixed positioning to prevent scroll
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      
-      return () => {
-        // Restore original styles
-        document.body.style.overflow = originalOverflow;
-        document.body.style.position = originalPosition;
-        document.body.style.top = originalTop;
-        document.body.style.width = originalWidth;
-        
-        // Restore scroll position
-        if (scrollY > 0) {
-          window.scrollTo(0, scrollY);
-        }
-      };
-    }
-  }, [voiceSelectorOpen]);
+  // Handle voice selection
+  const handleVoiceSelect = (voice) => {
+    onVoiceSelect?.(voice);
+    closeDropdown('voiceSelector');
+  };
 
-  const showVoiceControls =
-    (feature === 'chat' && Boolean(scenario)) || feature === 'sema' || feature === 'speech-coach';
-
-  // Helper to get current voice configuration
-  const getCurrentVoiceConfig = useCallback(() => {
-    if (!selectedVoice) {
-      return createVoiceConfig('en-US-Chirp3-HD-Aoede', 'default');
-    }
-    
-    if (typeof selectedVoice === 'object' && selectedVoice.voiceName) {
-      return {
-        ...selectedVoice,
-        voiceName: selectedVoice.voiceName,
-        languageCode: selectedVoice.languageCode || 'en-US',
-        profile: selectedVoice.profile || 'default',
-        label: selectedVoice.label || selectedVoice.voiceName
-      };
-    }
-    
-    if (typeof selectedVoice === 'string') {
-      return createVoiceConfig(selectedVoice, 'default');
-    }
-    
-    const voiceName = selectedVoice.voiceName || selectedVoice.name || 'en-US-Chirp3-HD-Aoede';
-    const profile = selectedVoice.profile || 'default';
-    return createVoiceConfig(voiceName, profile);
-  }, [selectedVoice]);
-
-  // ENHANCED: Event handlers with better error handling
-  const handleAvatarClick = useCallback((event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    // Close other menus first
-    setOverflowOpen(false);
-    setVoiceSelectorOpen(false);
-    
-    setAvatarMenuOpen(prev => !prev);
-  }, []);
-
-  const handleOverflowClick = useCallback((event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    // Close other menus first
-    setAvatarMenuOpen(false);
-    setVoiceSelectorOpen(false);
-    
-    setOverflowOpen(prev => !prev);
-  }, []);
-
-  const handleVoiceSelectorClick = useCallback((event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    // Close other menus first
-    setAvatarMenuOpen(false);
-    setOverflowOpen(false);
-    
-    setVoiceSelectorOpen(prev => !prev);
-  }, []);
-
-  // FIXED: Simplified voice selection change handler
-  const handleVoiceDropdownChange = useCallback((voiceName) => {
-    try {
-      if (onVoiceChange && voiceName) {
-        const currentConfig = getCurrentVoiceConfig();
-        const newConfig = createVoiceConfig(voiceName, currentConfig?.profile || 'default');
-        onVoiceChange(newConfig);
-      }
-    } catch (error) {
-      console.error('Error updating voice:', error);
-      // Fallback: try with basic config
-      if (onVoiceChange && voiceName) {
-        onVoiceChange(createVoiceConfig(voiceName, 'default'));
-      }
-    }
-  }, [getCurrentVoiceConfig, onVoiceChange]);
-
-  // FIXED: Simplified voice selector change handler
-  const handleVoiceSelectorChange = useCallback((voiceConfig) => {
-    try {
-      if (onVoiceChange && voiceConfig) {
-        const normalizedConfig = typeof voiceConfig === 'string' 
-          ? createVoiceConfig(voiceConfig, 'default')
-          : voiceConfig;
-        onVoiceChange(normalizedConfig);
-        setVoiceSelectorOpen(false); // Close modal after selection
-      }
-    } catch (error) {
-      console.error('Error updating voice from selector:', error);
-    }
-  }, [onVoiceChange]);
-
-  // Close voice selector
-  const handleVoiceSelectorClose = useCallback(() => {
-    setVoiceSelectorOpen(false);
-  }, []);
-
-  // Handle mobile voice settings click
-  const handleMobileVoiceSettingsClick = useCallback(() => {
-    setOverflowOpen(false);
-    // Small delay to ensure overflow menu closes smoothly
-    setTimeout(() => {
-      setVoiceSelectorOpen(true);
-    }, 100);
-  }, []);
-
-  // FIXED: Get display information with better error handling
-  const currentVoiceConfig = getCurrentVoiceConfig();
-  const currentVoiceName = currentVoiceConfig?.voiceName || 'en-US-Chirp3-HD-Aoede';
-  const currentVoiceObj = Array.isArray(ttsVoices) && ttsVoices.length > 0 
-    ? ttsVoices.find(v => v && v.name === currentVoiceName) 
-    : null;
-  const currentVoiceLabel = currentVoiceObj?.label || currentVoiceName.split('-').pop() || 'Voice';
-  const currentProfileLabel = currentVoiceConfig?.profileConfig?.name || 'Default';
-
-  // Get grouped voices for better organization
-  const voiceGroups = getVoicesByType();
+  // Handle logout
+  const handleLogout = () => {
+    // Implementation depends on your auth system
+    console.log('Logout clicked');
+    closeDropdown('avatar');
+  };
 
   return (
-    <>
-      <header className="feature-header">
-        {/* Sidebar toggle + search or mobile title */}
-        <div className="feature-header__side-controls">
-          <button
-            className="feature-header__toggle-btn"
+    <header className="feature-header">
+      <div className="header-content">
+        
+        {/* Left Section */}
+        <div className="header-left">
+          <button 
+            className="sidebar-toggle"
             onClick={onToggleSidebar}
-            aria-label="Toggle sidebar"
-            type="button"
+            aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
           >
-            {sidebarOpen ? <FiX /> : <FiMenu />}
+            {sidebarOpen ? <FiX size={20} /> : <FiMenu size={20} />}
           </button>
-
-          {sidebarOpen ? (
-            <div className="feature-header__search">
-              <FiSearch className="feature-header__search-icon" />
-              <input
-                className="feature-header__search-input"
-                type="search"
-                placeholder="Search sessions..."
-                value={searchQuery}
-                onChange={e => onSearchChange(e.target.value)}
-              />
-            </div>
-          ) : (
-            <h1 className="feature-header__mobile-title">{title}</h1>
-          )}
-        </div>
-
-        {/* Main title + controls */}
-        <div className="feature-header__main">
-          {sidebarOpen && (
-            <h1 className="feature-header__title">{title}</h1>
-          )}
-
-          {showVoiceControls && (
-            <>
-              {/* Desktop-only inline controls */}
-              <div className="feature-header__controls">
-                {/* Voice Selection Dropdown with proper grouping */}
-                <div className="feature-header__voice-control">
-                  <select
-                    className="feature-header__control-item voice-select"
-                    value={currentVoiceName}
-                    onChange={e => handleVoiceDropdownChange(e.target.value)}
-                    title={`Current: ${currentVoiceLabel} (${currentProfileLabel})`}
-                  >
-                    {/* Chirp 3 HD Voices */}
-                    {voiceGroups.chirp3.length > 0 && (
-                      <optgroup label="Chirp 3 HD Voices (Premium)">
-                        {voiceGroups.chirp3.map(v => (
-                          <option key={v.name} value={v.name}>
-                            {v.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    
-                    {/* WaveNet Voices */}
-                    {voiceGroups.wavenet.length > 0 && (
-                      <optgroup label="WaveNet Voices (High Quality)">
-                        {voiceGroups.wavenet.map(v => (
-                          <option key={v.name} value={v.name}>
-                            {v.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    
-                    {/* Journey Voices */}
-                    {voiceGroups.journey.length > 0 && (
-                      <optgroup label="Journey Voices">
-                        {voiceGroups.journey.map(v => (
-                          <option key={v.name} value={v.name}>
-                            {v.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    
-                    {/* News Voices */}
-                    {voiceGroups.news.length > 0 && (
-                      <optgroup label="News Voices">
-                        {voiceGroups.news.map(v => (
-                          <option key={v.name} value={v.name}>
-                            {v.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    
-                    {/* Studio Voices */}
-                    {voiceGroups.studio.length > 0 && (
-                      <optgroup label="Studio Voices">
-                        {voiceGroups.studio.map(v => (
-                          <option key={v.name} value={v.name}>
-                            {v.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    
-                    {/* Standard Voices */}
-                    {voiceGroups.standard.length > 0 && (
-                      <optgroup label="Standard Voices">
-                        {voiceGroups.standard.map(v => (
-                          <option key={v.name} value={v.name}>
-                            {v.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    
-                    {/* Polyglot Voices */}
-                    {voiceGroups.polyglot.length > 0 && (
-                      <optgroup label="Polyglot Voices">
-                        {voiceGroups.polyglot.map(v => (
-                          <option key={v.name} value={v.name}>
-                            {v.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                  </select>
-                  
-                  {/* Enhanced Voice Selector Button */}
-                  <div className="voice-selector-container" ref={voiceSelectorRef}>
-                    <button
-                      className="feature-header__control-item voice-settings-btn"
-                      onClick={handleVoiceSelectorClick}
-                      title="Advanced voice settings"
-                      aria-label="Open voice studio"
-                      type="button"
-                    >
-                      <FiSettings />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Scenario Change Button */}
-                {feature === 'chat' && onChangeScenario && (
-                  <button
-                    className="feature-header__control-item scenario-btn"
-                    onClick={onChangeScenario}
-                    type="button"
-                  >
-                    Change Scenario
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* ENHANCED: Right corner container - Groups overflow menu + avatar together */}
-        <div className="feature-header__right-corner">
-          {showVoiceControls && (
-            <div className="feature-header__overflow" ref={overflowRef}>
-              <button
-                className="feature-header__overflow-btn"
-                onClick={handleOverflowClick}
-                aria-label="More options"
-                type="button"
+          
+          <div className="header-title">
+            {featureInfo.showBackButton && (
+              <button 
+                className="back-button"
+                onClick={onClearScenario}
+                aria-label="Go back to scenario selection"
               >
-                <FiMoreVertical />
+                ←
               </button>
-              {overflowOpen && (
-                <ul className="feature-header__overflow-menu">
-                  <li className="feature-header__overflow-item">
-                    <div className="mobile-voice-control">
-                      <label>Voice:</label>
-                      <select
-                        value={currentVoiceName}
-                        onChange={e => handleVoiceDropdownChange(e.target.value)}
-                        className="mobile-voice-select"
-                      >
-                        {Array.isArray(ttsVoices) && ttsVoices.length > 0 ? ttsVoices.map(v => (
-                          <option key={v?.name || Math.random()} value={v?.name || ''}>
-                            {v?.label || v?.name || 'Unknown Voice'}
-                          </option>
-                        )) : (
-                          <option value={currentVoiceName}>{currentVoiceLabel}</option>
-                        )}
-                      </select>
-                    </div>
-                  </li>
-                  
-                  <li className="feature-header__overflow-item">
-                    <button 
-                      onClick={handleMobileVoiceSettingsClick}
-                      className="mobile-voice-settings"
-                      type="button"
-                    >
-                      <FiSettings />
-                      Voice Studio
-                    </button>
-                  </li>
-                  
-                  <li className="feature-header__overflow-item voice-info">
-                    <div className="current-voice-info">
-                      <div className="voice-name">{currentVoiceLabel}</div>
-                      <div className="voice-profile">{currentProfileLabel} style</div>
-                    </div>
-                  </li>
-                  
-                  {feature === 'chat' && onChangeScenario && (
-                    <li className="feature-header__overflow-item">
-                      <button onClick={onChangeScenario} type="button">
-                        Change Scenario
-                      </button>
-                    </li>
-                  )}
-                </ul>
-              )}
-            </div>
-          )}
-
-          {/* Avatar + dropdown - NOW INSIDE RIGHT CORNER CONTAINER */}
-          <div className="feature-header__avatar-container" ref={avatarRef}>
-            <button
-              className="feature-header__avatar-btn"
-              onClick={handleAvatarClick}
-              aria-label="User menu"
-              type="button"
-            >
-              <Avatar userName={userName} />
-            </button>
-            {avatarMenuOpen && (
-              <ul className="feature-header__menu">
-                <li className="feature-header__menu-item user-info">
-                  <strong>{userName}</strong>
-                  {currentVoiceConfig && (
-                    <div className="user-voice-info">
-                      <small>Voice: {currentVoiceLabel}</small>
-                      <small>Style: {currentProfileLabel}</small>
-                    </div>
-                  )}
-                </li>
-                
-                {/* ENHANCED DARK MODE TOGGLE */}
-                <li className="feature-header__menu-item">
-                  <button
-                    className="feature-header__dark-mode-btn"
-                    onClick={toggleDarkMode}
-                    type="button"
-                  >
-                    <span className="dark-mode-icon">
-                      {darkMode ? <FiSun /> : <FiMoon />}
-                    </span>
-                    <span className="dark-mode-text">
-                      {darkMode ? 'Light Mode' : 'Dark Mode'}
-                      {!localStorage.getItem('darkMode') && (
-                        <small style={{display: 'block', fontSize: '0.7rem', opacity: 0.7, marginTop: '2px'}}>
-                          (Following system)
-                        </small>
-                      )}
-                    </span>
-                  </button>
-                </li>
-                
-                {/* ENHANCED: RESET TO SYSTEM THEME - Only show if user has overridden */}
-                {localStorage.getItem('darkMode') && (
-                  <li className="feature-header__menu-item">
-                    <button
-                      className="feature-header__dark-mode-btn"
-                      onClick={resetToSystemTheme}
-                      type="button"
-                      style={{fontSize: '0.85rem', opacity: 0.8}}
-                    >
-                      <span className="dark-mode-icon">
-                        🔄
-                      </span>
-                      <span className="dark-mode-text">
-                        Use System Theme
-                      </span>
-                    </button>
-                  </li>
-                )}
-                
-                <li className="feature-header__menu-item">
-                  <button
-                    className="feature-header__logout-btn"
-                    onClick={onLogout}
-                    type="button"
-                  >
-                    Log out
-                  </button>
-                </li>
-              </ul>
             )}
+            <div>
+              <h1>{featureInfo.title}</h1>
+              <p className="subtitle">{featureInfo.subtitle}</p>
+            </div>
           </div>
         </div>
-      </header>
-      
-      {/* FIXED: Full-Screen Voice Studio Modal - No Overlay, Full Dimensions */}
-      {voiceSelectorOpen && (
-        <div 
-          className="voice-studio-fullscreen"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="voice-studio-title"
-        >
-          {/* FIXED: Close button positioned at top-right corner */}
-          <button
-            className="voice-studio-close-btn"
-            onClick={handleVoiceSelectorClose}
-            aria-label="Close voice studio"
-            type="button"
-          >
-            <FiX />
-          </button>
-          
-          {/* Header */}
-          <div className="voice-studio-header">
-            <div className="voice-studio-header-title">
-              <FiVolume2 className="voice-studio-header-icon" />
-              <h3 id="voice-studio-title">Voice Studio</h3>
-            </div>
-          </div>
-          
-          {/* Current Voice Preview */}
-          <div className="voice-studio-current-preview">
-            <div className="voice-studio-preview-label">Current Selection</div>
-            <div className="voice-studio-preview-info">
-              <div className="voice-studio-preview-name">{currentVoiceLabel}</div>
-              <div className="voice-studio-preview-style">{currentProfileLabel} style</div>
-            </div>
-          </div>
-          
-          {/* FIXED: Fully Scrollable Voice Selector Content */}
-          <div className="voice-studio-content-wrapper">
-            <VoiceSelector
-              onVoiceChange={handleVoiceSelectorChange}
-              defaultVoice={currentVoiceName}
-              defaultProfile={currentVoiceConfig?.profile || 'default'}
-              className="voice-studio-selector"
-              showPreview={true}
-              compact={false}
+
+        {/* Center Section - Search */}
+        <div className="header-center">
+          <div className="search-container">
+            <FiSearch className="search-icon" />
+            <input
+              type="text"
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
             />
           </div>
         </div>
-      )}
-    </>
+
+        {/* Right Section */}
+        <div className="header-right">
+          
+          {/* Voice Selector */}
+          <div className="voice-selector-container" ref={voiceSelectorRef}>
+            <button
+              className="voice-button"
+              onClick={() => toggleDropdown('voiceSelector')}
+              aria-label="Select voice"
+            >
+              <FiVolume2 size={18} />
+              {selectedVoice && <span className="voice-name">{selectedVoice.name}</span>}
+            </button>
+            
+            {openDropdowns.voiceSelector && (
+              <div className="voice-selector-dropdown">
+                <VoiceSelector
+                  selectedVoice={selectedVoice}
+                  onVoiceSelect={handleVoiceSelect}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Theme Toggle */}
+          <button
+            className="theme-toggle"
+            onClick={toggleDarkMode}
+            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
+          </button>
+
+          {/* User Avatar */}
+          <div className="avatar-container" ref={avatarRef}>
+            <button
+              className="avatar-button"
+              onClick={() => toggleDropdown('avatar')}
+              aria-label="User menu"
+            >
+              <Avatar user={user} size="sm" />
+            </button>
+            
+            {openDropdowns.avatar && (
+              <div className="avatar-dropdown">
+                <div className="dropdown-header">
+                  <Avatar user={user} size="md" />
+                  <div className="user-info">
+                    <p className="user-name">{user?.name || 'User'}</p>
+                    <p className="user-email">{user?.email}</p>
+                  </div>
+                </div>
+                <div className="dropdown-divider" />
+                <button className="dropdown-item" onClick={handleLogout}>
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Overflow Menu (Mobile) */}
+          <div className="overflow-menu" ref={overflowRef}>
+            <button
+              className="overflow-toggle"
+              onClick={() => toggleDropdown('overflow')}
+              aria-label="More options"
+            >
+              <FiMoreVertical size={18} />
+            </button>
+            
+            {openDropdowns.overflow && (
+              <div className="overflow-dropdown">
+                <button 
+                  className="dropdown-item"
+                  onClick={() => toggleDropdown('voiceSelector')}
+                >
+                  <FiVolume2 size={16} />
+                  Voice Settings
+                </button>
+                <button 
+                  className="dropdown-item"
+                  onClick={toggleDarkMode}
+                >
+                  {darkMode ? <FiSun size={16} /> : <FiMoon size={16} />}
+                  {darkMode ? 'Light Mode' : 'Dark Mode'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
   );
-}
+} 

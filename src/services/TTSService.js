@@ -141,4 +141,6 @@ export class TTSService {
     }
 }
 
-export default new TTSService(); 
+// Create and export the singleton instance
+const ttsServiceInstance = new TTSService();
+export default ttsServiceInstance; 

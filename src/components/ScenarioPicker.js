@@ -10,7 +10,7 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
   const [imageLoadingStates, setImageLoadingStates] = useState({});
   const [imageErrors, setImageErrors] = useState({});
   const [preloadedImages, setPreloadedImages] = useState(new Set());
-  const observerRef = useRef(null);
+  // const observerRef = useRef(null);
   const imageCache = useRef(new Map());
 
 
