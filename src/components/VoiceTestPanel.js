@@ -73,7 +73,10 @@ const VoiceTestPanel = ({ isVisible, onClose }) => {
   };
 
   const testRoleplayScenario = async () => {
-    const scenario = availableScenarios.find(s => s.key === selectedScenario);
+    // Defensive check: ensure availableScenarios is an array before calling find
+    const scenario = Array.isArray(availableScenarios) 
+      ? availableScenarios.find(s => s.key === selectedScenario)
+      : null;
     if (!scenario) return;
 
     addResult('Roleplay', 'running', `Testing ${scenario.label}...`);

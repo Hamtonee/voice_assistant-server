@@ -469,19 +469,20 @@ const VoiceSelector = ({
       if (voiceConfig?.voiceName && voices.length > 0) {
         const voiceName = voiceConfig.voiceName.toLowerCase();
         
-        selectedDeviceVoice = voices.find(v => v.name.toLowerCase() === voiceName);
+        // Defensive check: ensure voices is an array before calling find
+        selectedDeviceVoice = Array.isArray(voices) ? voices.find(v => v.name.toLowerCase() === voiceName) : null;
         
-        if (!selectedDeviceVoice) {
+        if (!selectedDeviceVoice && Array.isArray(voices)) {
           selectedDeviceVoice = voices.find(v => 
             voiceName.includes(v.name.toLowerCase()) || v.name.toLowerCase().includes(voiceName)
           );
         }
         
-        if (!selectedDeviceVoice && voiceConfig.languageCode) {
+        if (!selectedDeviceVoice && voiceConfig.languageCode && Array.isArray(voices)) {
           selectedDeviceVoice = voices.find(v => v.lang === voiceConfig.languageCode);
         }
         
-        if (!selectedDeviceVoice) {
+        if (!selectedDeviceVoice && Array.isArray(voices)) {
           const isFemale = voiceName.includes('female') || voiceName.includes('(f)') || 
                           ['aoede', 'kore', 'leda'].some(name => voiceName.includes(name));
           const isMale = voiceName.includes('male') || voiceName.includes('(m)') || 
@@ -494,7 +495,7 @@ const VoiceSelector = ({
           }
         }
         
-        if (!selectedDeviceVoice) {
+        if (!selectedDeviceVoice && Array.isArray(voices)) {
           selectedDeviceVoice = voices.find(v => v.default) || voices[0];
         }
         
@@ -725,10 +726,10 @@ const VoiceSelector = ({
     setError(null);
   }, []);
 
-  // Get display info
-  const selectedVoiceObj = voices.find(v => v.name === selectedVoice);
+  // Get display info with defensive checks
+  const selectedVoiceObj = Array.isArray(voices) ? voices.find(v => v.name === selectedVoice) : null;
   const selectedVoiceLabel = selectedVoiceObj?.label || selectedVoice;
-  const selectedProfileObj = profiles.find(p => p.id === selectedProfile);
+  const selectedProfileObj = Array.isArray(profiles) ? profiles.find(p => p.id === selectedProfile) : null;
   const selectedProfileLabel = selectedProfileObj?.name || 'Default';
 
   // Modern connection status icon

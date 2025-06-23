@@ -135,11 +135,13 @@ export default function ChatWindow() {
           api.get('/usage-summary')
         ]);
         
-        setSessions(sessionsRes.data || []);
+        // Defensive check: ensure we always have an array
+        const sessionsData = Array.isArray(sessionsRes.data) ? sessionsRes.data : [];
+        setSessions(sessionsData);
         setUsageSummary(usageRes.data.usage_summary);
         
         // Set initial active sessions
-        const chats = sessionsRes.data || [];
+        const chats = sessionsData; // Already guaranteed to be an array
         const chatSessions = chats.filter(c => c.feature === 'chat');
         const semaSessions = chats.filter(c => c.feature === 'sema');
         const tusomeSessions = chats.filter(c => c.feature === 'tusome');
@@ -152,6 +154,8 @@ export default function ChatWindow() {
         
       } catch (error) {
         console.error('Failed to fetch data:', error);
+        // Ensure sessions is always an array even on error
+        setSessions([]);
       }
     };
 
@@ -174,9 +178,12 @@ export default function ChatWindow() {
   useEffect(() => {
     if (selectedFeature !== 'chat') return;
 
-    const chatSessions = sessions.filter(s => s.feature === 'chat');
+    // Defensive check: ensure sessions is an array before filtering
+    const chatSessions = Array.isArray(sessions) 
+      ? sessions.filter(s => s.feature === 'chat')
+      : [];
     chatSessions.forEach(chat => {
-      if (!chat.title && !titleGenQueue.has(chat.id) && chat.messages.length >= 2) {
+      if (!chat.title && !titleGenQueue.has(chat.id) && chat.messages?.length >= 2) {
         setTitleGenQueue(prev => new Set([...prev, chat.id]));
         const msgs = chat.messages
           .filter(m => m.role === 'user')
@@ -186,7 +193,9 @@ export default function ChatWindow() {
         generateTitleForChat('chat', scenario?.label, chat.id, msgs)
           .then(title => {
             setSessions(prev =>
-              prev.map(s => s.id === chat.id ? { ...s, title } : s)
+              Array.isArray(prev) 
+                ? prev.map(s => s.id === chat.id ? { ...s, title } : s)
+                : []
             );
             setTitleGenQueue(prev => {
               const next = new Set([...prev]);
@@ -200,7 +209,8 @@ export default function ChatWindow() {
 
   // ─── Utility Functions ─────────────────────────────────
   const getSessionsByFeature = useCallback((feature) => {
-    return sessions.filter(s => s.feature === feature);
+    // Defensive check: ensure sessions is always an array
+    return Array.isArray(sessions) ? sessions.filter(s => s.feature === feature) : [];
   }, [sessions]);
 
   const getCurrentActiveId = useCallback(() => {
@@ -282,7 +292,10 @@ export default function ChatWindow() {
     
     // Handle chat-specific logic
     if (selectedFeature === 'chat') {
-      const session = sessions.find(s => s.id === sessionId);
+      // Defensive check: ensure sessions is an array before calling find
+      const session = Array.isArray(sessions) 
+        ? sessions.find(s => s.id === sessionId)
+        : null;
       setScenario(
         session?.scenarioKey
           ? availableScenarios.find(s => s.key === session.scenarioKey)
@@ -305,9 +318,10 @@ export default function ChatWindow() {
       // Handle active session reassignment
       setActiveSessionIds(prev => {
         if (prev[selectedFeature] === sessionId) {
-          const remainingSessions = sessions.filter(s => 
-            s.feature === selectedFeature && s.id !== sessionId
-          );
+          // Defensive check: ensure sessions is an array before filtering
+          const remainingSessions = Array.isArray(sessions) 
+            ? sessions.filter(s => s.feature === selectedFeature && s.id !== sessionId)
+            : [];
           
           if (remainingSessions.length > 0) {
             return {
@@ -354,7 +368,10 @@ export default function ChatWindow() {
     setSelectedFeature(feature);
     
     // Auto-create session if none exists for the feature
-    const featureSessions = sessions.filter(s => s.feature === feature);
+    // Defensive check: ensure sessions is an array before filtering
+    const featureSessions = Array.isArray(sessions) 
+      ? sessions.filter(s => s.feature === feature)
+      : [];
     if (featureSessions.length === 0) {
       createNewSession(feature, false);
     }

@@ -419,7 +419,8 @@ export default function FeatureHeader({
   // Get display information
   const currentVoiceConfig = getCurrentVoiceConfig();
   const currentVoiceName = currentVoiceConfig?.voiceName || 'en-US-Chirp3-HD-Aoede';
-  const currentVoiceObj = ttsVoices.find(v => v.name === currentVoiceName);
+  // Defensive check: ensure ttsVoices is an array before calling find
+  const currentVoiceObj = Array.isArray(ttsVoices) ? ttsVoices.find(v => v.name === currentVoiceName) : null;
   const currentVoiceLabel = currentVoiceObj?.label || currentVoiceName;
   const currentProfileLabel = currentVoiceConfig?.profileConfig?.name || 'Default';
 
@@ -603,11 +604,11 @@ export default function FeatureHeader({
                         onChange={e => handleVoiceDropdownChange(e.target.value)}
                         className="mobile-voice-select"
                       >
-                        {ttsVoices.map(v => (
+                        {Array.isArray(ttsVoices) ? ttsVoices.map(v => (
                           <option key={v.name} value={v.name}>
                             {v.label}
                           </option>
-                        ))}
+                        )) : null}
                       </select>
                     </div>
                   </li>

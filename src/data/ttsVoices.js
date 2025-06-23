@@ -98,28 +98,33 @@ export const ttsVoices = [
 ];
 
 // ─── Enhanced Voice Profiles with Compatibility Information ────────────────────────────────────────────
-export const voiceProfiles = {
-    default: {
+export const voiceProfiles = [
+    {
+        id: 'default',
         pitch: 0,
         speakingRate: 1.0
     },
-    slow: {
+    {
+        id: 'slow',
         pitch: 0,
         speakingRate: 0.85
     },
-    fast: {
+    {
+        id: 'fast',
         pitch: 0,
         speakingRate: 1.25
     },
-    high: {
+    {
+        id: 'high',
         pitch: 4,
         speakingRate: 1.0
     },
-    low: {
+    {
+        id: 'low',
         pitch: -4,
         speakingRate: 1.0
     }
-};
+];
 
 // ─── Voice Capability Information ────────────────────────────────────────────
 export const voiceCapabilities = {

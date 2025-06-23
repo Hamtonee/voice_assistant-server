@@ -316,14 +316,16 @@ export default function ChatSidebar({
 
   // Get feature-specific sessions
   const sessions = selectedFeature === 'chat'
-    ? chatInstances.filter(c => !currentScenarioKey || c.scenarioKey === currentScenarioKey)
-    : chatInstances;
+    ? (Array.isArray(chatInstances) ? chatInstances.filter(c => !currentScenarioKey || c.scenarioKey === currentScenarioKey) : [])
+    : (Array.isArray(chatInstances) ? chatInstances : []);
 
   // Pull the active session to the top, then sort the rest by createdAt desc
-  const activeSession = sessions.find(c => c.id === activeChatId);
-  const otherSessions = sessions
-    .filter(c => c.id !== activeChatId)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const activeSession = Array.isArray(sessions) ? sessions.find(c => c.id === activeChatId) : null;
+  const otherSessions = Array.isArray(sessions) 
+    ? sessions
+        .filter(c => c.id !== activeChatId)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    : [];
   const orderedSessions = activeSession ? [activeSession, ...otherSessions] : otherSessions;
 
   // Get feature display names

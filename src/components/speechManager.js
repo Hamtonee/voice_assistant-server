@@ -115,11 +115,12 @@ class SpeechManager {
       // Apply voice configuration
       if (config.voice && typeof window !== 'undefined' && window.speechSynthesis) {
         const voices = window.speechSynthesis.getVoices();
-        const selectedVoice = voices.find(v => 
+        // Defensive check: ensure voices is an array before calling find
+        const selectedVoice = Array.isArray(voices) ? voices.find(v => 
           v.name === config.voice || 
           v.name.includes(config.voice) ||
           v.lang === config.voice
-        );
+        ) : null;
         if (selectedVoice) {
           utterance.voice = selectedVoice;
         }

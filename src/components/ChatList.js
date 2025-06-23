@@ -27,22 +27,27 @@ export default function ChatList({
 
   // Filter items based on feature and scenario
   const items = React.useMemo(() => {
+    // Defensive check: ensure chatInstances is always an array
+    const safeInstances = Array.isArray(chatInstances) ? chatInstances : [];
+    
     if (feature === 'chat' && scenarioKey) {
-      return chatInstances.filter(c => c.scenarioKey === scenarioKey);
+      return safeInstances.filter(c => c.scenarioKey === scenarioKey);
     }
-    return chatInstances;
+    return safeInstances;
   }, [chatInstances, feature, scenarioKey]);
 
   // Sort items - active chat first, then by date
   const sortedItems = React.useMemo(() => {
-    const activeChat = items.find(c => c.id === activeChatId);
-    const otherChats = items
-      .filter(c => c.id !== activeChatId)
-      .sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.updatedAt || 0);
-        const dateB = new Date(b.createdAt || b.updatedAt || 0);
-        return dateB - dateA; // Most recent first
-      });
+    const activeChat = Array.isArray(items) ? items.find(c => c.id === activeChatId) : null;
+    const otherChats = Array.isArray(items) 
+      ? items
+          .filter(c => c.id !== activeChatId)
+          .sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.updatedAt || 0);
+            const dateB = new Date(b.createdAt || b.updatedAt || 0);
+            return dateB - dateA; // Most recent first
+          })
+      : [];
     
     return activeChat ? [activeChat, ...otherChats] : otherChats;
   }, [items, activeChatId]);
@@ -168,7 +173,7 @@ export default function ChatList({
                 {chat.lastMessage && (
                   <p className="chat-item-preview">
                     {chat.lastMessage.length > 60 
-                      ? `${chat.lastMessage.substring(0, 60)}...` 
+                      ? `${chat.lastMessage.substring(0, 60)}...`
                       : chat.lastMessage
                     }
                   </p>
