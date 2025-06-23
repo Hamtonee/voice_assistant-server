@@ -91,8 +91,10 @@ const ChatInput = ({ onSend }) => {
 
         recognition.onresult = (event) => {
           let interim = '';
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            interim += event.results[i][0].transcript;
+          if (event.results && Array.isArray(event.results)) {
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              interim += event.results[i][0].transcript;
+            }
           }
           setTranscript(interim);
 

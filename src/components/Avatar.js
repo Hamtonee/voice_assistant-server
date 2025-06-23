@@ -7,6 +7,7 @@ import '../assets/styles/Avatar.css';
  * Generates a consistent pastel background color based on a string.
  */
 function stringToColor(str) {
+  if (!str || typeof str !== 'string') return 'hsl(200, 70%, 60%)'; // Default color for undefined/empty strings
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
