@@ -222,7 +222,7 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
   };
 
   return (
-    <div className="scenario-modal" onClick={onClose}>
+    <div className={`scenario-modal ${!onClose ? 'scenario-modal-embedded' : ''}`} onClick={onClose}>
       <div className="scenario-container" onClick={e => e.stopPropagation()}>
         {/* Loading Overlay */}
         {loadingScenario && (
