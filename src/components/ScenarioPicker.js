@@ -13,7 +13,15 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
   // const observerRef = useRef(null);
   const imageCache = useRef(new Map());
 
-
+  // Debug logging
+  useEffect(() => {
+    console.log('🎨 ScenarioPicker mounted:', {
+      scenarios: scenarios?.length || 0,
+      onSelect: typeof onSelect,
+      onClose: typeof onClose,
+      isEmbedded: !onClose
+    });
+  }, [scenarios, onSelect, onClose]);
 
   // Preload images for better performance
   const preloadImage = useCallback((src, key) => {
