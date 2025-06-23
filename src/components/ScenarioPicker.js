@@ -10,6 +10,9 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
   const [imageLoadingStates, setImageLoadingStates] = useState({});
   const [imageErrors, setImageErrors] = useState({});
 
+  // Temporary debugging
+  console.log('🎭 ScenarioPicker received scenarios:', scenarios?.length || 'UNDEFINED', Array.isArray(scenarios) ? 'IS_ARRAY' : 'NOT_ARRAY');
+
   if (!scenarios || scenarios.length === 0) {
     return (
       <div className="scenario-modal" onClick={onClose}>

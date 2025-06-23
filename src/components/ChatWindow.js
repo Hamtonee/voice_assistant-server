@@ -15,6 +15,9 @@ import { ttsVoices, createVoiceConfig } from '../data/ttsVoices';
 import generateTitleForChat     from '../utils/generateTitle';
 import { AuthContext }          from '../contexts/AuthContext';
 
+// Temporary debugging
+console.log('🔍 Available scenarios loaded:', availableScenarios?.length || 'UNDEFINED', availableScenarios?.slice(0, 3)?.map(s => s.key) || 'NO SCENARIOS');
+
 export default function ChatWindow() {
   const { user, logout } = useContext(AuthContext);
 
@@ -544,7 +547,7 @@ export default function ChatWindow() {
       <>
         <FeatureHeader {...headerProps} />
         <div className={`flex-1 flex flex-col items-center justify-center p-4`}>
-          <ScenarioPicker onSelect={handleSelectScenario} />
+          <ScenarioPicker scenarios={availableScenarios} onSelect={handleSelectScenario} />
         </div>
       </>
     );
