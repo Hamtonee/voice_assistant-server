@@ -108,11 +108,11 @@
 
 /* EMBEDDED MODE - When used as main content instead of modal */
 .scenario-modal-embedded {
-  position: relative !important;
-  top: 0 !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
+  position: static !important;
+  top: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -122,6 +122,25 @@
   animation: none !important;
   height: 100% !important;
   width: 100% !important;
+  display: block !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+}
+
+.scenario-modal-embedded .scenario-container {
+  position: static !important;
+  height: 100% !important;
+  width: 100% !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  animation: none !important;
+  max-height: none !important;
+  transform: none !important;
+  background: #f9fafb !important;
+}
+
+.dark .scenario-modal-embedded .scenario-container {
+  background: #111827 !important;
 }
 
 /* PIXEL PERFECT CONTAINER - FILLS ENTIRE AVAILABLE SPACE with Theme Support */

@@ -133,7 +133,10 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
 
   if (!scenarios || scenarios.length === 0) {
     return (
-      <div className="scenario-modal" onClick={onClose}>
+      <div 
+        className={`scenario-modal ${!onClose ? 'scenario-modal-embedded' : ''}`} 
+        onClick={onClose ? onClose : undefined}
+      >
         <div className="scenario-container" onClick={e => e.stopPropagation()}>
           <div className="no-scenarios">
             <Search size={48} className="no-scenarios-icon" />
@@ -173,7 +176,10 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
   };
 
   return (
-    <div className={`scenario-modal ${!onClose ? 'scenario-modal-embedded' : ''}`} onClick={onClose}>
+    <div 
+      className={`scenario-modal ${!onClose ? 'scenario-modal-embedded' : ''}`} 
+      onClick={onClose ? onClose : undefined}
+    >
       <div className="scenario-container" onClick={e => e.stopPropagation()}>
         {/* Loading Overlay */}
         {loadingScenario && (
