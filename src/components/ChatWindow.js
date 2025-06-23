@@ -15,8 +15,7 @@ import { ttsVoices, createVoiceConfig } from '../data/ttsVoices';
 import generateTitleForChat     from '../utils/generateTitle';
 import { AuthContext }          from '../contexts/AuthContext';
 
-// Temporary debugging
-console.log('🔍 Available scenarios loaded:', availableScenarios?.length || 'UNDEFINED', availableScenarios?.slice(0, 3)?.map(s => s.key) || 'NO SCENARIOS');
+
 
 export default function ChatWindow() {
   const { user, logout } = useContext(AuthContext);
@@ -113,14 +112,11 @@ export default function ChatWindow() {
           const voiceExists = ttsVoices.find(v => v.name === parsedVoice.voiceName);
           if (voiceExists) {
             setSelectedVoice(parsedVoice);
-            console.log('Restored saved voice:', parsedVoice.voiceName);
           }
         }
         
         setVoiceSystemReady(true);
-        console.log('Voice system ready');
       } catch (error) {
-        console.error('Voice system initialization error:', error);
         setVoiceSystemReady(true);
       }
     };
@@ -156,7 +152,6 @@ export default function ChatWindow() {
         });
         
       } catch (error) {
-        console.error('Failed to fetch data:', error);
         // Ensure sessions is always an array even on error
         setSessions([]);
       }
@@ -170,7 +165,7 @@ export default function ChatWindow() {
         const { data } = await api.get('/usage-summary');
         setUsageSummary(data.usage_summary);
       } catch (error) {
-        console.error('Failed to fetch usage summary:', error);
+        // Continue silently if usage summary fails
       }
     }, 30 * 60 * 1000);
     
@@ -554,7 +549,7 @@ export default function ChatWindow() {
               : 'relative w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700'
             }
           `}>
-            <ChatSidebar {...sidebarProps} />
+      <ChatSidebar {...sidebarProps} />
           </div>
         )}
         
@@ -571,7 +566,7 @@ export default function ChatWindow() {
           
           {/* Feature Header - Fixed at Top */}
           <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-30">
-            <FeatureHeader {...headerProps} />
+        <FeatureHeader {...headerProps} />
           </div>
           
           {/* Content Area - Below Header */}

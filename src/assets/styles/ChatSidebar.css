@@ -1,41 +1,32 @@
 /* src/assets/styles/ChatSidebar.css */
 
+/* Import master variables */
+@import './CSSVariables.css';
+
 /*-------------------------------------------------------
-  Font Import & Custom Properties
+  Font Import
 -------------------------------------------------------*/
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
-
-:root {
-  /* Sidebar is positioned within app container, no header height needed */
-  --sidebar-width:      300px;       /* Back to normal width for vertical layout */
-  --bg-primary:         #2E3440;
-  --accent:             #88C0D0;
-  --accent-hover:       #8FBCBB;
-  --bg-secondary:       #3B4252;
-  --hover-bg:           #434C5E;
-  --break-md:           768px;
-}
 
 /*-------------------------------------------------------
   Sidebar container - FIXED HEIGHT CALCULATION
 -------------------------------------------------------*/
 .chat-sidebar {
   position: fixed;
-  top: 0; /* Start at 0 since app container handles header offset */
+  top: 0;
   left: 0;
   width: var(--sidebar-width);
-  height: 100%; /* Full height within app container */
-  padding: 16px;
-  background: var(--sidebar-bg); /* Use unified theme background */
-  color: var(--text-primary); /* Use unified theme text color */
+  height: 100%;
+  padding: var(--spacing-md);
+  background: var(--chat-sidebar-bg);
+  color: var(--text-primary);
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
   font-family: 'Poppins', sans-serif;
-  font-size: 0.9rem;
-  transition: transform 0.3s ease, var(--theme-transition);
-  z-index: 10;
-  overflow: hidden; /* Prevent main sidebar scrolling */
+  font-size: var(--font-size-sm);
+  transition: transform var(--transition-layout);
+  z-index: var(--z-sidebar);
+  overflow: hidden;
   border: none;
   outline: none;
   overscroll-behavior: none;

@@ -1,172 +1,26 @@
 /* src/assets/styles/GlobalTheme.css */
 /* Platform-wide Dark/Light Mode Support - Apply to all components */
 
-/*─────────────────────────────────────────────────────
-  Global Theme Variables - COMPREHENSIVE DARK/LIGHT MODE
-─────────────────────────────────────────────────────*/
-:root {
-  /* Base font weights for better visibility */
-  --font-weight-light: 300;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  --font-weight-extrabold: 800;
-  
-  /* Transition settings */
-  --theme-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --theme-transition-fast: all 0.2s ease;
-  
-  /* Border radius consistency */
-  --border-radius-xs: 4px;
-  --border-radius-sm: 6px;
-  --border-radius-md: 8px;
-  --border-radius-lg: 12px;
-  --border-radius-xl: 16px;
-  --border-radius-2xl: 20px;
-  --border-radius-3xl: 24px;
-  
-  /* Spacing scale */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  --spacing-2xl: 2.5rem;
-  --spacing-3xl: 3rem;
-}
+/* Import master CSS variables */
+@import './CSSVariables.css';
 
-/* DARK THEME (Default) - Comprehensive Variables */
-[data-theme="dark"] {
-  /* Primary colors */
-  --bg-primary: #2E3440;
-  --bg-secondary: #3B4252;
-  --bg-tertiary: #434C5E;
-  --bg-quaternary: #4C566A;
-  
-  /* Text colors with improved hierarchy */
-  --text-primary: #ECEFF4;
-  --text-secondary: #D8DEE9;
-  --text-tertiary: #E5E9F0;
-  --text-accent: #A3BE8C;
-  --text-muted: #81A1C1;
-  --text-disabled: #5E6B7A;
-  
-  /* Interactive elements */
-  --accent-primary: #667eea;
-  --accent-secondary: #764ba2;
-  --accent-hover: #5855eb;
-  --accent-active: #4c46d6;
-  --accent-light: rgba(102, 126, 234, 0.1);
-  --accent-lighter: rgba(102, 126, 234, 0.05);
-  
-  /* Status colors */
-  --success: #A3BE8C;
-  --success-light: rgba(163, 190, 140, 0.1);
-  --warning: #EBCB8B;
-  --warning-light: rgba(235, 203, 139, 0.1);
-  --error: #BF616A;
-  --error-light: rgba(191, 97, 106, 0.1);
-  --info: #81A1C1;
-  --info-light: rgba(129, 161, 193, 0.1);
-  
-  /* Glass morphism effects */
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-bg-strong: rgba(255, 255, 255, 0.08);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-border-strong: rgba(255, 255, 255, 0.15);
-  --glass-hover: rgba(255, 255, 255, 0.08);
-  --glass-active: rgba(255, 255, 255, 0.12);
-  
-  /* Shadows for dark theme */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
-  
-  /* Special effects */
-  --backdrop-blur: blur(16px);
-  --backdrop-blur-strong: blur(24px);
-}
-
-/* LIGHT THEME - Comprehensive Variables with MAXIMUM FONT VISIBILITY */
-[data-theme="light"] {
-  /* Primary colors */
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #F8F9FA;
-  --bg-tertiary: #F1F3F4;
-  --bg-quaternary: #E9ECEF;
-  
-  /* Text colors with DRAMATICALLY IMPROVED CONTRAST */
-  --text-primary: #0D1117;          /* Almost black for maximum readability */
-  --text-secondary: #1A202C;        /* Very dark gray */
-  --text-tertiary: #2D3748;         /* Dark gray */
-  --text-accent: #155724;           /* Dark green for accents */
-  --text-muted: #4A5568;            /* Medium gray but still dark */
-  --text-disabled: #718096;         /* Lighter gray for disabled state */
-  
-  /* Interactive elements */
-  --accent-primary: #667eea;
-  --accent-secondary: #764ba2;
-  --accent-hover: #5855eb;
-  --accent-active: #4c46d6;
-  --accent-light: rgba(102, 126, 234, 0.1);
-  --accent-lighter: rgba(102, 126, 234, 0.05);
-  
-  /* Status colors */
-  --success: #38A169;
-  --success-light: rgba(56, 161, 105, 0.1);
-  --warning: #D69E2E;
-  --warning-light: rgba(214, 158, 46, 0.1);
-  --error: #E53E3E;
-  --error-light: rgba(229, 62, 62, 0.1);
-  --info: #3182CE;
-  --info-light: rgba(49, 130, 206, 0.1);
-  
-  /* Glass morphism effects for light theme */
-  --glass-bg: rgba(255, 255, 255, 0.8);
-  --glass-bg-strong: rgba(255, 255, 255, 0.9);
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-border-strong: rgba(0, 0, 0, 0.12);
-  --glass-hover: rgba(0, 0, 0, 0.04);
-  --glass-active: rgba(0, 0, 0, 0.06);
-  
-  /* Shadows for light theme */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
-  
-  /* Special effects */
-  --backdrop-blur: blur(16px);
-  --backdrop-blur-strong: blur(24px);
-}
+/* Theme variables are now in CSSVariables.css */
 
 /*─────────────────────────────────────────────────────
-  Universal Theme Transitions - Apply to ALL Elements
+  Selective Theme Transitions - Only for Theme-Related Properties
 ─────────────────────────────────────────────────────*/
-* {
-  transition: background-color var(--theme-transition-fast),
-              color var(--theme-transition-fast),
-              border-color var(--theme-transition-fast),
-              box-shadow var(--theme-transition-fast),
-              opacity var(--theme-transition-fast);
-}
-
-/* Specific transition handling for pseudo-elements */
-*::before,
-*::after {
-  transition: background-color var(--theme-transition-fast),
-              color var(--theme-transition-fast),
-              border-color var(--theme-transition-fast),
-              box-shadow var(--theme-transition-fast),
-              opacity var(--theme-transition-fast);
+/* Only apply transitions to specific theme-related elements */
+.theme-transitional,
+[data-theme] .theme-transitional,
+button,
+input,
+textarea,
+select,
+.card,
+.modal,
+.sidebar,
+.header {
+  transition: var(--theme-transition);
 }
 
 /*─────────────────────────────────────────────────────

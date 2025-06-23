@@ -1,6 +1,6 @@
 // src/components/TopicSelector.js
 import React from 'react';
-import '../src/assets/styles/TopicSelector.css'; // Optional: if you want to add styles
+import '../assets/styles/TopicSelector.css'; // Optional: if you want to add styles
 
 const TopicSelector = ({ topics, onSelectTopic }) => {
   return (
