@@ -24,6 +24,11 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
 
     return new Promise((resolve, reject) => {
       const img = new Image();
+      
+      // Set loading attributes for better performance
+      img.loading = 'eager';
+      img.decoding = 'async';
+      
       img.onload = () => {
         setPreloadedImages(prev => new Set([...prev, src]));
         imageCache.current.set(src, img);
@@ -48,14 +53,13 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
     });
   }, [preloadedImages]);
 
-  // Preload visible images when component mounts
+  // Preload ALL images immediately for better UX
   useEffect(() => {
     if (!scenarios || scenarios.length === 0) return;
 
-    // Preload first 6 images immediately for better UX
+    // Preload all images immediately
     const imagesToPreload = scenarios
       .filter(s => s.image)
-      .slice(0, 6)
       .map(s => ({ src: s.image, key: s.key }));
 
     const preloadPromises = imagesToPreload.map(({ src, key }) => {
@@ -64,7 +68,6 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
         [key]: true
       }));
       return preloadImage(src, key).catch(() => {
-        // Handle errors gracefully
         console.warn(`Failed to preload image for ${key}`);
       });
     });
@@ -91,53 +94,42 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
     }));
   }, []);
 
-  // Lazy loading for remaining images using Intersection Observer
-  useEffect(() => {
-    if (!scenarios || scenarios.length === 0) return;
+  // Simplified image component - no lazy loading, load all images immediately
+  const ScenarioImage = ({ scenario, index }) => {
+    const isPreloaded = preloadedImages.has(scenario.image);
+    const isCached = imageCache.current.has(scenario.image);
 
-    const options = {
-      root: null,
-      rootMargin: '50px',
-      threshold: 0.1
-    };
-
-    observerRef.current = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const img = entry.target;
-          const src = img.dataset.src;
-          const key = img.dataset.key;
-
-          if (src && !preloadedImages.has(src) && !imageCache.current.has(src)) {
-            setImageLoadingStates(prev => ({
-              ...prev,
-              [key]: true
-            }));
-            
-            preloadImage(src, key).then(() => {
-              img.src = src;
-              img.classList.add('loaded');
-              img.classList.remove('loading');
-            }).catch(() => {
-              img.classList.add('error');
-              img.classList.remove('loading');
-            });
-          } else if (imageCache.current.has(src)) {
-            img.src = src;
-            img.classList.add('loaded');
-          }
-
-          observerRef.current.unobserve(img);
-        }
-      });
-    }, options);
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [scenarios, preloadedImages, preloadImage]);
+    return (
+      <div 
+        className={`card-image-wrapper auto-height ${imageLoadingStates[scenario.key] ? 'loading' : ''} gradient-bg`}
+      >
+        {imageErrors[scenario.key] ? (
+          <div className="image-error">
+            <span>Image unavailable</span>
+          </div>
+        ) : (
+          <>
+            <img
+              src={scenario.image}
+              alt={scenario.label}
+              className={`card-image high-visibility ${
+                imageLoadingStates[scenario.key] ? 'loading' : 'loaded'
+              }`}
+              onLoad={() => handleImageLoad(scenario.key)}
+              onError={() => handleImageError(scenario.key)}
+              loading="eager"
+              decoding="async"
+              style={{
+                opacity: isPreloaded || isCached ? 1 : 0.7,
+                transition: 'opacity 0.3s ease'
+              }}
+            />
+            <div className="card-image-overlay"></div>
+          </>
+        )}
+      </div>
+    );
+  };
 
   if (!scenarios || scenarios.length === 0) {
     return (
@@ -178,47 +170,6 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
       console.error('Error selecting scenario:', error);
       setLoadingScenario(null);
     }
-  };
-
-  // Optimized image component
-  const ScenarioImage = ({ scenario, index }) => {
-    const isEarlyImage = index < 6; // First 6 images are preloaded
-    const isPreloaded = preloadedImages.has(scenario.image);
-    const isCached = imageCache.current.has(scenario.image);
-    const shouldLazyLoad = !isEarlyImage && !isPreloaded && !isCached;
-
-    return (
-      <div 
-        className={`card-image-wrapper auto-height ${imageLoadingStates[scenario.key] ? 'loading' : ''} gradient-bg`}
-      >
-        {imageErrors[scenario.key] ? (
-          <div className="image-error">
-            <span>Image unavailable</span>
-          </div>
-        ) : (
-          <>
-            <img
-              src={shouldLazyLoad ? undefined : scenario.image}
-              data-src={shouldLazyLoad ? scenario.image : undefined}
-              data-key={scenario.key}
-              alt={scenario.label}
-              className={`card-image high-visibility ${
-                imageLoadingStates[scenario.key] ? 'loading' : 'loaded'
-              }`}
-              onLoad={() => handleImageLoad(scenario.key)}
-              onError={() => handleImageError(scenario.key)}
-              loading={isEarlyImage ? 'eager' : 'lazy'}
-              ref={shouldLazyLoad ? (el) => {
-                if (el && observerRef.current) {
-                  observerRef.current.observe(el);
-                }
-              } : null}
-            />
-            <div className="card-image-overlay"></div>
-          </>
-        )}
-      </div>
-    );
   };
 
   return (

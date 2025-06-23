@@ -542,51 +542,116 @@ export default function ChatWindow() {
   if (!user) return <div>Loading user...</div>;
 
   return (
-    <div className="flex h-screen">
-      {/* Always render sidebar */}
-      <ChatSidebar {...sidebarProps} />
+    <div className="app-container flex h-screen overflow-hidden">
+      {/* Sidebar */}
+      {sidebarOpen && <ChatSidebar {...sidebarProps} />}
       
-      <div className="flex-1 flex flex-col">
+      {/* Main Content Area */}
+      <div className="flex flex-col flex-1 h-full overflow-hidden">
+        {/* Feature Header */}
         <FeatureHeader {...headerProps} />
         
-        <div className="flex-1 overflow-hidden">
-          {/* Show scenario picker when chat feature is selected but no scenario */}
-          {selectedFeature === 'chat' && !scenario ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-4">
+        {/* Main Content - properly positioned below header */}
+        <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
+          {/* Chat Scenario Picker */}
+          {selectedFeature === 'chat' && !scenario && (
+            <div className="h-full w-full">
               <ScenarioPicker 
                 scenarios={availableScenarios} 
                 onSelect={handleSelectScenario}
                 onClose={null}
               />
             </div>
-          ) : (
-            // Show main content for other features or when scenario is selected
-            <div className="flex-1 flex flex-col">
-              {/* Main chat/content area */}
-              <div className="flex-1 p-4">
-                {selectedFeature === 'chat' && scenario && (
-                  <div className="text-center py-8">
-                    <h2 className="text-xl font-semibold mb-2">{scenario.label}</h2>
-                    <p className="text-gray-600 mb-4">{scenario.subtitle}</p>
-                    <p className="text-sm text-gray-500">
-                      Chat interface loading...
+          )}
+          
+          {/* Chat with Selected Scenario */}
+          {selectedFeature === 'chat' && scenario && (
+            <div className="h-full flex flex-col p-6">
+              <div className="max-w-4xl mx-auto w-full">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                  <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">
+                    {scenario.label}
+                  </h2>
+                  {scenario.subtitle && (
+                    <p className="text-gray-600 dark:text-gray-300 mb-4">
+                      {scenario.subtitle}
                     </p>
+                  )}
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <p className="text-gray-500 dark:text-gray-400">
+                        Loading chat interface...
+                      </p>
+                    </div>
                   </div>
-                )}
-                
-                {selectedFeature === 'sema' && (
-                  <div className="text-center py-8">
-                    <h2 className="text-xl font-semibold mb-2">Sema Feature</h2>
-                    <p className="text-gray-600">Sema content loading...</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Sema Feature */}
+          {selectedFeature === 'sema' && (
+            <div className="h-full flex flex-col p-6">
+              <div className="max-w-4xl mx-auto w-full">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                  <div className="flex items-center mb-6">
+                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mr-4">
+                      <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                        Sema - Speech Enhancement
+                      </h2>
+                      <p className="text-gray-600 dark:text-gray-300">
+                        Advanced speech therapy and pronunciation practice
+                      </p>
+                    </div>
                   </div>
-                )}
-                
-                {selectedFeature === 'tusome' && (
-                  <div className="text-center py-8">
-                    <h2 className="text-xl font-semibold mb-2">Tusome Feature</h2>
-                    <p className="text-gray-600">Tusome content loading...</p>
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+                      <p className="text-gray-500 dark:text-gray-400">
+                        Loading Sema interface...
+                      </p>
+                    </div>
                   </div>
-                )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Tusome Feature */}
+          {selectedFeature === 'tusome' && (
+            <div className="h-full flex flex-col p-6">
+              <div className="max-w-4xl mx-auto w-full">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                  <div className="flex items-center mb-6">
+                    <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center mr-4">
+                      <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.168 18.477 18.582 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                        Tusome - Reading Practice
+                      </h2>
+                      <p className="text-gray-600 dark:text-gray-300">
+                        Interactive reading exercises and comprehension training
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+                      <p className="text-gray-500 dark:text-gray-400">
+                        Loading Tusome interface...
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
