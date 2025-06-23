@@ -194,7 +194,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   const isSessionMeaningfullyUsed = useCallback(() => {
     const hasGeneratedArticle = topic !== null;
     const hasWizardProgress = wizardProgress.hasSubmittedParams;
-    const hasChatInteraction = chatMessages.length > 0;
+    const hasChatInteraction = Array.isArray(chatMessages) ? chatMessages.length > 0 : false;
     const hasAdvancedWizardProgress = customStep > 3; // User has gone past basic steps
     const hasConfiguredParams = params.category && params.ageGroup;
     
@@ -219,7 +219,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     });
     
     return isMeaningfullyUsed;
-  }, [topic, wizardProgress.hasSubmittedParams, chatMessages.length, customStep, params.category, params.ageGroup, sessionInteractionLevel, currentSessionId]);
+  }, [topic, wizardProgress.hasSubmittedParams, Array.isArray(chatMessages) ? chatMessages.length : 0, customStep, params.category, params.ageGroup, sessionInteractionLevel, currentSessionId]);
 
   // Handle viewport changes with debouncing
   useEffect(() => {
@@ -314,7 +314,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   // Save chat messages to API whenever they change
   useEffect(() => {
     const saveChatHistory = async () => {
-      if (chatMessages.length === 0) return;
+      if (!Array.isArray(chatMessages) || chatMessages.length === 0) return;
       
       try {
         // Create session if it doesn't exist
@@ -332,7 +332,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
         }
 
         // Save the latest message
-        const lastMessage = chatMessages[chatMessages.length - 1];
+        const lastMessage = Array.isArray(chatMessages) && chatMessages.length > 0 ? chatMessages[chatMessages.length - 1] : null;
         if (lastMessage && !lastMessage.saved) {
           await api.addReadingMessage(currentSessionId, {
             role: lastMessage.sender === 'user' ? 'user' : 'assistant',
@@ -679,7 +679,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
       isMeaningfullyUsed,
       interactionLevel: sessionInteractionLevel,
       wizardProgress,
-      hasContent: topic !== null || chatMessages.length > 0
+      hasContent: topic !== null || (Array.isArray(chatMessages) ? chatMessages.length > 0 : false)
     });
     
     if (!isMeaningfullyUsed) {
@@ -1361,7 +1361,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
       </div>
 
       {/* Chat/Feedback Section */}
-      {chatMessages.length > 0 && (
+                {Array.isArray(chatMessages) && chatMessages.length > 0 && (
         <section className="chat-container">
           <div className="chat-header">
             <h3>Feedback & Discussion</h3>

@@ -966,7 +966,7 @@ const VoiceSelector = ({
               }}
             />
             <div className="character-count">
-              {previewText.length}/200 characters
+              {(previewText || '').length}/200 characters
             </div>
           </div>
 

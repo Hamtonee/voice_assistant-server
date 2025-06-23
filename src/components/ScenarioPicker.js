@@ -253,7 +253,7 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
         <div className="scenario-grid-wrapper">
           {categoryOrder.map(category => {
             const items = filtered.filter(s => s.category === category);
-            if (!items.length) return null;
+            if (!Array.isArray(items) || items.length === 0) return null;
 
             return (
               <div key={category} className="scenario-category-block">
