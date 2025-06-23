@@ -147,9 +147,18 @@ const ChatWindow = () => {
 
   // Main content renderer
   function renderMainContent() {
+    console.log('🎯 Rendering main content:', { 
+      selectedFeature, 
+      scenario, 
+      needsScenarioSelection: needsScenarioSelection(),
+      isFeatureReady: isFeatureReady(),
+      scenariosLength: scenarios?.length || 0
+    });
+
     // Chat Feature
     if (selectedFeature === 'chat') {
       if (needsScenarioSelection()) {
+        console.log('📋 Showing scenario picker');
         return (
           <div className="scenario-wrapper">
             <Suspense fallback={<LottieLoader />}>
@@ -164,6 +173,7 @@ const ChatWindow = () => {
       }
 
       if (scenario && isFeatureReady()) {
+        console.log('💬 Showing chat detail');
         return (
           <div className="scenario-content">
             <div className="scenario-header">
@@ -183,10 +193,21 @@ const ChatWindow = () => {
           </div>
         );
       }
+
+      // Chat fallback - if no scenario but in chat mode
+      console.log('💬 Chat fallback - showing welcome');
+      return (
+        <div className="welcome-container">
+          <h2>💬 Chat Feature</h2>
+          <p>Loading scenarios...</p>
+          <p>Available scenarios: {scenarios?.length || 0}</p>
+        </div>
+      );
     }
 
     // Sema Feature
     if (selectedFeature === 'sema') {
+      console.log('🎤 Showing speech coach');
       return (
         <div className="feature-container">
           <Suspense fallback={<LottieLoader />}>
@@ -203,6 +224,7 @@ const ChatWindow = () => {
 
     // Tusome Feature
     if (selectedFeature === 'tusome') {
+      console.log('📚 Showing reading passage');
       return (
         <div className="feature-container">
           <Suspense fallback={<LottieLoader />}>
@@ -220,9 +242,27 @@ const ChatWindow = () => {
 
     // Default fallback
     return (
-      <div className="welcome-container">
-        <h2>Welcome to Voice Assistant</h2>
-        <p>Select a feature from the sidebar to get started.</p>
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: '#1a1d29',
+        color: '#f7fafc',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+        fontSize: '18px'
+      }}>
+        <h2 style={{ margin: '0 0 1rem 0' }}>🎯 Debug Info</h2>
+        <p>Selected Feature: {selectedFeature}</p>
+        <p>Scenario: {scenario ? 'Yes' : 'No'}</p>
+        <p>Needs Scenario Selection: {needsScenarioSelection() ? 'Yes' : 'No'}</p>
+        <p>Is Feature Ready: {isFeatureReady() ? 'Yes' : 'No'}</p>
+        <p>Available Scenarios: {scenarios?.length || 0}</p>
       </div>
     );
   }
