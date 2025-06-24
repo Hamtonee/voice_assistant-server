@@ -2,25 +2,49 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TTSService } from '../services/TTSService';
 import api from '../api';
 import '../assets/styles/SpeechCoach.css';
+import { FiMic, FiMicOff, FiSend, FiTrash2, FiBarChart3, FiX, FiChevronDown } from 'react-icons/fi';
 
-export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onNewSession }) {
+export default function SpeechCoach({ 
+  sessionId, 
+  selectedVoice, 
+  sidebarOpen, 
+  onNewSession,
+  chatInstances = [],
+  setChatInstances = () => {},
+  activeChatId = null,
+  scenario = null,
+  alwaysListen = false,
+  onToggleListen = () => {}
+}) {
+  // Speech recognition and TTS state
   const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const [feedback, setFeedback] = useState('');
+  const [inputText, setInputText] = useState('');
   const [error, setError] = useState(null);
   const [ttsAvailable, setTTSAvailable] = useState(false);
   const [isSpeechSupported, setIsSpeechSupported] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [correctedSentence, setCorrectedSentence] = useState(null);
-  const [analysis, setAnalysis] = useState(null);
-  const [suggestions, setSuggestions] = useState([]);
-  const [vocabulary, setVocabulary] = useState([]);
   
+  // Chat-style conversation state
+  const [messages, setMessages] = useState([]);
+  const [showProgressPanel, setShowProgressPanel] = useState(false);
+  const [progressStats, setProgressStats] = useState({
+    interactions: 0,
+    vocabulary: 0,
+    proverbs: 0,
+    duration: '0m'
+  });
+  
+  // UI state
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  
+  // Refs
   const recognitionRef = useRef(null);
   const ttsRef = useRef(null);
   const ttsServiceRef = useRef(null);
   const isUnmountingRef = useRef(false);
+  const messagesRef = useRef(null);
 
+  // Initialize speech services
   useEffect(() => {
     isUnmountingRef.current = false;
     ttsServiceRef.current = new TTSService();
@@ -62,6 +86,36 @@ export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onN
     };
   }, []);
 
+  // Handle scroll detection
+  useEffect(() => {
+    const handleScroll = () => {
+      if (messagesRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = messagesRef.current;
+        setShowScrollButton(scrollHeight - scrollTop - clientHeight > 100);
+      }
+    };
+
+    if (messagesRef.current) {
+      messagesRef.current.addEventListener('scroll', handleScroll);
+      return () => {
+        if (messagesRef.current) {
+          messagesRef.current.removeEventListener('scroll', handleScroll);
+        }
+      };
+    }
+  }, []);
+
+  // Auto-scroll to bottom
+  const scrollToBottom = useCallback(() => {
+    if (messagesRef.current) {
+      messagesRef.current.scrollTo({
+        top: messagesRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, []);
+
+  // Start recording
   const handleStartRecording = useCallback(() => {
     if (!recognitionRef.current || isRecording) return;
 
@@ -75,7 +129,7 @@ export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onN
           const transcript = Array.from(event.results)
             .map(result => result[0].transcript)
             .join('');
-          setTranscript(transcript);
+          setInputText(transcript);
         }
       };
 
@@ -97,6 +151,7 @@ export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onN
     }
   }, [isRecording]);
 
+  // Stop recording
   const handleStopRecording = useCallback(() => {
     if (!recognitionRef.current || !isRecording) return;
 
@@ -109,8 +164,9 @@ export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onN
     }
   }, [isRecording]);
 
-  const handleSubmit = useCallback(async () => {
-    if (!transcript.trim()) {
+  // Send message
+  const handleSendMessage = useCallback(async () => {
+    if (!inputText.trim()) {
       setError('Please say something before submitting.');
       return;
     }
@@ -118,19 +174,46 @@ export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onN
     setIsProcessing(true);
     setError(null);
 
+    // Add user message to chat
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      content: inputText.trim(),
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    setInputText('');
+
     try {
       const { data } = await api.post('/speech-coach', {
         session_id: sessionId,
-        transcript: transcript.trim(),
+        transcript: userMessage.content,
         voice: selectedVoice
       });
 
-      setFeedback(data.feedbackText);
-      setCorrectedSentence(data.correctedSentence);
-      setAnalysis(data.analysis);
-      setSuggestions(data.suggestions || []);
-      setVocabulary(data.vocabulary_introduced || []);
+      // Add coach response to chat
+      const coachMessage = {
+        id: Date.now() + 1,
+        type: 'coach',
+        content: data.feedbackText,
+        correctedSentence: data.correctedSentence,
+        analysis: data.analysis,
+        suggestions: data.suggestions || [],
+        vocabulary: data.vocabulary_introduced || [],
+        timestamp: new Date()
+      };
 
+      setMessages(prev => [...prev, coachMessage]);
+
+      // Update progress stats
+      setProgressStats(prev => ({
+        ...prev,
+        interactions: prev.interactions + 1,
+        vocabulary: prev.vocabulary + (data.vocabulary_introduced?.length || 0)
+      }));
+
+      // Play TTS feedback
       if (data.feedbackAudio && ttsServiceRef.current) {
         const audio = new Audio(`data:audio/mp3;base64,${data.feedbackAudio}`);
         ttsRef.current = audio;
@@ -142,121 +225,220 @@ export default function SpeechCoach({ sessionId, selectedVoice, sidebarOpen, onN
         await audio.play();
       }
 
-      setTranscript('');
+      // Auto-scroll to bottom
+      setTimeout(scrollToBottom, 100);
+      
     } catch (error) {
       console.error('Failed to process speech:', error);
       setError('Failed to process speech. Please try again.');
     } finally {
       setIsProcessing(false);
     }
-  }, [transcript, sessionId, selectedVoice]);
+  }, [inputText, sessionId, selectedVoice, scrollToBottom]);
 
+  // Handle enter key
+  const handleKeyPress = useCallback((e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  }, [handleSendMessage]);
+
+  // Clear conversation
   const handleClear = useCallback(() => {
-    setTranscript('');
-    setFeedback('');
+    setMessages([]);
+    setInputText('');
     setError(null);
-    setCorrectedSentence(null);
-    setAnalysis(null);
-    setSuggestions([]);
-    setVocabulary([]);
+    setProgressStats({
+      interactions: 0,
+      vocabulary: 0,
+      proverbs: 0,
+      duration: '0m'
+    });
   }, []);
 
   return (
     <div className={`speech-coach ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-      <div className="controls">
+      {/* Conversation Area */}
+      <div className={`conversation-area ${showProgressPanel ? 'progress-visible' : ''}`} ref={messagesRef}>
+        {messages.length === 0 ? (
+          <div className="empty-state">
+            <p>Start speaking to practice with your AI speech coach!</p>
+            <div className="voice-info">
+              <p><strong>Voice:</strong> {selectedVoice?.name || 'Default'}</p>
+              <p>The coach will provide feedback on pronunciation, grammar, and fluency.</p>
+            </div>
+          </div>
+        ) : (
+          messages.map(message => (
+            <div key={message.id} className={`message ${message.type}`}>
+              <p>{message.content}</p>
+              
+              {message.correctedSentence && (
+                <div className="correction">
+                  <small>Corrected: {message.correctedSentence}</small>
+                </div>
+              )}
+              
+              {message.suggestions && message.suggestions.length > 0 && (
+                <div className="coach-controls">
+                  {message.suggestions.slice(0, 3).map((suggestion, index) => (
+                    <button key={index} className="suggestion-btn" disabled>
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Scroll to Bottom Button */}
+      {showScrollButton && (
+        <button 
+          className={`scroll-to-bottom-btn ${showProgressPanel ? 'progress-visible' : ''}`}
+          onClick={scrollToBottom}
+          aria-label="Scroll to bottom"
+        >
+          <FiChevronDown size={24} />
+        </button>
+      )}
+
+      {/* Progress Panel */}
+      {showProgressPanel && (
+        <div className="progress-panel">
+          <div className="progress-panel-header">
+            <h3>
+              <FiBarChart3 size={16} />
+              Session Progress
+            </h3>
+            <button 
+              className="progress-panel-close"
+              onClick={() => setShowProgressPanel(false)}
+              aria-label="Close progress panel"
+            >
+              <FiX size={16} />
+            </button>
+          </div>
+          
+          <div className="progress-stats">
+            <div className="progress-stat">
+              <div className="progress-stat-value interactions">{progressStats.interactions}</div>
+              <div className="progress-stat-label">Interactions</div>
+            </div>
+            <div className="progress-stat">
+              <div className="progress-stat-value vocabulary">{progressStats.vocabulary}</div>
+              <div className="progress-stat-label">New Words</div>
+            </div>
+            <div className="progress-stat">
+              <div className="progress-stat-value proverbs">{progressStats.proverbs}</div>
+              <div className="progress-stat-label">Proverbs</div>
+            </div>
+            <div className="progress-stat">
+              <div className="progress-stat-value duration">{progressStats.duration}</div>
+              <div className="progress-stat-label">Duration</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Speech Input Container */}
+      <div className={`speech-input-container ${showProgressPanel ? 'progress-visible' : ''}`}>
+        <textarea
+          className="chat-text-field"
+          placeholder="Type or speak your message..."
+          value={inputText}
+          onChange={(e) => setInputText(e.target.value)}
+          onKeyDown={handleKeyPress}
+          disabled={isProcessing}
+          rows={1}
+        />
         <button
+          className="send-btn"
+          onClick={handleSendMessage}
+          disabled={!inputText.trim() || isProcessing}
+          aria-label="Send message"
+        >
+          <FiSend size={18} />
+        </button>
+      </div>
+
+      {/* Microphone Button */}
+      <div className={`mic-wrapper ${showProgressPanel ? 'progress-visible' : ''}`}>
+        <button
+          className={`mic-btn ${isRecording ? 'listening' : ''} ${!isSpeechSupported ? 'disabled' : ''}`}
           onClick={isRecording ? handleStopRecording : handleStartRecording}
           disabled={!isSpeechSupported || isProcessing}
+          aria-label={isRecording ? "Stop recording" : "Start recording"}
         >
-          {isRecording ? 'Stop Recording' : 'Start Recording'}
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={!transcript.trim() || isProcessing}
-        >
-          Submit
-        </button>
-        <button
-          onClick={handleClear}
-          disabled={isProcessing || (!transcript && !feedback)}
-        >
-          Clear
+          {isRecording ? (
+            <>
+              <FiMicOff size={32} />
+              <div className="listening-pulse">
+                <div className="pulse-ring"></div>
+                <div className="pulse-ring"></div>
+                <div className="pulse-ring"></div>
+              </div>
+            </>
+          ) : (
+            <FiMic size={32} />
+          )}
         </button>
       </div>
 
+      {/* Controls Container */}
+      <div className={`controls-container ${showProgressPanel ? 'progress-visible' : ''}`}>
+        <div className="coach-controls-bar">
+          <div className="controls-left">
+            <button
+              className="control-btn clear-btn"
+              onClick={handleClear}
+              disabled={isProcessing || messages.length === 0}
+            >
+              <FiTrash2 size={16} />
+              Clear
+            </button>
+          </div>
+          
+          <div className="controls-right">
+            <button
+              className={`control-btn progress-toggle-btn ${showProgressPanel ? 'active' : ''}`}
+              onClick={() => setShowProgressPanel(!showProgressPanel)}
+            >
+              <FiBarChart3 size={16} />
+              Progress
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Error Banner */}
       {error && (
-        <div className="error">
-          {error}
+        <div className="error-banner">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} aria-label="Close error">
+            <FiX size={16} />
+          </button>
         </div>
       )}
 
-      <div className="transcript">
-        <h3>Your Speech</h3>
-        <p>{transcript || 'Start speaking...'}</p>
-      </div>
-
-      {correctedSentence && (
-        <div className="correction">
-          <h3>Corrected Version</h3>
-          <p>{correctedSentence}</p>
-        </div>
-      )}
-
-      {feedback && (
-        <div className="feedback">
-          <h3>Feedback</h3>
-          <p>{feedback}</p>
-        </div>
-      )}
-
-      {analysis && (
-        <div className="analysis">
-          <h3>Detailed Analysis</h3>
-          <ul>
-            {Object.entries(analysis || {}).map(([key, value]) => (
-              <li key={key}>
-                <strong>{key}:</strong> {typeof value === 'object' ? JSON.stringify(value) : value}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {Array.isArray(suggestions) && suggestions.length > 0 && (
-        <div className="suggestions">
-          <h3>Suggestions for Improvement</h3>
-          <ul>
-            {suggestions.map((suggestion, index) => (
-              <li key={index}>{suggestion}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {Array.isArray(vocabulary) && vocabulary.length > 0 && (
-        <div className="vocabulary">
-          <h3>New Vocabulary</h3>
-          <ul>
-            {vocabulary.map((word, index) => (
-              <li key={index}>
-                <strong>{word?.word || 'Unknown'}</strong>: {word?.definition || 'No definition available'}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
+      {/* Browser Warning */}
       {!isSpeechSupported && (
-        <div className="warning">
-          Speech recognition is not supported in your browser.
-          Please try using Chrome, Edge, or Safari.
+        <div className="browser-warning">
+          <p>
+            Speech recognition is not supported in your browser.
+            Please try using Chrome, Edge, or Safari.
+          </p>
         </div>
       )}
 
       {!ttsAvailable && (
-        <div className="warning">
-          Text-to-speech service is currently unavailable.
-          You will not hear audio feedback.
+        <div className="browser-warning">
+          <p>
+            Text-to-speech service is currently unavailable.
+            You will not hear audio feedback.
+          </p>
         </div>
       )}
     </div>
