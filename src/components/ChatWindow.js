@@ -218,20 +218,18 @@ const ChatWindow = React.memo(() => {
 
   // Memoized props to prevent unnecessary re-renders
   const sidebarProps = useMemo(() => ({
-    features,
     selectedFeature,
-    onFeatureSelect: handleFeatureSelect,
-    sessions: getSessionsByFeature(selectedFeature),
-    activeSessionId: getCurrentActiveId(selectedFeature),
-    onSelectSession: handleSelectSession,
-    onNewSession: handleNewSession,
-    onDeleteSession: handleDeleteSession,
-    onRenameSession: handleRenameSession,
-    onVoiceSelect: handleVoiceSelect,
-    selectedVoice,
-    user
+    onSelectFeature: handleFeatureSelect,
+    chatInstances: getSessionsByFeature(selectedFeature),
+    activeChatId: getCurrentActiveId(selectedFeature),
+    onSelectChat: handleSelectSession,
+    onNewChat: handleNewSession,
+    onDeleteChat: handleDeleteSession,
+    onRenameChat: handleRenameSession,
+    currentScenarioKey: scenario?.key,
+    hasCurrentChatContent: false, // This would need proper implementation
+    usageSummary: null // This would need proper implementation
   }), [
-    features,
     selectedFeature,
     handleFeatureSelect,
     getSessionsByFeature,
@@ -240,9 +238,7 @@ const ChatWindow = React.memo(() => {
     handleNewSession,
     handleDeleteSession,
     handleRenameSession,
-    handleVoiceSelect,
-    selectedVoice,
-    user
+    scenario?.key
   ]);
 
   // Memoized header props
