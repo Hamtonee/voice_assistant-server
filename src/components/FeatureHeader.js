@@ -1,6 +1,6 @@
 // src/components/FeatureHeader.js - Optimized Version
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { FiMenu, FiX, FiSearch, FiMoreVertical, FiVolume2, FiMoon, FiSun } from 'react-icons/fi';
+import { FiMenu, FiX, FiMoreVertical, FiVolume2, FiMoon, FiSun } from 'react-icons/fi';
 import Avatar from './Avatar';
 import VoiceSelector from './VoiceSelector';
 import '../assets/styles/FeatureHeader.css';
@@ -81,8 +81,6 @@ export default function FeatureHeader({
 }) {
   const { darkMode, toggleDarkMode } = useDarkMode();
   const { openDropdowns, toggleDropdown, closeAllDropdowns, closeDropdown } = useDropdownManager();
-  
-  const [searchQuery, setSearchQuery] = useState('');
   
   const avatarRef = useRef(null);
   const overflowRef = useRef(null);
@@ -172,34 +170,24 @@ export default function FeatureHeader({
             {sidebarOpen ? <FiX size={20} /> : <FiMenu size={20} />}
           </button>
           
-          <div className="header-title">
-            {featureInfo.showBackButton && (
-              <button 
-                className="back-button"
-                onClick={onClearScenario}
-                aria-label="Go back to scenario selection"
-              >
-                ←
-              </button>
-            )}
-            <div>
-              <h1>{featureInfo.title}</h1>
-              <p className="subtitle">{featureInfo.subtitle}</p>
-            </div>
-          </div>
+          {featureInfo.showBackButton && (
+            <button 
+              className="back-button"
+              onClick={onClearScenario}
+              aria-label="Go back to scenario selection"
+            >
+              ←
+            </button>
+          )}
         </div>
 
-        {/* Center Section - Search */}
+        {/* Center Section - Dynamic Titles */}
         <div className="header-center">
-          <div className="search-container">
-            <FiSearch className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
+          <div className="header-title-center">
+            <h1>{featureInfo.title}</h1>
+            {featureInfo.subtitle && (
+              <p className="subtitle">{featureInfo.subtitle}</p>
+            )}
           </div>
         </div>
 
