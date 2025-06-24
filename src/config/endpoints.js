@@ -6,7 +6,7 @@ export const ENDPOINTS = {
   CHAT_ROLEPLAY: '/chat-roleplay',
   READING_TOPIC: '/reading-topic',
   HEALTH: '/health',
-  USAGE: '/usage-summary',
+  USAGE: '/api/usage-summary',
   LEARNING_PROGRESS: '/learning-progress',
   CHATS: '/chats',
   AUTH: {
