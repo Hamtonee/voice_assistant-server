@@ -64,12 +64,30 @@ const ChatWindow = () => {
     isFeatureReady
   } = useFeatureNavigation();
 
-  // Initialize sessions on component mount
+  // Initialize sessions on component mount with auto-creation for sema/tusome
   useEffect(() => {
     if (user) {
-      fetchSessions();
+      const initializeSessions = async () => {
+        const sessionsData = await fetchSessions();
+        
+        // Auto-create Sema and Tusome sessions if they don't exist
+        const hasSemanSession = sessionsData.some(s => s.feature === 'sema');
+        const hasTusomeSession = sessionsData.some(s => s.feature === 'tusome');
+        
+        if (!hasSemanSession) {
+          console.log('🎤 Creating initial Sema session...');
+          await createNewSession('sema', false);
+        }
+        
+        if (!hasTusomeSession) {
+          console.log('📚 Creating initial Tusome session...');
+          await createNewSession('tusome', false);
+        }
+      };
+      
+      initializeSessions();
     }
-  }, [user, fetchSessions]);
+  }, [user, fetchSessions, createNewSession]);
 
   // Session management handlers
   const handleNewSession = async () => {
@@ -187,20 +205,31 @@ const ChatWindow = () => {
     // Sema Feature
     if (selectedFeature === 'sema') {
       console.log('🎤 SEMA: Entered sema feature branch - ATTEMPTING TO RENDER');
+      const semaSessionId = getCurrentActiveId(selectedFeature);
       console.log('🎤 SEMA: Component props:', {
-        sessionId: getCurrentActiveId(selectedFeature),
+        sessionId: semaSessionId,
         selectedVoice,
         sidebarOpen,
-        viewport,
         onNewSession: typeof handleNewSession
       });
+      
+      // Ensure session exists before rendering
+      if (!semaSessionId) {
+        console.log('🎤 SEMA: No session ID, creating new session...');
+        createNewSession('sema', false);
+        return (
+          <div className="feature-loading">
+            <LottieLoader message="Initializing Sema session..." />
+          </div>
+        );
+      }
       
       try {
         return (
           <div className="main-content-area speech-coach-container">
             <Suspense fallback={<LottieLoader message="Loading Speech Coach..." />}>
               <LazySpeechCoach 
-                sessionId={getCurrentActiveId(selectedFeature)}
+                sessionId={semaSessionId}
                 selectedVoice={selectedVoice}
                 sidebarOpen={sidebarOpen}
                 onNewSession={handleNewSession}
@@ -214,6 +243,9 @@ const ChatWindow = () => {
           <div className="feature-error">
             <h3>Error loading Sema</h3>
             <p>{error.message}</p>
+            <button onClick={() => createNewSession('sema', false)}>
+              Retry
+            </button>
           </div>
         );
       }
@@ -222,20 +254,32 @@ const ChatWindow = () => {
     // Tusome Feature
     if (selectedFeature === 'tusome') {
       console.log('📚 TUSOME: Entered tusome feature branch - ATTEMPTING TO RENDER');
+      const tusomeSessionId = getCurrentActiveId(selectedFeature);
       console.log('📚 TUSOME: Component props:', {
-        sessionId: getCurrentActiveId(selectedFeature),
+        sessionId: tusomeSessionId,
         selectedVoice,
         viewport,
         sidebarState: { open: sidebarOpen, width: sidebarOpen ? 320 : 0 },
         onNewSession: typeof handleNewSession
       });
       
+      // Ensure session exists before rendering
+      if (!tusomeSessionId) {
+        console.log('📚 TUSOME: No session ID, creating new session...');
+        createNewSession('tusome', false);
+        return (
+          <div className="feature-loading">
+            <LottieLoader message="Initializing Tusome session..." />
+          </div>
+        );
+      }
+      
       try {
         return (
           <div className="main-content-area reading-practice-container">
             <Suspense fallback={<LottieLoader message="Loading Reading Practice..." />}>
               <LazyReadingPassage 
-                sessionId={getCurrentActiveId(selectedFeature)}
+                sessionId={tusomeSessionId}
                 selectedVoice={selectedVoice}
                 viewport={viewport}
                 sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
@@ -250,6 +294,9 @@ const ChatWindow = () => {
           <div className="feature-error">
             <h3>Error loading Tusome</h3>
             <p>{error.message}</p>
+            <button onClick={() => createNewSession('tusome', false)}>
+              Retry
+            </button>
           </div>
         );
       }
