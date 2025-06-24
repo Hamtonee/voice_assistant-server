@@ -139,6 +139,19 @@ export class TTSService {
             this.currentRequest = null;
         }
     }
+
+    async checkStatus() {
+        try {
+            // Simple test to check if TTS service is available
+            // Try to make a basic request to the API to test connectivity
+            const testResponse = await api.get('/health', { timeout: 5000 });
+            return testResponse.status === 200;
+        } catch (error) {
+            console.warn('TTS status check failed, falling back to browser TTS:', error);
+            // Check if browser TTS is available as fallback
+            return !!window.speechSynthesis;
+        }
+    }
 }
 
 // Create and export the singleton instance

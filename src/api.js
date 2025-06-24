@@ -483,7 +483,7 @@ export const fetchLearningProgress = (sessionId, userInitiated = false) => {
 
 export const fetchUsageSummary = () => {
   console.log('📊 Fetching usage summary...');
-  return api.get('/usage-summary');
+  return api.get('/api/usage-summary');
 };
 
 export const updateLearningProgress = (sessionId, progressData) => {
