@@ -49,17 +49,41 @@ const fallbackResponsiveLayout = () => ({
   closeSidebarOnMobile: () => {}
 });
 
-const fallbackFeatureNavigation = () => ({
+// Create a fallback with basic state management
+let fallbackState = {
   selectedFeature: 'chat',
   scenario: null,
-  selectedVoice: null,
+  selectedVoice: null
+};
+
+const fallbackFeatureNavigation = () => ({
+  selectedFeature: fallbackState.selectedFeature,
+  scenario: fallbackState.scenario,
+  selectedVoice: fallbackState.selectedVoice,
   features: ['chat', 'sema', 'tusome'],
-  handleFeatureSelect: () => {},
-  handleSelectScenario: () => {},
+  handleFeatureSelect: (featureId) => {
+    console.log(`🔧 [FALLBACK] handleFeatureSelect called with: "${featureId}"`);
+    console.log(`🔄 [Feature Selection] Switching from ${fallbackState.selectedFeature} to ${featureId}`);
+    fallbackState.selectedFeature = featureId;
+    if (featureId !== 'chat') {
+      fallbackState.scenario = null;
+    }
+    // Force re-render by triggering a window update
+    window.dispatchEvent(new CustomEvent('fallback-feature-change'));
+  },
+  handleSelectScenario: (scenarioData) => {
+    console.log(`🔧 [FALLBACK] handleSelectScenario called with:`, scenarioData);
+    fallbackState.scenario = scenarioData;
+    window.dispatchEvent(new CustomEvent('fallback-feature-change'));
+  },
   handleVoiceSelect: () => {},
-  clearScenario: () => {},
-  needsScenarioSelection: () => false,
-  isFeatureReady: () => true
+  clearScenario: () => {
+    console.log(`🔧 [FALLBACK] clearScenario called`);
+    fallbackState.scenario = null;
+    window.dispatchEvent(new CustomEvent('fallback-feature-change'));
+  },
+  needsScenarioSelection: () => fallbackState.selectedFeature === 'chat' && !fallbackState.scenario,
+  isFeatureReady: () => fallbackState.selectedFeature !== 'chat' || !!fallbackState.scenario
 });
 
 // Error Boundary Component
@@ -109,15 +133,29 @@ const ChatWindow = React.memo(() => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // CRITICAL FIX: Always call hooks unconditionally at top level
-  const sessionManagement = useSessionManagementHook || fallbackSessionManagement;
-  const responsiveLayout = useResponsiveLayoutHook || fallbackResponsiveLayout;
-  const featureNavigation = useFeatureNavigationHook || fallbackFeatureNavigation;
+  // CRITICAL FIX: Call hooks directly with proper error handling
+  let sessionResult, layoutResult, navigationResult;
   
-  // Call the hooks unconditionally
-  const sessionResult = sessionManagement();
-  const layoutResult = responsiveLayout();
-  const navigationResult = featureNavigation();
+  try {
+    sessionResult = useSessionManagementHook();
+  } catch (error) {
+    console.warn('Session management hook failed, using fallback:', error);
+    sessionResult = fallbackSessionManagement();
+  }
+  
+  try {
+    layoutResult = useResponsiveLayoutHook();
+  } catch (error) {
+    console.warn('Responsive layout hook failed, using fallback:', error);
+    layoutResult = fallbackResponsiveLayout();
+  }
+  
+  try {
+    navigationResult = useFeatureNavigationHook();
+  } catch (error) {
+    console.warn('Feature navigation hook failed, using fallback:', error);
+    navigationResult = fallbackFeatureNavigation();
+  }
 
   // Destructure with fallbacks
   const {
@@ -142,13 +180,20 @@ const ChatWindow = React.memo(() => {
     scenario = null,
     selectedVoice = null,
     features = ['chat', 'sema', 'tusome'],
-    handleFeatureSelect = () => {},
+    handleFeatureSelect = () => {
+      console.error('⚠️ Using fallback handleFeatureSelect - this indicates hook import failed');
+    },
     handleSelectScenario = () => {},
     handleVoiceSelect = () => {},
     clearScenario = () => {},
     needsScenarioSelection = () => false,
     isFeatureReady = () => true
   } = navigationResult;
+
+  // Debug logging for feature navigation
+  console.log('🔍 ChatWindow: Navigation result type:', typeof navigationResult);
+  console.log('🔍 ChatWindow: handleFeatureSelect type:', typeof handleFeatureSelect);
+  console.log('🔍 ChatWindow: Is fallback being used?', handleFeatureSelect.toString().includes('fallback'));
 
   // Initialize sessions on component mount with error handling
   useEffect(() => {
