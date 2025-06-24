@@ -111,6 +111,15 @@ export default function FeatureHeader({
 
   const featureInfo = getFeatureInfo();
 
+  // Debug logging
+  console.log('🎯 FeatureHeader rendered:', {
+    selectedFeature,
+    scenario: scenario?.label || 'None',
+    featureInfo,
+    sidebarOpen,
+    user: user?.name || 'Unknown'
+  });
+
   // Handle click outside dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -184,9 +193,9 @@ export default function FeatureHeader({
         {/* Center Section - Dynamic Titles */}
         <div className="header-center">
           <div className="header-title-center">
-            <h1>{featureInfo.title}</h1>
+            <h1 style={{ color: 'red', border: '1px solid blue' }}>{featureInfo.title}</h1>
             {featureInfo.subtitle && (
-              <p className="subtitle">{featureInfo.subtitle}</p>
+              <p className="subtitle" style={{ color: 'green', border: '1px solid orange' }}>{featureInfo.subtitle}</p>
             )}
           </div>
         </div>
