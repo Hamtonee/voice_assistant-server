@@ -1,20 +1,23 @@
 /* Simple SpeechCoach Component Styles */
+/* Import theme variables */
+@import './CSSVariables.css';
+
 :root {
-  --accent-color: #007bff;
-  --accent-hover: #0056b3;
-  --border-color: #ddd;
-  --bg-light: #fafafa;
-  --bg-input: #fff;
-  --error-color: #e74c3c;
-  --warning-color: #f39c12;
-  --success-color: #2ecc71;
-  --info-color: #3498db;
-  --text-primary: #333;
-  --text-muted: #666;
-  --text-light: #888;
-  --border-radius: 8px;
-  --shadow-light: 0 2px 8px rgba(0,0,0,0.1);
-  --shadow-medium: 0 4px 16px rgba(0,0,0,0.15);
+  --speech-accent-color: var(--accent-primary, #6366f1);
+  --speech-accent-hover: var(--accent-secondary, #4f46e5);
+  --speech-border-color: var(--border-color, #e2e8f0);
+  --speech-bg-light: var(--bg-secondary, #f8f9fa);
+  --speech-bg-input: var(--bg-elevated, #ffffff);
+  --speech-error-color: #ef4444;
+  --speech-warning-color: #f59e0b;
+  --speech-success-color: #10b981;
+  --speech-info-color: #3b82f6;
+  --speech-text-primary: var(--text-primary, #1f2937);
+  --speech-text-muted: var(--text-secondary, #6b7280);
+  --speech-text-light: var(--text-tertiary, #9ca3af);
+  --speech-border-radius: 8px;
+  --speech-shadow-light: 0 2px 8px rgba(0,0,0,0.08);
+  --speech-shadow-medium: 0 4px 16px rgba(0,0,0,0.12);
 }
 
 /* Dark theme support */
@@ -39,24 +42,29 @@
   flex-direction: column;
   gap: 1.5rem;
   padding: 1.5rem;
-  background: var(--bg-light);
-  border-radius: var(--border-radius);
-  max-width: 800px;
-  margin: 0 auto;
-  min-height: 500px;
+  background: var(--bg-primary, #ffffff);
+  border-radius: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  min-height: 100%;
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
   transition: all 0.3s ease;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Sidebar responsive adjustments */
 .speech-coach.sidebar-open {
-  max-width: 100%;
-  margin: 0;
-  padding: 1rem;
+  padding: 1rem 1.5rem;
+  max-width: none;
 }
 
 .speech-coach.sidebar-closed {
-  max-width: 900px;
-  padding: 2rem;
+  padding: 1.5rem 2rem;
+  max-width: none;
 }
 
 /* Controls section */
@@ -64,23 +72,30 @@
   display: flex;
   gap: 1rem;
   justify-content: center;
-  padding: 1rem;
-  background: var(--bg-input);
-  border-radius: var(--border-radius);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-light);
+  padding: 1.25rem;
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .controls button {
-  padding: 0.75rem 1.5rem;
+  padding: 0.875rem 1.75rem;
   border: none;
-  border-radius: var(--border-radius);
-  background: var(--accent-color);
+  border-radius: 8px;
+  background: var(--accent-color, #6366f1);
   color: white;
   font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 120px;
+  min-width: 140px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .controls button:hover:not(:disabled) {
@@ -117,12 +132,13 @@
 .analysis,
 .suggestions,
 .vocabulary {
-  background: var(--bg-input);
+  background: var(--bg-secondary, #ffffff);
   padding: 1.5rem;
-  border-radius: var(--border-radius);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-light);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transition: all 0.3s ease;
+  margin-bottom: 0.5rem;
 }
 
 .transcript:hover,
@@ -251,22 +267,26 @@
   .speech-coach {
     padding: 1rem;
     gap: 1rem;
+    max-height: calc(100vh - 64px);
   }
 
   .speech-coach.sidebar-open,
   .speech-coach.sidebar-closed {
     padding: 1rem;
-    max-width: 100%;
+    max-width: none;
   }
 
   .controls {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     gap: 0.75rem;
+    padding: 1rem;
   }
 
   .controls button {
-    min-width: auto;
-    width: 100%;
+    flex: 1;
+    min-width: 120px;
+    min-height: 44px;
   }
 
   .transcript h3,
