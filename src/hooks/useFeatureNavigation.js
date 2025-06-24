@@ -30,13 +30,21 @@ export const useFeatureNavigation = () => {
 
   // Feature selection handler
   const handleFeatureSelect = useCallback((featureId) => {
-    if (featureId === selectedFeature) return;
+    console.log(`🎯 [HOOK] handleFeatureSelect called with: "${featureId}"`);
+    console.log(`🎯 [HOOK] Current selectedFeature: "${selectedFeature}"`);
+    console.log(`🎯 [HOOK] Are they the same?`, featureId === selectedFeature);
     
-    console.log(`🔄 Switching to feature: ${featureId}`);
+    if (featureId === selectedFeature) {
+      console.log(`🎯 [HOOK] Same feature selected, ignoring`);
+      return;
+    }
+    
+    console.log(`🎯 [HOOK] Switching to feature: ${featureId}`);
     setSelectedFeature(featureId);
     
     // Reset scenario when switching away from chat
     if (featureId !== 'chat') {
+      console.log(`🎯 [HOOK] Clearing scenario (switching to ${featureId})`);
       setScenario(null);
     }
   }, [selectedFeature]);
