@@ -193,9 +193,9 @@ export default function FeatureHeader({
         {/* Center Section - Dynamic Titles */}
         <div className="header-center">
           <div className="header-title-center">
-            <h1 style={{ color: 'red', border: '1px solid blue' }}>{featureInfo.title}</h1>
+            <h1>{featureInfo.title}</h1>
             {featureInfo.subtitle && (
-              <p className="subtitle" style={{ color: 'green', border: '1px solid orange' }}>{featureInfo.subtitle}</p>
+              <p className="subtitle">{featureInfo.subtitle}</p>
             )}
           </div>
         </div>

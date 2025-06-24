@@ -301,7 +301,9 @@ export default function ChatSidebar({
 
   // Handle feature selection with keyboard blur and session context
   const handleFeatureSelect = useCallback((feature) => {
-    console.log(`🔄 [Feature Selection] Switching from ${selectedFeature} to ${feature}`);
+    console.log(`🚀 [SIDEBAR] Feature button clicked! From ${selectedFeature} to ${feature}`);
+    console.log(`🚀 [SIDEBAR] onSelectFeature type:`, typeof onSelectFeature);
+    console.log(`🚀 [SIDEBAR] onSelectFeature function:`, onSelectFeature);
     
     // Blur any focused elements to prevent keyboard issues
     if (document.activeElement) {
@@ -311,7 +313,9 @@ export default function ChatSidebar({
     // Reset validation state when switching features
     setLastValidationResult(null);
     
+    console.log(`🚀 [SIDEBAR] About to call onSelectFeature("${feature}")`);
     onSelectFeature(feature);
+    console.log(`🚀 [SIDEBAR] onSelectFeature("${feature}") called successfully`);
   }, [selectedFeature, onSelectFeature]);
 
   // Get feature-specific sessions

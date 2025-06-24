@@ -198,12 +198,8 @@ const ChatWindow = () => {
       
       try {
         return (
-          <div className="feature-container">
-            <div style={{ padding: '20px', background: 'yellow', border: '3px solid red' }}>
-              <h2>🎤 SEMA FEATURE LOADING...</h2>
-              <p>If you see this, Sema is working!</p>
-            </div>
-            <Suspense fallback={<LottieLoader message="Loading speech coach..." />}>
+          <div className="main-content-area speech-coach-container">
+            <Suspense fallback={<LottieLoader message="Loading Speech Coach..." />}>
               <LazySpeechCoach 
                 sessionId={getCurrentActiveId(selectedFeature)}
                 selectedVoice={selectedVoice}
@@ -238,12 +234,8 @@ const ChatWindow = () => {
       
       try {
         return (
-          <div className="feature-container">
-            <div style={{ padding: '20px', background: 'lightblue', border: '3px solid blue' }}>
-              <h2>📚 TUSOME FEATURE LOADING...</h2>
-              <p>If you see this, Tusome is working!</p>
-            </div>
-            <Suspense fallback={<LottieLoader message="Loading reading practice..." />}>
+          <div className="main-content-area reading-practice-container">
+            <Suspense fallback={<LottieLoader message="Loading Reading Practice..." />}>
               <LazyReadingPassage 
                 sessionId={getCurrentActiveId(selectedFeature)}
                 selectedVoice={selectedVoice}
@@ -275,11 +267,10 @@ const ChatWindow = () => {
           <div className="feature-info">
             <p><strong>Current Feature:</strong> {selectedFeature}</p>
             <p><strong>Available Features:</strong> {features.map(f => f.label).join(', ')}</p>
-            <div style={{ background: 'orange', padding: '10px', margin: '10px 0' }}>
-              <strong>DEBUG INFO:</strong>
-              <br />Selected: "{selectedFeature}"
-              <br />Type: {typeof selectedFeature}
-              <br />Features: {JSON.stringify(features.map(f => f.id))}
+            <div className="debug-info">
+              <strong>Debug Info:</strong>
+              <br />Selected Feature: {selectedFeature}
+              <br />Available: {features.map(f => f.label).join(', ')}
             </div>
           </div>
         </div>
