@@ -131,10 +131,21 @@ const ChatWindow = () => {
       scenariosCount: scenarios?.length || 0
     });
 
+    // Add extensive debugging for feature switching
+    console.log('🔍 DEBUG - Feature Analysis:', {
+      selectedFeature,
+      featureType: typeof selectedFeature,
+      scenario,
+      needsScenarioSelection: needsScenarioSelection(),
+      isFeatureReady: isFeatureReady(),
+      availableFeatures: features.map(f => f.id)
+    });
+
     // Chat Feature
     if (selectedFeature === 'chat') {
+      console.log('💬 CHAT: Entered chat feature branch');
       if (needsScenarioSelection()) {
-        console.log('📋 Showing scenario picker');
+        console.log('📋 CHAT: Showing scenario picker');
         return (
           <div className="scenario-wrapper">
             <Suspense fallback={<LottieLoader message="Loading scenarios..." />}>
@@ -148,7 +159,7 @@ const ChatWindow = () => {
       }
 
       if (scenario && isFeatureReady()) {
-        console.log('💬 Showing chat detail for:', scenario.label);
+        console.log('💬 CHAT: Showing chat detail for:', scenario.label);
         return (
           <div className="scenario-content">
             <Suspense fallback={<LottieLoader message="Loading conversation..." />}>
@@ -166,6 +177,7 @@ const ChatWindow = () => {
       }
 
       // Chat fallback - show loading or empty state
+      console.log('💬 CHAT: Showing fallback loading state');
       return (
         <div className="feature-loading">
           <LottieLoader message="Initializing chat..." />
@@ -175,41 +187,86 @@ const ChatWindow = () => {
 
     // Sema Feature
     if (selectedFeature === 'sema') {
-      console.log('🎤 Showing speech coach');
-      return (
-        <div className="feature-container">
-          <Suspense fallback={<LottieLoader message="Loading speech coach..." />}>
-            <LazySpeechCoach 
-              sessionId={getCurrentActiveId(selectedFeature)}
-              selectedVoice={selectedVoice}
-              sidebarOpen={sidebarOpen}
-              viewport={viewport}
-              onNewSession={handleNewSession}
-            />
-          </Suspense>
-        </div>
-      );
+      console.log('🎤 SEMA: Entered sema feature branch - ATTEMPTING TO RENDER');
+      console.log('🎤 SEMA: Component props:', {
+        sessionId: getCurrentActiveId(selectedFeature),
+        selectedVoice,
+        sidebarOpen,
+        viewport,
+        onNewSession: typeof handleNewSession
+      });
+      
+      try {
+        return (
+          <div className="feature-container">
+            <div style={{ padding: '20px', background: 'yellow', border: '3px solid red' }}>
+              <h2>🎤 SEMA FEATURE LOADING...</h2>
+              <p>If you see this, Sema is working!</p>
+            </div>
+            <Suspense fallback={<LottieLoader message="Loading speech coach..." />}>
+              <LazySpeechCoach 
+                sessionId={getCurrentActiveId(selectedFeature)}
+                selectedVoice={selectedVoice}
+                sidebarOpen={sidebarOpen}
+                viewport={viewport}
+                onNewSession={handleNewSession}
+              />
+            </Suspense>
+          </div>
+        );
+      } catch (error) {
+        console.error('🎤 SEMA: Error rendering:', error);
+        return (
+          <div className="feature-error">
+            <h3>Error loading Sema</h3>
+            <p>{error.message}</p>
+          </div>
+        );
+      }
     }
 
     // Tusome Feature
     if (selectedFeature === 'tusome') {
-      console.log('📚 Showing reading passage');
-      return (
-        <div className="feature-container">
-          <Suspense fallback={<LottieLoader message="Loading reading practice..." />}>
-            <LazyReadingPassage 
-              sessionId={getCurrentActiveId(selectedFeature)}
-              selectedVoice={selectedVoice}
-              viewport={viewport}
-              sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
-              onNewSession={handleNewSession}
-            />
-          </Suspense>
-        </div>
-      );
+      console.log('📚 TUSOME: Entered tusome feature branch - ATTEMPTING TO RENDER');
+      console.log('📚 TUSOME: Component props:', {
+        sessionId: getCurrentActiveId(selectedFeature),
+        selectedVoice,
+        viewport,
+        sidebarState: { open: sidebarOpen, width: sidebarOpen ? 320 : 0 },
+        onNewSession: typeof handleNewSession
+      });
+      
+      try {
+        return (
+          <div className="feature-container">
+            <div style={{ padding: '20px', background: 'lightblue', border: '3px solid blue' }}>
+              <h2>📚 TUSOME FEATURE LOADING...</h2>
+              <p>If you see this, Tusome is working!</p>
+            </div>
+            <Suspense fallback={<LottieLoader message="Loading reading practice..." />}>
+              <LazyReadingPassage 
+                sessionId={getCurrentActiveId(selectedFeature)}
+                selectedVoice={selectedVoice}
+                viewport={viewport}
+                sidebarState={{ open: sidebarOpen, width: sidebarOpen ? 320 : 0 }}
+                onNewSession={handleNewSession}
+              />
+            </Suspense>
+          </div>
+        );
+      } catch (error) {
+        console.error('📚 TUSOME: Error rendering:', error);
+        return (
+          <div className="feature-error">
+            <h3>Error loading Tusome</h3>
+            <p>{error.message}</p>
+          </div>
+        );
+      }
     }
 
     // Default fallback
+    console.log('❓ DEFAULT: No feature matched, showing fallback');
     return (
       <div className="welcome-container">
         <div className="welcome-content">
@@ -218,6 +275,12 @@ const ChatWindow = () => {
           <div className="feature-info">
             <p><strong>Current Feature:</strong> {selectedFeature}</p>
             <p><strong>Available Features:</strong> {features.map(f => f.label).join(', ')}</p>
+            <div style={{ background: 'orange', padding: '10px', margin: '10px 0' }}>
+              <strong>DEBUG INFO:</strong>
+              <br />Selected: "{selectedFeature}"
+              <br />Type: {typeof selectedFeature}
+              <br />Features: {JSON.stringify(features.map(f => f.id))}
+            </div>
           </div>
         </div>
       </div>
