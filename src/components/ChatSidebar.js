@@ -304,6 +304,7 @@ export default function ChatSidebar({
     console.log(`🚀 [SIDEBAR] Feature button clicked! From ${selectedFeature} to ${feature}`);
     console.log(`🚀 [SIDEBAR] onSelectFeature type:`, typeof onSelectFeature);
     console.log(`🚀 [SIDEBAR] onSelectFeature function:`, onSelectFeature);
+    console.log(`🚀 [SIDEBAR] onSelectFeature.toString():`, onSelectFeature.toString());
     
     // Blur any focused elements to prevent keyboard issues
     if (document.activeElement) {
@@ -313,9 +314,19 @@ export default function ChatSidebar({
     // Reset validation state when switching features
     setLastValidationResult(null);
     
+    // CRITICAL FIX: Add safety check for function
+    if (typeof onSelectFeature !== 'function') {
+      console.error(`❌ [SIDEBAR] onSelectFeature is not a function! Type: ${typeof onSelectFeature}`);
+      return;
+    }
+    
     console.log(`🚀 [SIDEBAR] About to call onSelectFeature("${feature}")`);
-    onSelectFeature(feature);
-    console.log(`🚀 [SIDEBAR] onSelectFeature("${feature}") called successfully`);
+    try {
+      onSelectFeature(feature);
+      console.log(`🚀 [SIDEBAR] onSelectFeature("${feature}") called successfully`);
+    } catch (error) {
+      console.error(`❌ [SIDEBAR] Error calling onSelectFeature:`, error);
+    }
   }, [selectedFeature, onSelectFeature]);
 
   // Get feature-specific sessions
