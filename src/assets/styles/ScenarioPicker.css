@@ -1,5 +1,8 @@
 /* src/assets/styles/ScenarioPicker.css - UNIFIED THEME SYSTEM WITH PIXEL PERFECT RESPONSIVE GRID */
 
+/* Import master CSS variables */
+@import './CSSVariables.css';
+
 /* UNIFIED THEME VARIABLES - Controlled by Header Toggle */
 :root {
   --header-height: 3rem;

@@ -2,6 +2,9 @@
    READINGPASSAGE.CSS - UNIFIED THEME SYSTEM WITH IMPROVED LAYOUT
    ═══════════════════════════════════════════════════════════════ */
 
+/* Import master CSS variables */
+@import './CSSVariables.css';
+
 /* Enhanced Variables and Theming */
 :root {
   /* Theme transition duration */

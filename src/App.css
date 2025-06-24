@@ -1,6 +1,8 @@
 /* App.css - Clean Layout Foundation */
 
-/* Import global theme system */
+/* CRITICAL: Import CSS variables FIRST */
+@import './assets/styles/CSSVariables.css';
+/* Then import global theme system */
 @import './assets/styles/GlobalTheme.css';
 
 /* App root container */
