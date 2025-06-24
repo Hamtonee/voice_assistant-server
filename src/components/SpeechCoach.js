@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TTSService } from '../services/TTSService';
 import api from '../api';
 import '../assets/styles/SpeechCoach.css';
-import { FiMic, FiMicOff, FiSend, FiTrash2, FiBarChart3, FiX, FiChevronDown } from 'react-icons/fi';
+import { FiMic, FiMicOff, FiSend, FiTrash2, FiBarChart, FiX, FiChevronDown } from 'react-icons/fi';
 
 export default function SpeechCoach({ 
   sessionId, 
@@ -310,7 +310,7 @@ export default function SpeechCoach({
         <div className="progress-panel">
           <div className="progress-panel-header">
             <h3>
-              <FiBarChart3 size={16} />
+              <FiBarChart size={16} />
               Session Progress
             </h3>
             <button 
@@ -406,7 +406,7 @@ export default function SpeechCoach({
               className={`control-btn progress-toggle-btn ${showProgressPanel ? 'active' : ''}`}
               onClick={() => setShowProgressPanel(!showProgressPanel)}
             >
-              <FiBarChart3 size={16} />
+              <FiBarChart size={16} />
               Progress
             </button>
           </div>
