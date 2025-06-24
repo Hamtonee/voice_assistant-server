@@ -1,19 +1,19 @@
-/* FIXED Enhanced SpeechCoach.css - STABLE THEME SYSTEM */
+/* FIXED Enhanced SpeechCoach.css - PROFESSIONAL INTEGRATED DESIGN */
 
 /*───────────────────────────────
-  Custom Properties / Colors - Simplified and Stable
+  Custom Properties / Colors - Professional Design
 ────────────────────────────────*/
 :root {
   --header-height:    3rem;
   --sidebar-width:    300px;
-  --chat-padding:     20px;
-  --input-height:     56px;
-  --mic-bottom-offset: 100px;
-  --progress-panel-height: 200px;
+  --chat-padding:     24px;
+  --input-height:     64px;
+  --mic-size:         44px;
+  --progress-panel-height: 180px;
 
-  --border-radius:    12px;
-  --border-radius-lg: 16px;
-  --border-radius-xl: 20px;
+  --border-radius:    10px;
+  --border-radius-lg: 14px;
+  --border-radius-xl: 18px;
 
   /* SIMPLIFIED Sidebar Transition Variables */
   --sidebar-transition-duration: 300ms;
@@ -33,7 +33,7 @@
   --z-modal:         2000;
 
   /* Enhanced scrollbar colors */
-  --scrollbar-width:  12px;
+  --scrollbar-width:  10px;
   
   /* STABLE Theme transition duration */
   --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
@@ -249,15 +249,15 @@
 }
 
 /*───────────────────────────────
-  CONVERSATION AREA - Enhanced Centering and Spacing
+  CONVERSATION AREA - Professional Spacing
 ────────────────────────────────*/
 .conversation-area {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 2rem var(--chat-padding);
+  padding: 1.5rem var(--chat-padding);
   width: 100%;
-  height: calc(100vh - 160px);
+  height: calc(100vh - 120px);
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
   scroll-behavior: smooth;
@@ -269,7 +269,7 @@
 }
 
 .conversation-area.progress-visible {
-  height: calc(100vh - 160px - var(--progress-panel-height));
+  height: calc(100vh - 120px - var(--progress-panel-height));
 }
 
 /* STABLE: Sidebar-aware conversation area positioning */
@@ -923,49 +923,48 @@
 ────────────────────────────────*/
 .progress-panel {
   position: fixed !important;
-  bottom: 70px !important;
-  left: 0 !important;
-  right: 0 !important;
+  top: 80px !important;
+  right: 20px !important;
+  width: 320px !important;
   background: var(--bg-input) !important;
-  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0 !important;
-  padding: 1rem !important;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.15), 0 0 0 1px var(--border-color) !important;
+  border-radius: var(--border-radius-lg) !important;
+  padding: 1.5rem !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 0 0 1px var(--border-color) !important;
   border: none !important;
   z-index: var(--z-progress) !important;
   transition: all var(--sidebar-transition-duration) var(--sidebar-easing) !important;
-  animation: slideInUp 0.3s ease-out !important;
-  height: var(--progress-panel-height) !important;
+  animation: slideInRight 0.3s ease-out !important;
+  height: auto !important;
+  max-height: calc(100vh - 200px) !important;
   overflow-y: auto !important;
   transform: translateY(0) !important;
-  backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(20px) !important;
 }
 
 /* STABLE: Sidebar-aware progress panel positioning */
 .sidebar-open .progress-panel {
-  left: var(--sidebar-width) !important;
-  right: 0 !important;
+  right: 20px !important;
+  width: 300px !important;
 }
 
 .sidebar-closed .progress-panel {
-  left: 0 !important;
-  right: 0 !important;
-  max-width: 1200px !important;
-  margin: 0 auto !important;
+  right: 20px !important;
+  width: 320px !important;
 }
 
 .progress-panel-header {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  margin-bottom: 1rem !important;
-  padding-bottom: 0.5rem !important;
+  margin-bottom: 1.25rem !important;
+  padding-bottom: 0.75rem !important;
   border-bottom: 1px solid var(--border-color) !important;
   transition: var(--theme-transition) !important;
 }
 
 .progress-panel-header h3 {
   margin: 0 !important;
-  font-size: 1rem !important;
+  font-size: 1.1rem !important;
   font-weight: 600 !important;
   color: var(--text-primary) !important;
   display: flex !important;
@@ -980,11 +979,11 @@
   cursor: pointer !important;
   font-size: 1.25rem !important;
   color: var(--text-muted) !important;
-  padding: 0.25rem !important;
+  padding: 0.375rem !important;
   border-radius: var(--border-radius) !important;
   transition: all 0.2s ease, var(--theme-transition) !important;
-  width: 28px !important;
-  height: 28px !important;
+  width: 32px !important;
+  height: 32px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -998,14 +997,14 @@
 
 .progress-stats {
   display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+  grid-template-columns: repeat(2, 1fr) !important;
   gap: 0.75rem !important;
-  margin-bottom: 1rem !important;
+  margin-bottom: 1.25rem !important;
 }
 
 .progress-stat {
   text-align: center !important;
-  padding: 0.75rem !important;
+  padding: 1rem 0.75rem !important;
   background: var(--bg-light) !important;
   border-radius: var(--border-radius) !important;
   border: 1px solid var(--border-color) !important;
@@ -1026,7 +1025,7 @@
 }
 
 .progress-stat:hover {
-  transform: translateY(-3px) scale(1.02) !important;
+  transform: translateY(-2px) scale(1.02) !important;
   box-shadow: var(--shadow-medium) !important;
 }
 
@@ -1244,25 +1243,24 @@
 }
 
 /*───────────────────────────────
-  CONTROLS BAR - Stable Positioning
+  CONTROLS BAR - Compact Professional Design
 ────────────────────────────────*/
 .coach-controls-bar {
   position: fixed !important;
-  bottom: calc(var(--input-height) + 40px) !important;
+  bottom: calc(var(--input-height) + 20px) !important;
   left: 0 !important;
   right: 0 !important;
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  padding: 1rem !important;
+  padding: 0.75rem 1.5rem !important;
   background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(20px) !important;
   border-top: 1px solid rgba(0,0,0,0.05) !important;
   z-index: var(--z-controls-bar) !important;
   pointer-events: auto !important;
   transition: all var(--sidebar-transition-duration) var(--sidebar-easing) !important;
-  height: auto !important;
-  min-height: 70px !important;
+  height: 60px !important;
   box-sizing: border-box !important;
   box-shadow: 0 -2px 20px rgba(0,0,0,0.08) !important;
 }
@@ -1273,7 +1271,7 @@
 }
 
 .coach-controls-bar.progress-visible {
-  bottom: calc(var(--progress-panel-height) + var(--input-height) + 40px) !important;
+  bottom: calc(var(--input-height) + 20px) !important;
 }
 
 /* STABLE: Sidebar-aware controls bar positioning */
@@ -1287,33 +1285,34 @@
   right: 0 !important;
   max-width: 1200px !important;
   margin: 0 auto !important;
-  padding: 1rem calc(var(--chat-padding) * 2) !important;
+  padding: 0.75rem calc(var(--chat-padding) * 1.5) !important;
 }
 
 .controls-left,
 .controls-right {
   display: flex !important;
-  gap: 1rem !important;
+  gap: 0.75rem !important;
   align-items: center !important;
 }
 
 .control-btn {
   border: none !important;
   border-radius: var(--border-radius) !important;
-  padding: 0.75rem 1.25rem !important;
+  padding: 0.5rem 1rem !important;
   cursor: pointer !important;
-  font-size: 0.9rem !important;
+  font-size: 0.85rem !important;
   transition: all 0.3s ease !important;
   box-shadow: var(--shadow-light) !important;
   display: flex !important;
   align-items: center !important;
-  gap: 0.5rem !important;
+  gap: 0.375rem !important;
   font-weight: 600 !important;
   border: 1px solid transparent !important;
   position: relative !important;
   overflow: hidden !important;
   text-transform: uppercase !important;
   letter-spacing: 0.5px !important;
+  height: 36px !important;
 }
 
 .control-btn::before {
@@ -1405,160 +1404,37 @@
 }
 
 /*───────────────────────────────
-  MIC WRAPPER - Better Positioning and Sizing
+  INTEGRATED MIC IN INPUT BAR - Professional Design
 ────────────────────────────────*/
 .mic-wrapper {
-  position: fixed !important;
-  bottom: 100px !important;
-  left: 0 !important;
-  right: 0 !important;
-  z-index: var(--z-mic) !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  pointer-events: none !important;
-  transition: all var(--sidebar-transition-duration) var(--sidebar-easing) !important;
-  box-sizing: border-box !important;
+  display: none !important; /* Hide the separate mic button */
 }
 
-.mic-wrapper.progress-visible {
-  bottom: calc(var(--progress-panel-height) + 100px) !important;
-}
-
-/* STABLE: Sidebar-aware mic positioning */
-.sidebar-open .mic-wrapper {
-  left: var(--sidebar-width) !important;
-  right: 0 !important;
-}
-
-.sidebar-closed .mic-wrapper {
-  left: 0 !important;
-  right: 0 !important;
-}
-
-/* Enhanced Mic Button Styles */
-.mic-btn {
-  width: 90px !important;
-  height: 90px !important;
-  background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%) !important;
-  border: none !important;
-  border-radius: 50% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  color: #fff !important;
-  box-shadow: 0 8px 32px rgba(0, 123, 255, 0.3) !important;
-  cursor: pointer !important;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  pointer-events: auto !important;
-  position: relative !important;
-  overflow: hidden !important;
-  border: 3px solid rgba(255, 255, 255, 0.2) !important;
-}
-
-.mic-btn::before {
-  content: '' !important;
-  position: absolute !important;
-  top: -50% !important;
-  left: -50% !important;
-  width: 200% !important;
-  height: 200% !important;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent) !important;
-  transform: rotate(45deg) !important;
-  transition: all 0.6s ease !important;
-  opacity: 0 !important;
-}
-
-.mic-btn:hover::before {
-  opacity: 1 !important;
-  transform: rotate(45deg) translate(50%, 50%) !important;
-}
-
-.mic-btn svg {
-  width: 36px !important;
-  height: 36px !important;
-  z-index: 2 !important;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2)) !important;
-}
-
-.mic-btn:hover:not(:disabled) {
-  transform: translateY(-6px) scale(1.08) !important;
-  box-shadow: 0 20px 50px rgba(0, 123, 255, 0.5) !important;
-}
-
-.mic-btn:active {
-  transform: translateY(-3px) scale(1.05) !important;
-}
-
-.mic-btn:disabled {
-  background: var(--text-muted) !important;
-  cursor: not-allowed !important;
-  opacity: 0.6 !important;
-}
-
-.mic-btn.listening {
-  background: linear-gradient(135deg, var(--error-color) 0%, #c0392b 100%) !important;
-  animation: breathe 2s infinite !important;
-  box-shadow: 0 0 40px rgba(220, 53, 69, 0.6) !important;
-}
-
-.mic-btn.always-available {
-  background: linear-gradient(135deg, var(--success-color) 0%, #27ae60 100%) !important;
-  box-shadow: 0 0 35px rgba(46, 204, 113, 0.5) !important;
-}
-
-.listening-pulse {
-  position: absolute !important;
-  width: 100% !important;
-  height: 100% !important;
-  border-radius: 50% !important;
-  z-index: 1 !important;
-}
-
-.pulse-ring {
-  position: absolute !important;
-  border: 2px solid var(--accent-color) !important;
-  border-radius: 50% !important;
-  animation: pulse-ring 2s infinite !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-.pulse-ring:nth-child(2) {
-  animation-delay: 0.7s !important;
-}
-
-.pulse-ring:nth-child(3) {
-  animation-delay: 1.4s !important;
-}
-
-/*───────────────────────────────
-  SPEECH INPUT - Enhanced Design and Positioning
-────────────────────────────────*/
 .speech-input-container {
   position: fixed !important;
-  bottom: 20px !important;
+  bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
   display: flex !important;
   align-items: center !important;
   gap: 0.75rem !important;
-  padding: 1rem var(--chat-padding) !important;
+  padding: 1rem !important;
   background: var(--bg-input) !important;
-  box-shadow: 0 -4px 30px rgba(0,0,0,0.15) !important;
-  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0 !important;
+  box-shadow: 0 -4px 32px rgba(0,0,0,0.12) !important;
+  border-radius: 0 !important;
   z-index: var(--z-speech-input) !important;
-  border: 1px solid var(--border-color) !important;
+  border: none !important;
+  border-top: 1px solid var(--border-color) !important;
   pointer-events: auto !important;
   transition: all var(--sidebar-transition-duration) var(--sidebar-easing) !important;
   margin: 0 !important;
   box-sizing: border-box !important;
-  backdrop-filter: blur(15px) !important;
-  border-bottom: none !important;
+  backdrop-filter: blur(20px) !important;
+  height: var(--input-height) !important;
 }
 
 .speech-input-container.progress-visible {
-  bottom: var(--progress-panel-height) !important;
+  bottom: 0 !important;
 }
 
 /* STABLE: Sidebar-aware speech input positioning */
@@ -1572,31 +1448,41 @@
   right: 0 !important;
   max-width: 1200px !important;
   margin: 0 auto !important;
-  padding: 1rem calc(var(--chat-padding) * 2) !important;
+  padding: 1rem calc(var(--chat-padding) * 1.5) !important;
+}
+
+.input-wrapper {
+  flex: 1 !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  background: var(--bg-light) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--border-radius-lg) !important;
+  overflow: hidden !important;
+  transition: all 0.3s ease !important;
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1) !important;
 }
 
 .chat-text-field {
   flex: 1 !important;
-  border: 1px solid var(--border-color) !important;
-  border-radius: var(--border-radius) !important;
+  border: none !important;
   padding: 0.75rem 1rem !important;
-  background: var(--bg-light) !important;
+  background: transparent !important;
   resize: none !important;
   outline: none !important;
-  max-height: calc(var(--input-height) * 2) !important;
-  min-height: var(--input-height) !important;
+  max-height: calc(var(--input-height) - 20px) !important;
+  min-height: 40px !important;
   overflow-y: auto !important;
-  font-size: 16px !important;
+  font-size: 15px !important;
   color: var(--text-primary) !important;
   transition: all 0.3s ease !important;
   font-family: inherit !important;
   line-height: 1.4 !important;
-}
-
-.chat-text-field:focus {
-  border-color: var(--accent-color) !important;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1) !important;
-  background: var(--bg-input) !important;
 }
 
 .chat-text-field::placeholder {
@@ -1604,26 +1490,99 @@
   opacity: 0.8 !important;
 }
 
+/* Integrated Mic Button */
+.integrated-mic-btn {
+  width: 36px !important;
+  height: 36px !important;
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%) !important;
+  border: none !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: white !important;
+  cursor: pointer !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  margin: 0 0.5rem !important;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.25) !important;
+  flex-shrink: 0 !important;
+}
+
+.integrated-mic-btn::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -50% !important;
+  left: -50% !important;
+  width: 200% !important;
+  height: 200% !important;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent) !important;
+  transform: rotate(45deg) !important;
+  transition: all 0.5s ease !important;
+  opacity: 0 !important;
+}
+
+.integrated-mic-btn:hover::before {
+  opacity: 1 !important;
+  transform: rotate(45deg) translate(50%, 50%) !important;
+}
+
+.integrated-mic-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  z-index: 2 !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2)) !important;
+}
+
+.integrated-mic-btn:hover:not(:disabled) {
+  transform: scale(1.1) !important;
+  box-shadow: 0 6px 24px rgba(0, 123, 255, 0.4) !important;
+}
+
+.integrated-mic-btn:active {
+  transform: scale(1.05) !important;
+}
+
+.integrated-mic-btn:disabled {
+  background: var(--text-muted) !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+}
+
+.integrated-mic-btn.listening {
+  background: linear-gradient(135deg, var(--error-color) 0%, #c0392b 100%) !important;
+  animation: pulse 1.5s infinite !important;
+  box-shadow: 0 0 20px rgba(220, 53, 69, 0.6) !important;
+}
+
+.integrated-mic-btn.always-available {
+  background: linear-gradient(135deg, var(--success-color) 0%, #27ae60 100%) !important;
+  box-shadow: 0 0 16px rgba(46, 204, 113, 0.4) !important;
+}
+
 .send-btn {
   background: var(--accent-color) !important;
   border: none !important;
   color: white !important;
-  font-size: 1.25rem !important;
+  font-size: 1rem !important;
   cursor: pointer !important;
   transition: all 0.3s ease !important;
-  padding: 0.75rem !important;
+  padding: 0.625rem !important;
   border-radius: var(--border-radius) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 48px !important;
-  height: 48px !important;
+  width: 40px !important;
+  height: 40px !important;
   box-shadow: var(--shadow-light) !important;
+  margin-left: 0.5rem !important;
+  flex-shrink: 0 !important;
 }
 
 .send-btn:hover:not(:disabled) { 
   background: var(--accent-hover) !important;
-  transform: translateY(-2px) scale(1.05) !important;
+  transform: scale(1.05) !important;
   box-shadow: var(--shadow-medium) !important;
 }
 
@@ -1635,7 +1594,7 @@
 }
 
 .send-btn:active {
-  transform: translateY(-1px) scale(1.02) !important;
+  transform: scale(1.02) !important;
 }
 
 /*───────────────────────────────
