@@ -43,130 +43,249 @@ html, body {
   PIXEL PERFECT App Container - Main Layout Grid
 ─────────────────────────────────────────────────────*/
 .app-container {
+  display: grid;
+  grid-template-areas: 
+    "header header"
+    "sidebar main";
+  grid-template-columns: 320px 1fr;
+  grid-template-rows: var(--header-height) 1fr;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--bg-primary);
+  transition: grid-template-columns 0.3s ease;
+}
+
+.app-container.sidebar-closed {
+  grid-template-columns: 0px 1fr;
+}
+
+.app-container.sidebar-open {
+  grid-template-columns: 320px 1fr;
+}
+
+/* Header area */
+.app-header {
+  grid-area: header;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+/* Sidebar area */
+.app-sidebar {
+  grid-area: sidebar;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--glass-border);
+  transition: transform 0.3s ease, width 0.3s ease;
+}
+
+.app-container.sidebar-closed .app-sidebar {
+  transform: translateX(-100%);
+  width: 0;
+}
+
+/* Main content area */
+.app-main {
+  grid-area: main;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-primary);
+  position: relative;
+}
+
+/* Content containers */
+.scenario-wrapper,
+.feature-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.scenario-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.feature-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+/* Welcome container */
+.welcome-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: var(--spacing-xl);
+}
+
+.welcome-content {
+  text-align: center;
+  max-width: 600px;
+}
+
+.welcome-content h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.welcome-content p {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+.feature-info {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-xl);
+}
+
+.feature-info p {
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-md);
+}
+
+/* Mobile backdrop */
+.mobile-backdrop {
   position: fixed;
   top: 0;
-  bottom: 0;
   left: 0;
   right: 0;
-  display: grid;
-  grid-template-rows: var(--header-height) 1fr;
-  grid-template-columns: var(--sidebar-width) 1fr;
-  grid-template-areas: 
-    "header header"
-    "sidebar content";
-  background: var(--bg-primary);
-  overflow: hidden;
-  transition: grid-template-columns var(--transition-layout);
-  border: none;
-  margin: 0;
-  padding: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: var(--z-backdrop);
+  backdrop-filter: blur(4px);
 }
 
-/* Sidebar collapsed state */
-.app-container:not(.sidebar-open) {
-  grid-template-columns: 0 1fr;
-  grid-template-areas: 
-    "header header"
-    "content content";
-}
-
-/* Mobile: Full height with header offset */
+/* Mobile responsive design */
 @media (max-width: 768px) {
   .app-container {
-    position: fixed;
-    top: var(--header-height);
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: block;
-    grid-template-columns: none;
-    grid-template-areas: none;
-    height: calc(100vh - var(--header-height));
-    width: 100vw;
+    grid-template-areas: 
+      "header"
+      "main";
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--header-height) 1fr;
   }
-}
 
-/*─────────────────────────────────────────────────────
-  PIXEL PERFECT Sidebar Positioning
-─────────────────────────────────────────────────────*/
-.sidebar {
-  grid-area: sidebar;
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background: var(--chat-sidebar-bg);
-  color: var(--text-primary);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  z-index: var(--z-sidebar);
-  border-right: 1px solid var(--border-primary);
-  transform: translateX(0);
-  transition: transform var(--transition-layout);
-}
+  .app-container.sidebar-open {
+    grid-template-areas: 
+      "header"
+      "main";
+  }
 
-/* Sidebar collapsed state - grid handles the width */
-.app-container:not(.sidebar-open) .sidebar {
-  transform: translateX(-100%);
-}
-
-/* Mobile sidebar overlay */
-@media (max-width: 768px) {
-  .sidebar {
+  .app-sidebar {
     position: fixed;
     top: var(--header-height);
     left: 0;
+    width: 280px;
     height: calc(100vh - var(--header-height));
-    width: var(--sidebar-width);
-    transform: translateX(-100%);
-    transition: transform var(--transition-layout);
     z-index: var(--z-sidebar);
-    box-shadow: var(--shadow-xl);
-    grid-area: none;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
   }
-  
-  .app-container.sidebar-open .sidebar {
+
+  .app-container.sidebar-open .app-sidebar {
     transform: translateX(0);
   }
+
+  .welcome-container {
+    padding: var(--spacing-lg);
+  }
+
+  .welcome-content h2 {
+    font-size: var(--font-size-xl);
+  }
+
+  .welcome-content p {
+    font-size: var(--font-size-md);
+  }
 }
 
-/*─────────────────────────────────────────────────────
-  ENHANCED Main Content Area with Perfect Grid Integration
-─────────────────────────────────────────────────────*/
-.chat-content {
-  grid-area: content;
-  position: relative;
+@media (max-width: 480px) {
+  .app-sidebar {
+    width: 100vw;
+  }
+
+  .welcome-container {
+    padding: var(--spacing-md);
+  }
+
+  .feature-info {
+    padding: var(--spacing-md);
+  }
+}
+
+/* Transitions and animations */
+.app-container * {
+  transition: var(--theme-transition);
+}
+
+/* Loading states */
+.feature-loading .lottie-loader {
+  width: 120px;
+  height: 120px;
+}
+
+/* Error states */
+.error-container {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  background: var(--bg-primary);
+  align-items: center;
+  justify-content: center;
   height: 100%;
-  width: 100%;
-  min-width: 0;
-  border: none;
-  margin: 0;
-  padding: 0;
+  padding: var(--spacing-xl);
+  text-align: center;
 }
 
-/* Mobile positioning - ensure content fills available space */
-@media (max-width: 768px) {
-  .chat-content {
-    grid-area: none;
-    position: relative;
-    width: 100% !important;
-    height: 100% !important;
-  }
+.error-container h3 {
+  color: var(--color-error);
+  margin-bottom: var(--spacing-md);
+}
+
+.error-container p {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.retry-button {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--font-size-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.retry-button:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
 }
 
 /*─────────────────────────────────────────────────────
   ENHANCED Scenario Wrapper with Proper Containment
 ─────────────────────────────────────────────────────*/
 .scenario-wrapper {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
   width: 100%;
   height: 100%;
   background: var(--bg-primary);
@@ -181,13 +300,11 @@ html, body {
 }
 
 .scenario-content {
-  background: var(--bg-secondary);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-xl);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-primary);
-  max-width: 600px;
   width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   transition: var(--theme-transition);
 }
 
@@ -196,6 +313,9 @@ html, body {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .scenario-header h1 {
@@ -239,69 +359,10 @@ html, body {
   margin: 0;
 }
 
-.mobile-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: var(--z-mobile-backdrop);
-  backdrop-filter: blur(2px);
-}
-
 /*─────────────────────────────────────────────────────
-  Feature Container for SpeechCoach and ReadingPassage
+  Feature Container for SpeechCoach and ReadingPassage - UPDATED
 ─────────────────────────────────────────────────────*/
-.feature-container {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--bg-primary);
-  overflow: hidden;
-  box-sizing: border-box;
-  transition: var(--theme-transition);
-}
-
-/*─────────────────────────────────────────────────────
-  Welcome Container for Default State
-─────────────────────────────────────────────────────*/
-.welcome-container {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--bg-primary);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xl);
-  box-sizing: border-box;
-  text-align: center;
-  transition: var(--theme-transition);
-}
-
-.welcome-container h2 {
-  color: var(--text-primary);
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  margin: 0 0 var(--spacing-md) 0;
-}
-
-.welcome-container p {
-  color: var(--text-secondary);
-  font-size: var(--font-size-lg);
-  margin: var(--spacing-sm) 0;
-  max-width: 600px;
-}
+/* Remove this duplicate - already defined above */
 
 /*─────────────────────────────────────────────────────
   ENHANCED Reading Passage Container 

@@ -32,7 +32,7 @@ export const useFeatureNavigation = () => {
   const handleFeatureSelect = useCallback((featureId) => {
     if (featureId === selectedFeature) return;
     
-    console.log(`Switching to feature: ${featureId}`);
+    console.log(`🔄 Switching to feature: ${featureId}`);
     setSelectedFeature(featureId);
     
     // Reset scenario when switching away from chat
@@ -41,20 +41,37 @@ export const useFeatureNavigation = () => {
     }
   }, [selectedFeature]);
 
-  // Scenario selection handler
+  // FIXED: Scenario selection handler
   const handleSelectScenario = useCallback((scenarioData) => {
-    console.log('Selected scenario:', scenarioData);
-    setScenario(scenarioData);
-  }, []);
+    console.log('🎯 useFeatureNavigation: Scenario selection received:', scenarioData);
+    
+    // Ensure we're setting the full scenario object
+    if (scenarioData) {
+      // Handle both scenario object and just key cases
+      const fullScenario = typeof scenarioData === 'string' 
+        ? { key: scenarioData, label: scenarioData } 
+        : scenarioData;
+      
+      console.log('🎯 useFeatureNavigation: Setting scenario:', fullScenario);
+      setScenario(fullScenario);
+      
+      // Make sure we're in chat mode when selecting a scenario
+      if (selectedFeature !== 'chat') {
+        console.log('🔄 useFeatureNavigation: Switching to chat feature for scenario');
+        setSelectedFeature('chat');
+      }
+    }
+  }, [selectedFeature]);
 
   // Clear scenario (go back to scenario picker)
   const clearScenario = useCallback(() => {
+    console.log('🔄 useFeatureNavigation: Clearing scenario');
     setScenario(null);
   }, []);
 
   // Voice selection handler
   const handleVoiceSelect = useCallback((voice) => {
-    console.log('Selected voice:', voice);
+    console.log('🎤 useFeatureNavigation: Voice selected:', voice);
     setSelectedVoice(voice);
   }, []);
 
@@ -65,20 +82,36 @@ export const useFeatureNavigation = () => {
 
   // Check if current feature needs scenario selection
   const needsScenarioSelection = useCallback(() => {
-    return selectedFeature === 'chat' && !scenario;
+    const needs = selectedFeature === 'chat' && !scenario;
+    console.log('🔍 useFeatureNavigation: Needs scenario selection?', { 
+      selectedFeature, 
+      hasScenario: !!scenario, 
+      needs 
+    });
+    return needs;
   }, [selectedFeature, scenario]);
 
   // Check if current feature is ready for interaction
   const isFeatureReady = useCallback(() => {
+    let ready = false;
     switch (selectedFeature) {
       case 'chat':
-        return !!scenario;
+        ready = !!scenario;
+        break;
       case 'sema':
       case 'tusome':
-        return true;
+        ready = true;
+        break;
       default:
-        return false;
+        ready = false;
     }
+    
+    console.log('🔍 useFeatureNavigation: Is feature ready?', { 
+      selectedFeature, 
+      hasScenario: !!scenario, 
+      ready 
+    });
+    return ready;
   }, [selectedFeature, scenario]);
 
   return {
