@@ -1,4 +1,4 @@
-// src/components/ScenarioPicker.js - OPTIMIZED VERSION WITH FAST IMAGE LOADING
+// src/components/ScenarioPicker.js - FIXED VERSION WITH WORKING SELECTION
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search } from 'lucide-react';
 import '../assets/styles/ScenarioPicker.css';
@@ -10,7 +10,6 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
   const [imageLoadingStates, setImageLoadingStates] = useState({});
   const [imageErrors, setImageErrors] = useState({});
   const [preloadedImages, setPreloadedImages] = useState(new Set());
-  // const observerRef = useRef(null);
   const imageCache = useRef(new Map());
 
   // Debug logging
@@ -32,7 +31,6 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       
-      // Set loading attributes for better performance
       img.loading = 'eager';
       img.decoding = 'async';
       
@@ -60,14 +58,13 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
     });
   }, [preloadedImages]);
 
-  // Preload images more efficiently - only first 6 images immediately
+  // Preload images efficiently
   useEffect(() => {
     if (!scenarios || scenarios.length === 0) return;
 
-    // Preload only first 6 images immediately for better performance
     const imagesToPreload = scenarios
       .filter(s => s.image)
-      .slice(0, 6) // Only first 6 images
+      .slice(0, 6)
       .map(s => ({ src: s.image, key: s.key }));
 
     const preloadPromises = imagesToPreload.map(({ src, key }) => {
@@ -82,7 +79,6 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
 
     Promise.allSettled(preloadPromises);
 
-    // Preload remaining images after a delay
     if (scenarios.length > 6) {
       setTimeout(() => {
         const remainingImages = scenarios
@@ -103,7 +99,7 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
     }
   }, [scenarios, preloadImage]);
 
-  // Optimized image loading handlers (moved before early return)
+  // Image loading handlers
   const handleImageLoad = useCallback((scenarioKey) => {
     setImageLoadingStates(prev => ({
       ...prev,
@@ -122,7 +118,7 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
     }));
   }, []);
 
-  // Simplified image component - no lazy loading, load all images immediately
+  // Simplified image component
   const ScenarioImage = ({ scenario, index }) => {
     const isPreloaded = preloadedImages.has(scenario.image);
     const isCached = imageCache.current.has(scenario.image);
@@ -189,15 +185,28 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
     );
   }) : [];
 
-  const handleScenarioSelect = async (scenarioKey) => {
+  // FIXED: Scenario selection handler
+  const handleScenarioSelect = async (scenario) => {
     if (loadingScenario) return; // Prevent double-clicks
     
-    setLoadingScenario(scenarioKey);
+    console.log('🎯 Scenario selected:', scenario);
+    
+    // Show loading for this specific scenario
+    setLoadingScenario(scenario.key);
+    
     try {
       // Add a small delay to show the loading state
       await new Promise(resolve => setTimeout(resolve, 300));
-      onSelect(scenarioKey);
+      
+      // Call the onSelect callback with the full scenario object
+      if (typeof onSelect === 'function') {
+        console.log('📞 Calling onSelect with scenario:', scenario);
+        onSelect(scenario);
+      } else {
+        console.error('❌ onSelect is not a function:', typeof onSelect);
+      }
     } catch (error) {
+      console.error('❌ Error selecting scenario:', error);
       // Reset loading state on error
       setLoadingScenario(null);
     }
@@ -270,21 +279,21 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
                   <span className="category-count">({items.length})</span>
                 </h4>
                 <div className="scenario-grid">
-                  {items.map((s, index) => (
+                  {items.map((scenario, index) => (
                     <div
-                      key={s.key}
-                      className={`scenario-card ${loadingScenario === s.key ? 'loading' : ''} ${loadingScenario && loadingScenario !== s.key ? 'disabled' : ''}`}
-                      onClick={() => !loadingScenario && handleScenarioSelect(s.key)}
+                      key={scenario.key}
+                      className={`scenario-card ${loadingScenario === scenario.key ? 'loading' : ''} ${loadingScenario && loadingScenario !== scenario.key ? 'disabled' : ''}`}
+                      onClick={() => !loadingScenario && handleScenarioSelect(scenario)}
                       role="button"
                       tabIndex={loadingScenario ? -1 : 0}
                       onKeyDown={(e) => {
                         if (!loadingScenario && (e.key === 'Enter' || e.key === ' ')) {
                           e.preventDefault();
-                          handleScenarioSelect(s.key);
+                          handleScenarioSelect(scenario);
                         }
                       }}
                     >
-                      {loadingScenario === s.key && (
+                      {loadingScenario === scenario.key && (
                         <div className="card-loading-overlay">
                           <LottieLoader 
                             size={60} 
@@ -293,29 +302,28 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
                         </div>
                       )}
                       
-                      {s.image && (
-                        <ScenarioImage scenario={s} index={index} />
+                      {scenario.image && (
+                        <ScenarioImage scenario={scenario} index={index} />
                       )}
                       
                       <div className="card-content">
-                        {/* Add title attribute for tooltip functionality */}
                         <div 
                           className="card-label"
-                          title={s.label.length > 25 ? s.label : ''}
+                          title={scenario.label.length > 25 ? scenario.label : ''}
                         >
-                          {s.label}
+                          {scenario.label}
                         </div>
-                        {s.subtitle && (
+                        {scenario.subtitle && (
                           <div 
                             className="card-subtitle"
-                            title={s.subtitle.length > 50 ? s.subtitle : ''}
+                            title={scenario.subtitle.length > 50 ? scenario.subtitle : ''}
                           >
-                            {s.subtitle}
+                            {scenario.subtitle}
                           </div>
                         )}
-                        {s.difficulty && (
-                          <div className={`card-difficulty ${s.difficulty.toLowerCase()}`}>
-                            {s.difficulty}
+                        {scenario.difficulty && (
+                          <div className={`card-difficulty ${scenario.difficulty.toLowerCase()}`}>
+                            {scenario.difficulty}
                           </div>
                         )}
                       </div>
