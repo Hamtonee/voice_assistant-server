@@ -1,5 +1,8 @@
 /* src/assets/styles/ChatDetail.css - Enhanced Responsive Design with Dynamic Sidebar Support */
 
+/* Import master CSS variables */
+@import './CSSVariables.css';
+
 /* UNIFIED THEME VARIABLES */
 :root {
   --sidebar-width: 300px;

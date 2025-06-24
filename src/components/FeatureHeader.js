@@ -1,35 +1,10 @@
-// src/components/FeatureHeader.js - Optimized Version
+// src/components/FeatureHeader.js - FIXED to use existing CSS classes
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { FiMenu, FiX, FiMoreVertical, FiVolume2, FiMoon, FiSun } from 'react-icons/fi';
 import Avatar from './Avatar';
 import VoiceSelector from './VoiceSelector';
+import { useTheme } from '../contexts/ThemeContext';
 import '../assets/styles/FeatureHeader.css';
-
-// Custom hook for dark mode management
-const useDarkMode = () => {
-  const [darkMode, setDarkMode] = useState(() => {
-    const userPreference = localStorage.getItem('darkMode');
-    if (userPreference !== null) {
-      return JSON.parse(userPreference);
-    }
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches || false;
-  });
-
-  useEffect(() => {
-    const theme = darkMode ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', theme);
-    document.body.classList.toggle('dark-theme', darkMode);
-    document.body.classList.toggle('light-theme', !darkMode);
-  }, [darkMode]);
-
-  const toggleDarkMode = useCallback(() => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    localStorage.setItem('darkMode', JSON.stringify(newMode));
-  }, [darkMode]);
-
-  return { darkMode, toggleDarkMode };
-};
 
 // Custom hook for dropdown management
 const useDropdownManager = () => {
@@ -69,19 +44,28 @@ const useDropdownManager = () => {
   };
 };
 
+// Main FeatureHeader component
 export default function FeatureHeader({
-  sidebarOpen,
-  onToggleSidebar,
-  selectedFeature,
-  scenario,
-  onClearScenario,
-  user,
-  selectedVoice,
-  onVoiceSelect
+  sidebarOpen = false,
+  onToggleSidebar = () => {},
+  selectedFeature = 'chat',
+  scenario = null,
+  onClearScenario = () => {},
+  user = null,
+  selectedVoice = null,
+  onVoiceSelect = () => {}
 }) {
-  const { darkMode, toggleDarkMode } = useDarkMode();
-  const { openDropdowns, toggleDropdown, closeAllDropdowns, closeDropdown } = useDropdownManager();
+  // FIXED: Use theme context properly
+  const { toggleTheme, isDark } = useTheme();
   
+  const { 
+    openDropdowns, 
+    toggleDropdown, 
+    closeAllDropdowns, 
+    closeDropdown 
+  } = useDropdownManager();
+  
+  const headerRef = useRef(null);
   const avatarRef = useRef(null);
   const overflowRef = useRef(null);
   const voiceSelectorRef = useRef(null);
@@ -110,15 +94,6 @@ export default function FeatureHeader({
   };
 
   const featureInfo = getFeatureInfo();
-
-  // Debug logging
-  console.log('🎯 FeatureHeader rendered:', {
-    selectedFeature,
-    scenario: scenario?.label || 'None',
-    featureInfo,
-    sidebarOpen,
-    user: user?.name || 'Unknown'
-  });
 
   // Handle click outside dropdowns
   useEffect(() => {
@@ -166,12 +141,12 @@ export default function FeatureHeader({
   };
 
   return (
-    <header className="feature-header">
+    <header ref={headerRef} className="feature-header">
       <div className="header-content">
         
         {/* Left Section */}
         <div className="header-left">
-          <button 
+          <button
             className="sidebar-toggle"
             onClick={onToggleSidebar}
             aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
@@ -180,7 +155,7 @@ export default function FeatureHeader({
           </button>
           
           {featureInfo.showBackButton && (
-            <button 
+            <button
               className="back-button"
               onClick={onClearScenario}
               aria-label="Go back to scenario selection"
@@ -227,38 +202,40 @@ export default function FeatureHeader({
           {/* Theme Toggle */}
           <button
             className="theme-toggle"
-            onClick={toggleDarkMode}
-            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            onClick={toggleTheme}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
+            {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
           </button>
 
           {/* User Avatar */}
-          <div className="avatar-container" ref={avatarRef}>
-            <button
-              className="avatar-button"
-              onClick={() => toggleDropdown('avatar')}
-              aria-label="User menu"
-            >
-              <Avatar user={user} size="sm" />
-            </button>
-            
-            {openDropdowns.avatar && (
-              <div className="avatar-dropdown">
-                <div className="dropdown-header">
-                  <Avatar user={user} size="md" />
-                  <div className="user-info">
-                    <p className="user-name">{user?.name || 'User'}</p>
-                    <p className="user-email">{user?.email}</p>
+          {user && (
+            <div className="avatar-container" ref={avatarRef}>
+              <button
+                className="avatar-button"
+                onClick={() => toggleDropdown('avatar')}
+                aria-label="User menu"
+              >
+                <Avatar user={user} size="sm" />
+              </button>
+              
+              {openDropdowns.avatar && (
+                <div className="avatar-dropdown">
+                  <div className="dropdown-header">
+                    <Avatar user={user} size="md" />
+                    <div className="user-info">
+                      <p className="user-name">{user?.name || 'User'}</p>
+                      <p className="user-email">{user?.email}</p>
+                    </div>
                   </div>
+                  <div className="dropdown-divider" />
+                  <button className="dropdown-item" onClick={handleLogout}>
+                    Logout
+                  </button>
                 </div>
-                <div className="dropdown-divider" />
-                <button className="dropdown-item" onClick={handleLogout}>
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Overflow Menu (Mobile) */}
           <div className="overflow-menu" ref={overflowRef}>
@@ -281,10 +258,10 @@ export default function FeatureHeader({
                 </button>
                 <button 
                   className="dropdown-item"
-                  onClick={toggleDarkMode}
+                  onClick={toggleTheme}
                 >
-                  {darkMode ? <FiSun size={16} /> : <FiMoon size={16} />}
-                  {darkMode ? 'Light Mode' : 'Dark Mode'}
+                  {isDark ? <FiSun size={16} /> : <FiMoon size={16} />}
+                  {isDark ? 'Light Mode' : 'Dark Mode'}
                 </button>
               </div>
             )}

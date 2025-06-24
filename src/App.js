@@ -9,6 +9,7 @@ import ResetPassword from './components/ResetPassword';
 import ChatWindow from './components/ChatWindow';
 import LottieLoader from './components/LottieLoader';
 import { AuthContext } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiePolicy from './components/CookiePolicy';
@@ -101,8 +102,9 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="App">
-        <Routes>
+      <ThemeProvider>
+        <div className="App">
+          <Routes>
           {/* Public Routes - redirect to /chats if already authenticated */}
           <Route 
             path="/" 
@@ -149,7 +151,8 @@ export default function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </div>
+        </div>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }
