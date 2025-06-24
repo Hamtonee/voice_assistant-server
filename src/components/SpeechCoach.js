@@ -343,17 +343,38 @@ export default function SpeechCoach({
         </div>
       )}
 
-      {/* Speech Input Container */}
+      {/* Speech Input Container with Integrated Mic */}
       <div className={`speech-input-container ${showProgressPanel ? 'progress-visible' : ''}`}>
-        <textarea
-          className="chat-text-field"
-          placeholder="Type or speak your message..."
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={handleKeyPress}
-          disabled={isProcessing}
-          rows={1}
-        />
+        <div className="input-wrapper">
+          <textarea
+            className="chat-text-field"
+            placeholder="Type or speak your message..."
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyPress}
+            disabled={isProcessing}
+            rows={1}
+          />
+          <button
+            className={`integrated-mic-btn ${isRecording ? 'listening' : ''} ${!isSpeechSupported ? 'disabled' : ''}`}
+            onClick={isRecording ? handleStopRecording : handleStartRecording}
+            disabled={!isSpeechSupported || isProcessing}
+            aria-label={isRecording ? "Stop recording" : "Start recording"}
+          >
+            {isRecording ? (
+              <>
+                <FiMicOff size={16} />
+                <div className="listening-pulse">
+                  <div className="pulse-ring"></div>
+                  <div className="pulse-ring"></div>
+                  <div className="pulse-ring"></div>
+                </div>
+              </>
+            ) : (
+              <FiMic size={16} />
+            )}
+          </button>
+        </div>
         <button
           className="send-btn"
           onClick={handleSendMessage}
@@ -361,29 +382,6 @@ export default function SpeechCoach({
           aria-label="Send message"
         >
           <FiSend size={18} />
-        </button>
-      </div>
-
-      {/* Microphone Button */}
-      <div className={`mic-wrapper ${showProgressPanel ? 'progress-visible' : ''}`}>
-        <button
-          className={`mic-btn ${isRecording ? 'listening' : ''} ${!isSpeechSupported ? 'disabled' : ''}`}
-          onClick={isRecording ? handleStopRecording : handleStartRecording}
-          disabled={!isSpeechSupported || isProcessing}
-          aria-label={isRecording ? "Stop recording" : "Start recording"}
-        >
-          {isRecording ? (
-            <>
-              <FiMicOff size={32} />
-              <div className="listening-pulse">
-                <div className="pulse-ring"></div>
-                <div className="pulse-ring"></div>
-                <div className="pulse-ring"></div>
-              </div>
-            </>
-          ) : (
-            <FiMic size={32} />
-          )}
         </button>
       </div>
 
