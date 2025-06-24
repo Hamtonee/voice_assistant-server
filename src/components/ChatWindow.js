@@ -92,18 +92,17 @@ const ChatWindow = () => {
 
   // Sidebar props
   const sidebarProps = {
-    features,
     selectedFeature,
-    onFeatureSelect: handleFeatureSelect,
-    sessions: getSessionsByFeature(selectedFeature),
-    activeSessionId: getCurrentActiveId(selectedFeature),
-    onSelectSession: handleSelectSession,
-    onNewSession: handleNewSession,
-    onDeleteSession: handleDeleteSession,
-    onRenameSession: handleRenameSession,
-    onVoiceSelect: handleVoiceSelect,
-    selectedVoice,
-    user
+    onSelectFeature: handleFeatureSelect,
+    onNewChat: handleNewSession,
+    chatInstances: getSessionsByFeature(selectedFeature),
+    activeChatId: getCurrentActiveId(selectedFeature),
+    onSelectChat: handleSelectSession,
+    onRenameChat: handleRenameSession,
+    onDeleteChat: handleDeleteSession,
+    currentScenarioKey: scenario?.key,
+    hasCurrentChatContent: false, // TODO: implement this if needed
+    usageSummary: null // TODO: implement this if needed
   };
 
   // Header props
@@ -204,7 +203,6 @@ const ChatWindow = () => {
                 sessionId={getCurrentActiveId(selectedFeature)}
                 selectedVoice={selectedVoice}
                 sidebarOpen={sidebarOpen}
-                viewport={viewport}
                 onNewSession={handleNewSession}
               />
             </Suspense>
