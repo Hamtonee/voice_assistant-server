@@ -133,29 +133,15 @@ const ChatWindow = React.memo(() => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // CRITICAL FIX: Call hooks directly with proper error handling
-  let sessionResult, layoutResult, navigationResult;
+  // CRITICAL FIX: Always call hooks unconditionally (React Hooks rule)
+  const sessionHookResult = useSessionManagementHook();
+  const layoutHookResult = useResponsiveLayoutHook();
+  const navigationHookResult = useFeatureNavigationHook();
   
-  try {
-    sessionResult = useSessionManagementHook();
-  } catch (error) {
-    console.warn('Session management hook failed, using fallback:', error);
-    sessionResult = fallbackSessionManagement();
-  }
-  
-  try {
-    layoutResult = useResponsiveLayoutHook();
-  } catch (error) {
-    console.warn('Responsive layout hook failed, using fallback:', error);
-    layoutResult = fallbackResponsiveLayout();
-  }
-  
-  try {
-    navigationResult = useFeatureNavigationHook();
-  } catch (error) {
-    console.warn('Feature navigation hook failed, using fallback:', error);
-    navigationResult = fallbackFeatureNavigation();
-  }
+  // Use results or fallbacks
+  const sessionResult = sessionHookResult || fallbackSessionManagement();
+  const layoutResult = layoutHookResult || fallbackResponsiveLayout();
+  const navigationResult = navigationHookResult || fallbackFeatureNavigation();
 
   // Destructure with fallbacks
   const {
