@@ -280,6 +280,7 @@
   padding-right: var(--chat-padding);
   width: 100%;
   margin: 0;
+  box-sizing: border-box;
 }
 
 .sidebar-closed .conversation-area {
@@ -287,6 +288,7 @@
   padding-right: calc(var(--chat-padding) * 2);
   max-width: 1200px;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 /*───────────────────────────────
@@ -1241,8 +1243,8 @@
 .sidebar-open .controls-container {
   left: var(--sidebar-width) !important;
   right: 0 !important;
-  width: auto !important;
-  max-width: calc(100vw - var(--sidebar-width)) !important;
+  width: calc(100vw - var(--sidebar-width)) !important;
+  max-width: none !important;
 }
 
 .sidebar-closed .controls-container {
@@ -1287,10 +1289,10 @@
 .sidebar-open .coach-controls-bar {
   left: var(--sidebar-width) !important;
   right: 0 !important;
-  width: auto !important;
+  width: calc(100vw - var(--sidebar-width)) !important;
   margin: 0 !important;
   padding: 0.75rem 1.5rem !important;
-  max-width: calc(100vw - var(--sidebar-width)) !important;
+  box-sizing: border-box !important;
 }
 
 .sidebar-closed .coach-controls-bar {
@@ -1458,10 +1460,10 @@
 .sidebar-open .speech-input-container {
   left: var(--sidebar-width) !important;
   right: 0 !important;
-  width: auto !important;
+  width: calc(100vw - var(--sidebar-width)) !important;
   margin: 0 !important;
   padding: 1.25rem 1.5rem !important;
-  max-width: calc(100vw - var(--sidebar-width)) !important;
+  box-sizing: border-box !important;
 }
 
 .sidebar-closed .speech-input-container {
