@@ -1292,8 +1292,8 @@
 /* STABLE: Sidebar-aware controls bar positioning */
 .sidebar-open .coach-controls-bar {
   left: var(--sidebar-width) !important;
-  right: 0 !important;
-  width: auto !important;
+  width: calc(100vw - var(--sidebar-width)) !important; /* Force exact width calculation */
+  right: auto !important;
   margin: 0 !important;
   padding: 1.25rem 1.5rem !important; /* Match input container padding */
   box-sizing: border-box !important;
@@ -1471,8 +1471,8 @@
 /* STABLE: Sidebar-aware speech input positioning */
 .sidebar-open .speech-input-container {
   left: var(--sidebar-width) !important;
-  right: 0 !important;
-  width: auto !important;
+  width: calc(100vw - var(--sidebar-width)) !important; /* Force exact width calculation */
+  right: auto !important;
   margin: 0 !important;
   padding: 1.25rem 1.5rem !important;
   box-sizing: border-box !important;
