@@ -63,6 +63,28 @@ export default function ChatList({
     }
   };
 
+  const getFeatureEmoji = () => {
+    switch (feature) {
+      case 'sema':
+        return '🎤';
+      case 'tusome':
+        return '📚';
+      default:
+        return '💬';
+    }
+  };
+
+  const getFeatureName = () => {
+    switch (feature) {
+      case 'sema':
+        return 'Speech';
+      case 'tusome':
+        return 'Reading';
+      default:
+        return 'Chat';
+    }
+  };
+
   const getFeatureColor = () => {
     switch (feature) {
       case 'sema':
@@ -124,12 +146,9 @@ export default function ChatList({
     return (
       <div className="chat-list-empty">
         <div className="empty-icon">
-          {React.createElement(getFeatureIcon(), { 
-            size: 32, 
-            color: getFeatureColor() 
-          })}
+          {getFeatureEmoji()}
         </div>
-        <p>No sessions yet</p>
+        <p>No {getFeatureName().toLowerCase()} sessions yet</p>
         <span>Start a conversation to see your history</span>
       </div>
     );
