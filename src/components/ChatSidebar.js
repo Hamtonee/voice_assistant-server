@@ -46,11 +46,7 @@ export default function ChatSidebar({
     }
   }, []);
 
-  /*
-    REMOVED: This useEffect was causing body scroll issues and contributing
-    to the blurriness on mobile devices. Body scrolling should be handled
-    by the parent layout's CSS, not by direct DOM manipulation here.
-  
+  // Prevent body scroll when sidebar is open on mobile
   useEffect(() => {
     const isMobile = window.innerWidth <= 768;
     if (isMobile) {
@@ -65,7 +61,6 @@ export default function ChatSidebar({
       };
     }
   }, []);
-  */
 
   // ENHANCED: Comprehensive session content validation - wrapped in useCallback
   const checkCurrentSessionContent = useCallback(async () => {
