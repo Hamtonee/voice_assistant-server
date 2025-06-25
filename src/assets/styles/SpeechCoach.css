@@ -1268,8 +1268,9 @@
   background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(20px) !important;
   border-top: 1px solid rgba(0,0,0,0.05) !important;
-  border-left: 3px solid red !important; /* DEBUG: Controls bar border */
-  border-right: 3px solid red !important; /* DEBUG: Controls bar border */
+  border-left: 10px solid red !important; /* DEBUG: Controls bar border */
+  border-right: 10px solid red !important; /* DEBUG: Controls bar border */
+  background: rgba(255, 0, 0, 0.2) !important; /* DEBUG: Red background tint */
   z-index: var(--z-controls-bar) !important;
   pointer-events: auto !important;
   transition: all var(--sidebar-transition-duration) var(--sidebar-easing) !important;
@@ -1296,8 +1297,9 @@
   margin: 0 !important;
   padding: 1.25rem 1.5rem !important; /* Match input container padding */
   box-sizing: border-box !important;
-  border-left: 2px solid red !important; /* DEBUG: Remove after testing */
-  border-right: 2px solid red !important; /* DEBUG: Remove after testing */
+  border-left: 15px solid red !important; /* DEBUG: Remove after testing */
+  border-right: 15px solid red !important; /* DEBUG: Remove after testing */
+  background: rgba(255, 0, 0, 0.3) !important; /* DEBUG: Strong red tint */
   min-width: 0 !important; /* Ensure consistent flex behavior */
 }
 
@@ -1450,8 +1452,9 @@
   z-index: var(--z-speech-input) !important;
   border: none !important;
   border-top: 1px solid rgba(0,0,0,0.08) !important;
-  border-left: 3px solid blue !important; /* DEBUG: Input container border */
-  border-right: 3px solid blue !important; /* DEBUG: Input container border */
+  border-left: 10px solid blue !important; /* DEBUG: Input container border */
+  border-right: 10px solid blue !important; /* DEBUG: Input container border */
+  background: rgba(0, 0, 255, 0.2) !important; /* DEBUG: Blue background tint */
   pointer-events: auto !important;
   transition: all var(--sidebar-transition-duration) var(--sidebar-easing) !important;
   margin: 0 !important;
@@ -1473,8 +1476,9 @@
   margin: 0 !important;
   padding: 1.25rem 1.5rem !important;
   box-sizing: border-box !important;
-  border-left: 2px solid blue !important; /* DEBUG: Remove after testing */
-  border-right: 2px solid blue !important; /* DEBUG: Remove after testing */
+  border-left: 15px solid blue !important; /* DEBUG: Remove after testing */
+  border-right: 15px solid blue !important; /* DEBUG: Remove after testing */
+  background: rgba(0, 0, 255, 0.3) !important; /* DEBUG: Strong blue tint */
   min-width: 0 !important; /* Ensure consistent flex behavior */
 }
 
