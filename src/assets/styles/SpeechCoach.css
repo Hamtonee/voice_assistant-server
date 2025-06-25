@@ -1276,6 +1276,7 @@
   height: 54px !important;
   box-sizing: border-box !important;
   box-shadow: 0 -2px 20px rgba(0,0,0,0.08) !important;
+  contain: layout !important; /* Prevent content from affecting width calculation */
 }
 
 [data-theme="dark"] .coach-controls-bar {
@@ -1293,10 +1294,11 @@
   right: 0 !important;
   width: auto !important;
   margin: 0 !important;
-  padding: 0.75rem 1.5rem !important;
+  padding: 1.25rem 1.5rem !important; /* Match input container padding */
   box-sizing: border-box !important;
   border-left: 2px solid red !important; /* DEBUG: Remove after testing */
   border-right: 2px solid red !important; /* DEBUG: Remove after testing */
+  min-width: 0 !important; /* Ensure consistent flex behavior */
 }
 
 .sidebar-closed .coach-controls-bar {
@@ -1456,6 +1458,7 @@
   box-sizing: border-box !important;
   backdrop-filter: blur(25px) !important;
   height: calc(var(--input-height) + 8px) !important;
+  contain: layout !important; /* Prevent content from affecting width calculation */
 }
 
 .speech-input-container.progress-visible {
@@ -1472,6 +1475,7 @@
   box-sizing: border-box !important;
   border-left: 2px solid blue !important; /* DEBUG: Remove after testing */
   border-right: 2px solid blue !important; /* DEBUG: Remove after testing */
+  min-width: 0 !important; /* Ensure consistent flex behavior */
 }
 
 .sidebar-closed .speech-input-container {
