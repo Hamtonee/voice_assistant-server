@@ -373,11 +373,26 @@
   perspective: 1000px !important;
 }
 
-.chat-sidebar,
-.chat-sidebar__list,
 .chat-sidebar * {
-  contain: none !important;
-  isolation: auto !important;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* Allow touch interactions on buttons and interactive elements */
+}
+
+/* Re-enable touch interactions for interactive elements */
+.chat-sidebar button,
+.chat-sidebar__new-chat-btn,
+.chat-sidebar__nav-btn,
+.chat-sidebar .dropdown-menu,
+.chat-sidebar .chat-item,
+.chat-sidebar .usage-header {
+  -webkit-user-select: auto;
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+  user-select: auto;
+  touch-action: manipulation;
 }
 
 .chat-item .dropdown-menu,
@@ -696,7 +711,6 @@
     overflow: hidden !important;
     overscroll-behavior: none !important;
     -webkit-overflow-scrolling: auto !important;
-    touch-action: none;
     border-right: none;
     box-shadow: none;
     box-sizing: border-box;
@@ -765,6 +779,7 @@
     overflow-y: auto !important;
     overscroll-behavior: contain !important;
     -webkit-overflow-scrolling: touch !important;
+    /* Allow pan-y for scrolling */
     touch-action: pan-y !important;
     height: auto;
     position: relative !important;
@@ -815,6 +830,7 @@
     padding: 12px 16px !important;
     font-size: 0.9rem !important;
     font-weight: 500 !important;
+    /* Allow proper touch interactions for dropdown items */
     touch-action: manipulation !important;
   }
   

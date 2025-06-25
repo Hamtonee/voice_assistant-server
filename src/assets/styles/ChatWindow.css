@@ -41,8 +41,8 @@ html, body {
   
   /* Z-index Variables - FIXED */
   --z-header: 100;
-  --z-sidebar: 90;
-  --z-backdrop: 80;
+  --z-sidebar: 200;
+  --z-backdrop: 150;
   --z-input: 70;
   --z-controls: 60;
   --z-error: 110;
@@ -250,7 +250,16 @@ html, body {
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   z-index: var(--z-backdrop);
-  backdrop-filter: blur(4px);
+  display: none;
+  pointer-events: none;
+}
+
+/* Only show mobile backdrop when sidebar is actually open */
+@media (max-width: 768px) {
+  .app-container.sidebar-open .mobile-backdrop {
+    display: block;
+    pointer-events: auto;
+  }
 }
 
 /*─────────────────────────────────────────────────────
@@ -1003,11 +1012,20 @@ html, body {
     background: var(--sidebar-bg, #ffffff);
     border-right: 1px solid var(--border-color, #e2e8f0);
     box-shadow: var(--shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.1));
+    /* Ensure sidebar is fully interactive */
+    pointer-events: auto;
+    touch-action: auto;
+    /* Improve rendering performance */
+    will-change: transform;
+    backface-visibility: hidden;
   }
 
   .app-container.sidebar-open .sidebar,
   .app-container.sidebar-open .app-sidebar {
     transform: translateX(0);
+    /* Ensure full interactivity when open */
+    pointer-events: auto;
+    touch-action: auto;
   }
 
   .welcome-container {
