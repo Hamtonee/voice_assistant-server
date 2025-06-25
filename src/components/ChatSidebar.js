@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import '../assets/styles/ChatSidebar.css';
+import { useTheme } from '../contexts/ThemeContext';
 import ChatList from './ChatList';
 import api from '../api';
 import logo from '../assets/images/logo.png';
@@ -17,6 +18,7 @@ export default function ChatSidebar({
   hasCurrentChatContent,
   usageSummary
 }) {
+  const { isDark } = useTheme();
   // State for usage tracking
   const [showUsageInfo, setShowUsageInfo] = useState(false);
   
@@ -46,21 +48,11 @@ export default function ChatSidebar({
     }
   }, []);
 
-  // Prevent body scroll when sidebar is open on mobile
-  useEffect(() => {
-    const isMobile = window.innerWidth <= 768;
-    if (isMobile) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      
-      return () => {
-        document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
-      };
-    }
-  }, []);
+  /*
+    REMOVED: This useEffect was causing body scroll issues and contributing
+    to the blurriness on mobile devices. Body scrolling should be handled
+    by the parent layout's CSS, not by direct DOM manipulation here.
+  */
 
   // ENHANCED: Comprehensive session content validation - wrapped in useCallback
   const checkCurrentSessionContent = useCallback(async () => {
@@ -388,7 +380,7 @@ export default function ChatSidebar({
   }, []);
 
   return (
-    <div className="chat-sidebar">
+    <div className={`chat-sidebar ${isDark ? 'dark-theme' : 'light-theme'}`} ref={sidebarRef}>
       {/* Rest of the component content */}
     </div>
   );

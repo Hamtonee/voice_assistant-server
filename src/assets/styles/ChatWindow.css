@@ -271,6 +271,11 @@ html, body {
     -moz-osx-font-smoothing: grayscale !important;
   }
   
+  .app-container.sidebar-open {
+    /* Prevent body scroll when sidebar is open on mobile */
+    overflow: hidden;
+  }
+
   .app-container {
     grid-template-areas: 
       "header"
@@ -278,13 +283,9 @@ html, body {
     grid-template-columns: 1fr !important;
     grid-template-rows: var(--header-height, 60px) 1fr;
     position: relative;
-  }
-
-  .app-container.sidebar-open {
-    grid-template-areas: 
-      "header"
-      "main";
-    grid-template-columns: 1fr !important;
+    /* Ensure the container itself doesn't get blurred */
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
   .app-container.sidebar-closed {
@@ -294,30 +295,24 @@ html, body {
   .sidebar,
   .app-sidebar {
     position: fixed !important;
-    top: var(--header-height, 60px);
-    left: 0;
-    width: var(--sidebar-width-mobile, 280px);
-    height: calc(100vh - var(--header-height, 60px));
-    z-index: var(--z-sidebar, 90);
     transform: translateX(-100%);
     transition: transform var(--transition-layout, 0.3s ease);
     background: var(--sidebar-bg, #ffffff);
     border-right: 1px solid var(--border-color, #e2e8f0);
     box-shadow: var(--shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.1));
-    /* Ensure sidebar is fully interactive */
-    pointer-events: auto;
-    touch-action: auto;
-    /* Improve rendering performance */
-    will-change: transform;
-    backface-visibility: hidden;
+    
+    /* ANTI-BLUR AND INTERACTION FIX */
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 2000 !important;
   }
 
   .app-container.sidebar-open .sidebar,
   .app-container.sidebar-open .app-sidebar {
     transform: translateX(0);
-    /* Ensure full interactivity when open */
-    pointer-events: auto;
-    touch-action: auto;
   }
 
   .welcome-container {
