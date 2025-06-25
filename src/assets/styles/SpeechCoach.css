@@ -1264,7 +1264,7 @@
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  padding: 0.75rem 1.5rem !important;
+  padding: 1.25rem 1.5rem !important;
   background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(20px) !important;
   border-top: 1px solid rgba(0,0,0,0.05) !important;
@@ -1272,7 +1272,7 @@
   z-index: var(--z-controls-bar) !important;
   pointer-events: auto !important;
   transition: all var(--sidebar-transition-duration) var(--sidebar-easing) !important;
-  height: 54px !important;
+  height: 70px !important;
   box-sizing: border-box !important;
   box-shadow: 0 -2px 20px rgba(0,0,0,0.08) !important;
 
