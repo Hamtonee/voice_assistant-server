@@ -381,7 +381,90 @@ export default function ChatSidebar({
 
   return (
     <div className={`chat-sidebar ${isDark ? 'dark-theme' : 'light-theme'}`} ref={sidebarRef}>
-      {/* Rest of the component content */}
+      {/* Platform header with logo */}
+      <div className="chat-sidebar__header">
+        <img src={logo} alt="Voice Assistant" className="chat-sidebar__logo" />
+        <h1>Voice Assistant</h1>
+      </div>
+
+      {/* Navigation buttons */}
+      <div className="chat-sidebar__nav">
+        <button
+          className={`chat-sidebar__nav-btn ${selectedFeature === 'chat' ? 'active' : ''}`}
+          onClick={() => handleFeatureSelect('chat')}
+        >
+          💬 Chat
+        </button>
+        <button
+          className={`chat-sidebar__nav-btn ${selectedFeature === 'sema' ? 'active' : ''}`}
+          onClick={() => handleFeatureSelect('sema')}
+        >
+          🎤 Sema
+        </button>
+        <button
+          className={`chat-sidebar__nav-btn ${selectedFeature === 'tusome' ? 'active' : ''}`}
+          onClick={() => handleFeatureSelect('tusome')}
+        >
+          📚 Tusome
+        </button>
+      </div>
+
+      {/* Usage info section */}
+      {usageSummary && (
+        <div className={`usage-info ${usageSummary.isNearLimit ? 'warning' : ''}`}>
+          <div className="usage-header" onClick={() => setShowUsageInfo(!showUsageInfo)}>
+            <span className="usage-icon">📊</span>
+            <span className="usage-title">Usage</span>
+            <span className="usage-toggle">{showUsageInfo ? '▼' : '▶'}</span>
+          </div>
+          {showUsageInfo && (
+            <div className="usage-details">
+              <div className="usage-bar">
+                <div 
+                  className="usage-fill" 
+                  style={{ 
+                    width: `${(usageSummary.used / usageSummary.limit) * 100}%`,
+                    backgroundColor: usageSummary.isNearLimit ? '#f59e0b' : '#059669'
+                  }}
+                />
+              </div>
+              <div className="usage-text">
+                <span className={usageSummary.isNearLimit ? 'warning' : 'remaining'}>
+                  {usageSummary.used} / {usageSummary.limit} used
+                </span>
+              </div>
+              {usageSummary.isNearLimit && (
+                <div className="usage-warning">
+                  Approaching usage limit
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* New chat button */}
+      <div className="chat-sidebar__new-chat-row">
+        <button 
+          className="chat-sidebar__new-chat-btn"
+          onClick={handleNewChatWithValidation}
+          disabled={isValidatingSession}
+        >
+          {getSmartButtonText()}
+        </button>
+      </div>
+
+      {/* Chat list */}
+      <div className="chat-sidebar__list">
+        <ChatList
+          sessions={orderedSessions}
+          activeChatId={activeChatId}
+          onSelectChat={onSelectChat}
+          onRenameChat={onRenameChat}
+          onDeleteChat={onDeleteChat}
+          selectedFeature={selectedFeature}
+        />
+      </div>
     </div>
   );
 }
