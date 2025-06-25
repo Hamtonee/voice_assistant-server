@@ -421,8 +421,7 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  backdrop-filter: blur(4px) !important;
-  -webkit-backdrop-filter: blur(4px) !important;
+  /* Remove backdrop blur to prevent mobile blurriness */
 }
 
 .modal,
@@ -704,6 +703,32 @@
   MOBILE OPTIMIZATIONS - GRID COMPATIBLE
 -------------------------------------------------------*/
 @media (max-width: var(--breakpoint-md)) {
+  .chat-sidebar,
+  .chat-sidebar *,
+  .chat-sidebar::before,
+  .chat-sidebar::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+    /* Force hardware acceleration off to prevent blur */
+    transform: translateZ(0) !important;
+    will-change: auto !important;
+    /* Ensure crisp rendering */
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    text-rendering: optimizeLegibility !important;
+  }
+  
+  /* Force clear background for sidebar */
+  .chat-sidebar {
+    background: var(--bg-secondary) !important;
+    opacity: 1 !important;
+    /* Remove any inherited blur effects */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+  }
+  
   .chat-sidebar {
     width: 100%;
     height: 100%;
