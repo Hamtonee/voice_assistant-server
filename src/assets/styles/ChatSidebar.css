@@ -32,6 +32,10 @@
   scroll-behavior: auto;
   box-sizing: border-box;
   border-right: 1px solid var(--border-primary);
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 /* Collapsed state handled by grid layout in ChatWindow.css */
@@ -373,12 +377,12 @@
   perspective: 1000px !important;
 }
 
-.chat-sidebar * {
+.chat-sidebar *:not(button):not(input):not(a):not([role="button"]):not([role="menuitem"]) {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
-  /* Allow touch interactions on buttons and interactive elements */
+  touch-action: none;
 }
 
 /* Re-enable touch interactions for interactive elements */
@@ -1108,4 +1112,39 @@
   .chat-sidebar__list::-webkit-scrollbar {
     display: none;
   }
+}
+
+.chat-sidebar .options-popup > * {
+  padding: 12px 16px !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  touch-action: manipulation !important;
+}
+
+/* More specific user-select to prevent text selection on non-interactive elements */
+.chat-sidebar,
+.chat-sidebar__header,
+.chat-sidebar__list {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Ensure interactive elements are selectable and have correct touch actions */
+.chat-sidebar button,
+.chat-sidebar input,
+.chat-sidebar a,
+.chat-sidebar [role="button"],
+.chat-sidebar [role="menuitem"],
+.chat-sidebar .chat-item {
+  -webkit-user-select: auto;
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+  user-select: auto;
+  touch-action: manipulation;
+}
+
+.chat-sidebar__list {
+  touch-action: pan-y;
 }
