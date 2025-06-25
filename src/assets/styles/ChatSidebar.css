@@ -9,14 +9,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
 
 /*-------------------------------------------------------
-  Sidebar container - IMPROVED HEIGHT CALCULATION
+  Sidebar container - GRID LAYOUT COMPATIBLE
 -------------------------------------------------------*/
 .chat-sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: var(--sidebar-width);
-  height: 100vh;
+  /* Remove fixed positioning to work with CSS Grid */
+  position: relative;
+  width: 100%;
+  height: 100%;
   padding: 20px 16px;
   background: var(--chat-sidebar-bg);
   color: var(--text-primary);
@@ -24,8 +23,7 @@
   flex-direction: column;
   font-family: 'Poppins', sans-serif;
   font-size: var(--font-size-sm);
-  transition: transform var(--transition-layout);
-  z-index: var(--z-sidebar);
+  transition: var(--theme-transition);
   overflow: hidden;
   border: none;
   outline: none;
@@ -33,11 +31,10 @@
   -webkit-overflow-scrolling: touch;
   scroll-behavior: auto;
   box-sizing: border-box;
+  border-right: 1px solid var(--border-color);
 }
 
-.chat-sidebar.collapsed {
-  transform: translateX(-100%);
-}
+/* Collapsed state handled by grid layout in ChatWindow.css */
 
 /*-------------------------------------------------------
   New Chat Button (Full width, left-aligned)
@@ -276,18 +273,17 @@
 .chat-sidebar [role="menu"],
 .chat-sidebar .menu-popup,
 .chat-sidebar .options-menu {
-  position: fixed !important;
+  position: absolute !important;
   z-index: 999999 !important;
-  top: auto !important;
-  right: 20px !important;
-  bottom: auto !important;
-  left: auto !important;
+  top: 100% !important;
+  right: 0 !important;
   background: var(--bg-input) !important; /* Use unified theme background */
   border: 2px solid var(--border-color) !important; /* Use unified theme border */
   border-radius: 8px !important;
   box-shadow: var(--shadow-xl) !important; /* Use unified theme shadow */
   min-width: 150px !important;
   padding: 8px 0 !important;
+  margin-top: 4px !important;
   opacity: 1 !important;
   visibility: visible !important;
   display: block !important;
@@ -303,7 +299,7 @@
   .chat-sidebar [role="menu"],
   .chat-sidebar .menu-popup,
   .chat-sidebar .options-menu {
-    right: 10px !important;
+    right: 0 !important;
     left: auto !important;
     max-width: 200px !important;
   }
@@ -692,15 +688,18 @@
 .chat-sidebar__no-sessions {
   text-align: center;
   color: var(--text-muted); /* Use unified theme muted text color */
-  margin-top: 2rem;
-  padding: 20px 12px;
+  margin-top: 1rem;
+  padding: 24px 16px;
   transition: var(--theme-transition);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex: 1;
-  min-height: 200px;
+  min-height: 160px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
 }
 .no-sessions-icon {
   font-size: 2.5rem;
@@ -724,13 +723,12 @@
 }
 
 /*-------------------------------------------------------
-  MOBILE OPTIMIZATIONS - IMPROVED LAYOUT
+  MOBILE OPTIMIZATIONS - GRID COMPATIBLE
 -------------------------------------------------------*/
 @media (max-width: var(--break-md)) {
   .chat-sidebar {
-    width: 100vw;
-    top: 0;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     padding: 16px 12px;
     overflow: hidden !important;
     overscroll-behavior: none !important;
@@ -986,8 +984,7 @@
 /* Landscape mobile adjustments */
 @media (orientation: landscape) and (max-height: 500px) {
   .chat-sidebar {
-    top: 0;
-    height: 100vh;
+    height: 100%;
     padding: 10px 8px;
     border-right: none;
     box-sizing: border-box;
