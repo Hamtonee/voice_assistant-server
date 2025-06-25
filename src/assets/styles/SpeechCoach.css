@@ -1268,8 +1268,8 @@
   background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(20px) !important;
   border-top: 1px solid rgba(0,0,0,0.05) !important;
-  border-left: none !important;
-  border-right: none !important;
+  border-left: 3px solid red !important; /* DEBUG: Controls bar border */
+  border-right: 3px solid red !important; /* DEBUG: Controls bar border */
   z-index: var(--z-controls-bar) !important;
   pointer-events: auto !important;
   transition: all var(--sidebar-transition-duration) var(--sidebar-easing) !important;
@@ -1448,8 +1448,8 @@
   z-index: var(--z-speech-input) !important;
   border: none !important;
   border-top: 1px solid rgba(0,0,0,0.08) !important;
-  border-left: none !important;
-  border-right: none !important;
+  border-left: 3px solid blue !important; /* DEBUG: Input container border */
+  border-right: 3px solid blue !important; /* DEBUG: Input container border */
   pointer-events: auto !important;
   transition: all var(--sidebar-transition-duration) var(--sidebar-easing) !important;
   margin: 0 !important;
