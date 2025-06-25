@@ -548,19 +548,6 @@ export default function ChatSidebar({
           feature={selectedFeature}
           scenarioKey={currentScenarioKey}
         />
-        {orderedSessions.length === 0 && (
-          <div className="chat-sidebar__no-sessions">
-            <div className="no-sessions-icon">
-              {selectedFeature === 'chat' ? '💬' : selectedFeature === 'sema' ? '🎤' : '📚'}
-            </div>
-            <div className="no-sessions-text">
-              No {getFeatureDisplayName(selectedFeature).toLowerCase()} sessions found.
-            </div>
-            <div className="no-sessions-hint">
-              Click "{getNewChatButtonText()}" to get started!
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ─── Enhanced CSS for new features ─── */}
