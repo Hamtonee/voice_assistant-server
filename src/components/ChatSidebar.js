@@ -477,6 +477,8 @@ export default function ChatSidebar({
     <aside
       ref={sidebarRef}
       className="chat-sidebar"
+      role="complementary"
+      aria-label="Chat navigation sidebar"
     >
       {/* ─── New Chat Button ─── */}
       <div className="chat-sidebar__new-chat-row">
