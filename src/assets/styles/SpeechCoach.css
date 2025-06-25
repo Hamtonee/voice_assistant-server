@@ -1268,6 +1268,8 @@
   background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(20px) !important;
   border-top: 1px solid rgba(0,0,0,0.05) !important;
+  border-left: none !important;
+  border-right: none !important;
   z-index: var(--z-controls-bar) !important;
   pointer-events: auto !important;
   transition: all var(--sidebar-transition-duration) var(--sidebar-easing) !important;
@@ -1293,6 +1295,8 @@
   margin: 0 !important;
   padding: 0.75rem 1.5rem !important;
   box-sizing: border-box !important;
+  border-left: 2px solid red !important; /* DEBUG: Remove after testing */
+  border-right: 2px solid red !important; /* DEBUG: Remove after testing */
 }
 
 .sidebar-closed .coach-controls-bar {
@@ -1444,6 +1448,8 @@
   z-index: var(--z-speech-input) !important;
   border: none !important;
   border-top: 1px solid rgba(0,0,0,0.08) !important;
+  border-left: none !important;
+  border-right: none !important;
   pointer-events: auto !important;
   transition: all var(--sidebar-transition-duration) var(--sidebar-easing) !important;
   margin: 0 !important;
@@ -1464,6 +1470,8 @@
   margin: 0 !important;
   padding: 1.25rem 1.5rem !important;
   box-sizing: border-box !important;
+  border-left: 2px solid blue !important; /* DEBUG: Remove after testing */
+  border-right: 2px solid blue !important; /* DEBUG: Remove after testing */
 }
 
 .sidebar-closed .speech-input-container {
