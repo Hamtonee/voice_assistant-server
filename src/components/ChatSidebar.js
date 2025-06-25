@@ -16,7 +16,8 @@ export default function ChatSidebar({
   onDeleteChat,
   currentScenarioKey,
   hasCurrentChatContent,
-  usageSummary
+  usageSummary,
+  platformName = "Voice Assistant"
 }) {
   const { isDark } = useTheme();
   // State for usage tracking
@@ -383,8 +384,8 @@ export default function ChatSidebar({
     <div className={`chat-sidebar ${isDark ? 'dark-theme' : 'light-theme'}`} ref={sidebarRef}>
       {/* Platform header with logo */}
       <div className="chat-sidebar__header">
-        <img src={logo} alt="Voice Assistant" className="chat-sidebar__logo" />
-        <h1>Voice Assistant</h1>
+        <img src={logo} alt={platformName} className="chat-sidebar__logo" />
+        <h1>{platformName}</h1>
       </div>
 
       {/* Navigation buttons */}
