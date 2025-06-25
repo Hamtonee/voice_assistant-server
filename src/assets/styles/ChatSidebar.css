@@ -1148,3 +1148,47 @@
 .chat-sidebar__list {
   touch-action: pan-y;
 }
+
+/*=======================================================
+  MOBILE OVERRIDE - FINAL FIX
+=========================================================
+This rule is designed to be the absolute final say on mobile.
+It overrides everything to ensure the sidebar is visible,
+interactive, and not blurry.
+=======================================================*/
+@media (max-width: 768px) {
+  .chat-sidebar {
+    /* --- Visibility & Layout --- */
+    display: flex !important;
+    flex-direction: column !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+    
+    /* --- NO MORE BLUR --- */
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+
+    /* --- Interaction --- */
+    pointer-events: auto !important;
+    touch-action: auto !important;
+
+    /* --- Stacking --- */
+    z-index: 9999 !important;
+  }
+
+  /* Ensure all children are interactive */
+  .chat-sidebar * {
+    pointer-events: auto !important;
+    touch-action: auto !important;
+    -webkit-user-select: auto !important;
+    user-select: auto !important;
+  }
+
+  /* Specific fix for scrolling list */
+  .chat-sidebar__list {
+    touch-action: pan-y !important;
+    overflow-y: auto !important;
+  }
+}
