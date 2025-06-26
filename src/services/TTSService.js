@@ -15,12 +15,121 @@ const defaultVoiceConfig = {
     speakingRate: 1.0
 };
 
-export class TTSService {
-    constructor(baseUrl = '') {
-        this.baseUrl = baseUrl;
-        this.currentRequest = null;
+class TTSService {
+    constructor() {
         this.audioCache = new Map();
         this.pendingRequests = new Map();
+        this.isBrowserTTS = false;
+        this.browserSynth = window.speechSynthesis;
+        this.initializeTTS();
+    }
+
+    async initializeTTS() {
+        try {
+            // Try server TTS first
+            const response = await api.get('/health', { timeout: 5000 });
+            this.isBrowserTTS = !response.data?.tts_available;
+        } catch (error) {
+            console.warn('Server TTS unavailable, falling back to browser TTS:', error.message);
+            this.isBrowserTTS = true;
+        }
+
+        // Initialize browser TTS as fallback
+        if (this.isBrowserTTS && this.browserSynth) {
+            // Pre-load voices
+            this.browserSynth.getVoices();
+        }
+    }
+
+    async speak(text, options = {}) {
+        if (!text?.trim()) return;
+
+        const cacheKey = `${text}-${JSON.stringify(options)}`;
+        
+        try {
+            if (this.isBrowserTTS) {
+                await this.speakWithBrowser(text, options);
+            } else {
+                await this.speakWithServer(text, options);
+            }
+        } catch (error) {
+            console.error('TTS error:', error);
+            // Fallback to browser TTS if server fails
+            if (!this.isBrowserTTS) {
+                this.isBrowserTTS = true;
+                await this.speakWithBrowser(text, options);
+            }
+        }
+    }
+
+    async speakWithServer(text, options) {
+        try {
+            const response = await api.post('/tts/synthesize', {
+                text,
+                ...options
+            }, {
+                responseType: 'blob'
+            });
+
+            const audioBlob = response.data;
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            
+            await new Promise((resolve, reject) => {
+                audio.onended = resolve;
+                audio.onerror = reject;
+                audio.play();
+            });
+
+            URL.revokeObjectURL(audioUrl);
+        } catch (error) {
+            console.error('Server TTS failed:', error);
+            throw error;
+        }
+    }
+
+    async speakWithBrowser(text, options = {}) {
+        if (!this.browserSynth) {
+            console.error('Browser TTS not available');
+            return;
+        }
+
+        // Cancel any ongoing speech
+        this.browserSynth.cancel();
+
+        return new Promise((resolve, reject) => {
+            try {
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                // Configure utterance
+                utterance.rate = options.rate || 1;
+                utterance.pitch = options.pitch || 1;
+                utterance.volume = options.volume || 1;
+                
+                // Try to match requested voice
+                if (options.voice) {
+                    const voices = this.browserSynth.getVoices();
+                    const voice = voices.find(v => 
+                        v.name.toLowerCase().includes(options.voice.toLowerCase())
+                    );
+                    if (voice) utterance.voice = voice;
+                }
+
+                utterance.onend = resolve;
+                utterance.onerror = reject;
+                
+                this.browserSynth.speak(utterance);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    stop() {
+        if (this.isBrowserTTS && this.browserSynth) {
+            this.browserSynth.cancel();
+        }
+        // Implement server-side stop if needed
     }
 
     async synthesize(text, voiceConfig = null) {
@@ -154,6 +263,4 @@ export class TTSService {
     }
 }
 
-// Create and export the singleton instance
-const ttsServiceInstance = new TTSService();
-export default ttsServiceInstance; 
+export default new TTSService(); 
