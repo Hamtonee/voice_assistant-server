@@ -464,6 +464,9 @@ export default function ChatSidebar({
           onRenameChat={onRenameChat}
           onDeleteChat={onDeleteChat}
           selectedFeature={selectedFeature}
+          scenarioKey={currentScenarioKey}
+          isLoading={isValidatingSession}
+          className="sidebar-chat-list"
         />
       </div>
     </div>
