@@ -70,22 +70,23 @@ body {
   width: 100%;
 }
 
-/* Hero Section - Original wide layout restored */
+/* Hero Section - Modern responsive layout */
 .hero {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
-  align-items: center;
-  min-height: 85vh; /* Slightly less than full viewport */
+  min-height: 85vh;
   padding: 3rem 0;
   background: var(--gradient-hero);
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.hero-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
 }
 
 .hero::before {

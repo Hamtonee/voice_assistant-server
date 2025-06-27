@@ -1,0 +1,302 @@
+/* ResponsiveContainer.css - Modern responsive layout system */
+
+/* Base responsive container */
+.responsive-container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Max width variants */
+.responsive-container--max-sm {
+  max-width: 640px;
+}
+
+.responsive-container--max-md {
+  max-width: 768px;
+}
+
+.responsive-container--max-lg {
+  max-width: 1024px;
+}
+
+.responsive-container--max-xl {
+  max-width: 1280px;
+}
+
+.responsive-container--max-2xl {
+  max-width: 1536px;
+}
+
+.responsive-container--max-full {
+  max-width: none;
+}
+
+/* Padding variants */
+.responsive-container--padding-none {
+  padding: 0;
+}
+
+.responsive-container--padding-sm {
+  padding: var(--spacing-sm);
+}
+
+.responsive-container--padding-default {
+  padding: var(--spacing-md);
+}
+
+.responsive-container--padding-lg {
+  padding: var(--spacing-lg);
+}
+
+.responsive-container--padding-xl {
+  padding: var(--spacing-xl);
+}
+
+/* Container variants */
+.responsive-container--full-width {
+  width: 100%;
+  max-width: none;
+}
+
+.responsive-container--narrow {
+  max-width: 600px;
+}
+
+.responsive-container--wide {
+  max-width: 1600px;
+}
+
+.responsive-container--sidebar {
+  max-width: 320px;
+}
+
+/* Grid system */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: var(--grid-columns, repeat(auto-fit, minmax(250px, 1fr)));
+  width: 100%;
+}
+
+/* Grid gap variants */
+.responsive-grid--gap-none {
+  gap: 0;
+}
+
+.responsive-grid--gap-xs {
+  gap: var(--spacing-xs);
+}
+
+.responsive-grid--gap-sm {
+  gap: var(--spacing-sm);
+}
+
+.responsive-grid--gap-md {
+  gap: var(--spacing-md);
+}
+
+.responsive-grid--gap-lg {
+  gap: var(--spacing-lg);
+}
+
+.responsive-grid--gap-xl {
+  gap: var(--spacing-xl);
+}
+
+/* Responsive grid behavior */
+.responsive-grid--responsive {
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+}
+
+@media (max-width: 768px) {
+  .responsive-grid--responsive {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .responsive-grid--responsive {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+  }
+}
+
+/* Flex system */
+.responsive-flex {
+  display: flex;
+}
+
+/* Flex direction */
+.responsive-flex--direction-row {
+  flex-direction: row;
+}
+
+.responsive-flex--direction-column {
+  flex-direction: column;
+}
+
+.responsive-flex--direction-row-reverse {
+  flex-direction: row-reverse;
+}
+
+.responsive-flex--direction-column-reverse {
+  flex-direction: column-reverse;
+}
+
+/* Flex align */
+.responsive-flex--align-stretch {
+  align-items: stretch;
+}
+
+.responsive-flex--align-flex-start {
+  align-items: flex-start;
+}
+
+.responsive-flex--align-flex-end {
+  align-items: flex-end;
+}
+
+.responsive-flex--align-center {
+  align-items: center;
+}
+
+.responsive-flex--align-baseline {
+  align-items: baseline;
+}
+
+/* Flex justify */
+.responsive-flex--justify-flex-start {
+  justify-content: flex-start;
+}
+
+.responsive-flex--justify-flex-end {
+  justify-content: flex-end;
+}
+
+.responsive-flex--justify-center {
+  justify-content: center;
+}
+
+.responsive-flex--justify-space-between {
+  justify-content: space-between;
+}
+
+.responsive-flex--justify-space-around {
+  justify-content: space-around;
+}
+
+.responsive-flex--justify-space-evenly {
+  justify-content: space-evenly;
+}
+
+/* Flex wrap */
+.responsive-flex--wrap-nowrap {
+  flex-wrap: nowrap;
+}
+
+.responsive-flex--wrap-wrap {
+  flex-wrap: wrap;
+}
+
+.responsive-flex--wrap-wrap-reverse {
+  flex-wrap: wrap-reverse;
+}
+
+/* Flex gap */
+.responsive-flex--gap-none {
+  gap: 0;
+}
+
+.responsive-flex--gap-xs {
+  gap: var(--spacing-xs);
+}
+
+.responsive-flex--gap-sm {
+  gap: var(--spacing-sm);
+}
+
+.responsive-flex--gap-md {
+  gap: var(--spacing-md);
+}
+
+.responsive-flex--gap-lg {
+  gap: var(--spacing-lg);
+}
+
+.responsive-flex--gap-xl {
+  gap: var(--spacing-xl);
+}
+
+/* Stack and Center components inherit from flex */
+.responsive-stack {
+  /* Additional stack-specific styles can go here */
+}
+
+.responsive-center {
+  min-height: inherit;
+}
+
+/* Responsive behavior for mobile */
+@media (max-width: 768px) {
+  .responsive-container--padding-default {
+    padding: var(--spacing-sm);
+  }
+  
+  .responsive-container--padding-lg {
+    padding: var(--spacing-md);
+  }
+  
+  .responsive-container--padding-xl {
+    padding: var(--spacing-lg);
+  }
+  
+  /* Stack flex items on mobile for better UX */
+  .responsive-flex--direction-row {
+    flex-direction: column;
+  }
+  
+  .responsive-flex--direction-row-reverse {
+    flex-direction: column-reverse;
+  }
+  
+  /* Adjust gaps on mobile */
+  .responsive-flex--gap-lg,
+  .responsive-flex--gap-xl {
+    gap: var(--spacing-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .responsive-container {
+    padding-left: var(--spacing-sm);
+    padding-right: var(--spacing-sm);
+  }
+  
+  /* Further reduce gaps on small mobile */
+  .responsive-flex--gap-md,
+  .responsive-flex--gap-lg,
+  .responsive-flex--gap-xl {
+    gap: var(--spacing-sm);
+  }
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+  .responsive-container {
+    border: 1px solid var(--border-primary);
+  }
+}
+
+/* Print styles */
+@media print {
+  .responsive-container {
+    max-width: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .responsive-grid,
+  .responsive-flex {
+    gap: 0.5rem;
+  }
+} 

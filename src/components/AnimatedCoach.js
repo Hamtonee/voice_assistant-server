@@ -137,12 +137,13 @@ const AnimatedCoach = ({ isListening, isSpeaking, useProcedural = false }) => {
 
     // Cleanup when component unmounts.
     return () => {
+      const currentMount = mountRef.current;
       if (
-        mountRef.current &&
+        currentMount &&
         renderer.domElement &&
-        renderer.domElement.parentNode === mountRef.current
+        renderer.domElement.parentNode === currentMount
       ) {
-        mountRef.current.removeChild(renderer.domElement);
+        currentMount.removeChild(renderer.domElement);
       }
     };
   }, [useProcedural]);
