@@ -1246,13 +1246,14 @@
 }
 
 /*───────────────────────────────
-  ENHANCED CONTROLS LAYOUT SYSTEM - Single Definition
+  ENHANCED CONTROLS LAYOUT SYSTEM - Fixed Width Coverage
 ────────────────────────────────*/
 .speech-controls-wrapper {
   position: fixed !important;
   bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
+  width: 100vw !important;
   z-index: var(--z-controls) !important;
   pointer-events: auto !important;
   transition: all var(--sidebar-transition-duration) var(--sidebar-easing) !important;
@@ -1276,38 +1277,46 @@
   ) !important;
 }
 
-/* Sidebar-aware controls wrapper */
-.sidebar-open .speech-controls-wrapper {
-  left: var(--sidebar-width) !important;
-  right: 0 !important;
-}
-
-.sidebar-closed .speech-controls-wrapper {
+/* Sidebar-aware controls wrapper - FIXED SPECIFICITY */
+.speech-coach.sidebar-open .speech-controls-wrapper {
   left: 0 !important;
   right: 0 !important;
+  width: 100vw !important;
+  padding-left: calc(var(--sidebar-width) + 12px) !important;
+  padding-right: 12px !important;
 }
 
-/* Controls and Input Container */
+.speech-coach.sidebar-closed .speech-controls-wrapper {
+  left: 0 !important;
+  right: 0 !important;
+  width: 100vw !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+
+/* Controls and Input Container - FIXED */
 .controls-input-container {
   display: flex !important;
   flex-direction: column !important;
   width: 100% !important;
-  max-width: 1200px !important;
-  margin: 0 auto !important;
-  padding: 0 var(--chat-padding) !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
   box-sizing: border-box !important;
   gap: 12px !important;
 }
 
-/* Sidebar-aware container padding */
+/* Remove sidebar-specific padding since it's handled by wrapper */
 .sidebar-open .controls-input-container {
-  padding: 0 1.5rem !important;
+  padding: 0 !important;
   max-width: none !important;
+  width: 100% !important;
 }
 
 .sidebar-closed .controls-input-container {
-  padding: 0 calc(var(--chat-padding) * 1.5) !important;
-  max-width: 1200px !important;
+  padding: 0 !important;
+  max-width: none !important;
+  width: 100% !important;
 }
 
 /* Legacy controls container - hidden, replaced by new system */
@@ -1316,14 +1325,14 @@
 }
 
 /*───────────────────────────────
-  ENHANCED CONTROLS BAR - Flexible and Aligned
+  ENHANCED CONTROLS BAR - Full Width Coverage
 ────────────────────────────────*/
 .enhanced-controls-bar {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
   height: 50px !important;
-  padding: 0.75rem 1.25rem !important;
+  padding: 0.75rem 1.5rem !important;
   background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(20px) !important;
   border: 1px solid rgba(0,0,0,0.08) !important;
@@ -1334,6 +1343,8 @@
   transition: all 0.3s ease !important;
   box-sizing: border-box !important;
   margin-bottom: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
 }
 
 [data-theme="dark"] .enhanced-controls-bar {
@@ -1369,14 +1380,14 @@
 }
 
 /*───────────────────────────────
-  ENHANCED INPUT CONTAINER - Consistent Height
+  ENHANCED INPUT CONTAINER - Full Width Coverage
 ────────────────────────────────*/
 .enhanced-input-container {
   display: flex !important;
   align-items: center !important;
   gap: 0.75rem !important;
   height: 60px !important;
-  padding: 0.75rem 1.25rem !important;
+  padding: 0.75rem 1.5rem !important;
   background: linear-gradient(135deg, var(--bg-input) 0%, rgba(255, 255, 255, 0.98) 100%) !important;
   border: 1px solid rgba(0, 123, 255, 0.12) !important;
   border-radius: var(--border-radius-lg) !important;
@@ -1387,6 +1398,8 @@
   backdrop-filter: blur(25px) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
 }
 
 [data-theme="dark"] .enhanced-input-container {
@@ -1638,23 +1651,36 @@
 }
 
 /*───────────────────────────────
-  MOBILE RESPONSIVE ENHANCEMENTS
+  MOBILE RESPONSIVE ENHANCEMENTS - FIXED
 ────────────────────────────────*/
 @media (max-width: 768px) {
+  .speech-controls-wrapper {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  .speech-coach.sidebar-open .speech-controls-wrapper {
+    padding-left: calc(var(--sidebar-width) + 16px) !important;
+    padding-right: 16px !important;
+  }
+  
   .controls-input-container {
-    padding: 0 16px !important;
+    padding: 0 !important;
     gap: 8px !important;
+    width: 100% !important;
   }
 
   .enhanced-controls-bar {
     height: 44px !important;
     padding: 0.5rem 1rem !important;
     margin-bottom: 6px !important;
+    width: 100% !important;
   }
 
   .enhanced-input-container {
     height: 52px !important;
     padding: 0.5rem 1rem !important;
+    width: 100% !important;
   }
 
   .controls-group {
@@ -1698,25 +1724,43 @@
 
 @media (max-width: 576px) {
   .enhanced-controls-bar {
-    flex-direction: column !important;
-    height: auto !important;
-    padding: 0.5rem !important;
+    flex-direction: row !important; /* Keep horizontal layout */
+    height: 44px !important; /* Fixed height */
+    padding: 0.5rem 0.75rem !important;
     gap: 0.5rem !important;
+    justify-content: space-between !important;
+    align-items: center !important;
   }
-
+  
   .controls-group {
-    width: 100% !important;
-    justify-content: center !important;
+    display: flex !important;
+    gap: 0.375rem !important;
+    align-items: center !important;
   }
-
+  
+  .controls-group.left {
+    justify-content: flex-start !important;
+  }
+  
+  .controls-group.right {
+    justify-content: flex-end !important;
+  }
+  
+  .controls-group.center {
+    display: none !important; /* Hide center group on small screens */
+  }
+  
   .enhanced-input-container {
     height: 48px !important;
     padding: 0.375rem 0.75rem !important;
   }
 
   .action-button {
-    flex: 1 !important;
-    min-width: auto !important;
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.75rem !important;
+    height: 28px !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
   }
 }
 
@@ -1801,13 +1845,24 @@
   }
 }
 
-/* Very small screen optimizations */
+/* Very small screen optimizations - FIXED */
 @media (max-width: 480px) {
+  .speech-controls-wrapper {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  
+  .speech-coach.sidebar-open .speech-controls-wrapper {
+    padding-left: calc(var(--sidebar-width) + 12px) !important;
+    padding-right: 12px !important;
+  }
+  
   .enhanced-controls-bar {
     height: auto !important;
     flex-direction: column !important;
     gap: 0.5rem !important;
     padding: 0.5rem !important;
+    width: 100% !important;
   }
 
   .controls-group {
@@ -1822,6 +1877,10 @@
   .action-button {
     flex: 1 !important;
     min-width: 0 !important;
+  }
+  
+  .enhanced-input-container {
+    width: 100% !important;
   }
 
   .conversation-area,
