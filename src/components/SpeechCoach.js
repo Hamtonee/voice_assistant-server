@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import TTSService from '../services/TTSService';
+import { TTSService } from '../services/TTSService';
 import api from '../api';
 import '../assets/styles/SpeechCoach.css';
 import { FiMic, FiMicOff, FiSend, FiTrash2, FiBarChart, FiX, FiChevronDown } from 'react-icons/fi';
+import { handleApiError, handleSpeechError, logError } from '../utils/errorHandler';
+import ErrorDisplay from './ui/ErrorDisplay';
+import { LoadingButton, InlineLoader } from './ui/LoadingStates';
 
 export default function SpeechCoach({ 
   sessionId, 
@@ -47,7 +50,7 @@ export default function SpeechCoach({
   // Initialize speech services
   useEffect(() => {
     isUnmountingRef.current = false;
-    ttsServiceRef.current = TTSService;
+    ttsServiceRef.current = new TTSService();
     
     const initializeApp = async () => {
       try {
@@ -64,11 +67,15 @@ export default function SpeechCoach({
           setIsSpeechSupported(true);
         } else {
           setIsSpeechSupported(false);
-          setError('Speech recognition is not supported in your browser.');
+          const speechError = { 
+            type: 'SPEECH_RECOGNITION_ERROR', 
+            message: 'Speech recognition is not supported in your browser.' 
+          };
+          setError(speechError);
         }
       } catch (error) {
-        console.error('Initialization error:', error);
-        setError('Failed to initialize speech services.');
+        const handledError = handleSpeechError(error, 'Speech Service Initialization');
+        setError(handledError);
       }
     };
 
@@ -134,8 +141,11 @@ export default function SpeechCoach({
       };
 
       recognitionRef.current.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setError('Speech recognition error: ' + event.error);
+        const speechError = handleSpeechError(
+          { type: 'SPEECH_RECOGNITION_ERROR', message: event.error }, 
+          'Speech Recognition'
+        );
+        setError(speechError);
         setIsRecording(false);
       };
 
@@ -145,8 +155,8 @@ export default function SpeechCoach({
         }
       };
     } catch (error) {
-      console.error('Failed to start recording:', error);
-      setError('Failed to start recording: ' + error.message);
+      const speechError = handleSpeechError(error, 'Start Recording');
+      setError(speechError);
       setIsRecording(false);
     }
   }, [isRecording]);
@@ -159,15 +169,19 @@ export default function SpeechCoach({
       recognitionRef.current.stop();
       setIsRecording(false);
     } catch (error) {
-      console.error('Failed to stop recording:', error);
-      setError('Failed to stop recording: ' + error.message);
+      const speechError = handleSpeechError(error, 'Stop Recording');
+      setError(speechError);
     }
   }, [isRecording]);
 
   // Send message
   const handleSendMessage = useCallback(async () => {
     if (!inputText.trim()) {
-      setError('Please say something before submitting.');
+      const validationError = {
+        type: 'VALIDATION_ERROR',
+        message: 'Please say something before submitting.'
+      };
+      setError(validationError);
       return;
     }
 
@@ -343,74 +357,69 @@ export default function SpeechCoach({
         </div>
       )}
 
-      {/* Speech Controls Wrapper - New Enhanced Layout */}
-      <div className="speech-controls-wrapper">
-        <div className="controls-input-container">
-          {/* Enhanced Controls Bar */}
-          <div className="enhanced-controls-bar">
-            <div className="controls-group left">
-              <button
-                className="action-button clear"
-                onClick={handleClear}
-                disabled={isProcessing || messages.length === 0}
-              >
-                <FiTrash2 size={16} />
-                Clear
-              </button>
-            </div>
-            
-            <div className="controls-group center">
-              {/* Future controls can go here */}
-            </div>
-            
-            <div className="controls-group right">
-              <button
-                className={`action-button progress ${showProgressPanel ? 'active' : ''}`}
-                onClick={() => setShowProgressPanel(!showProgressPanel)}
-              >
-                <FiBarChart size={16} />
-                Progress
-              </button>
-            </div>
-          </div>
+      {/* Speech Input Container with Integrated Mic */}
+      <div className={`speech-input-container ${showProgressPanel ? 'progress-visible' : ''}`}>
+        <div className="input-wrapper">
+          <textarea
+            className="chat-text-field"
+            placeholder="Type or speak your message..."
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyPress}
+            disabled={isProcessing}
+            rows={1}
+          />
+          <button
+            className={`integrated-mic-btn ${isRecording ? 'listening' : ''} ${!isSpeechSupported ? 'disabled' : ''}`}
+            onClick={isRecording ? handleStopRecording : handleStartRecording}
+            disabled={!isSpeechSupported || isProcessing}
+            aria-label={isRecording ? "Stop recording" : "Start recording"}
+          >
+            {isRecording ? (
+              <>
+                <FiMicOff size={16} />
+                <div className="listening-pulse">
+                  <div className="pulse-ring"></div>
+                  <div className="pulse-ring"></div>
+                  <div className="pulse-ring"></div>
+                </div>
+              </>
+            ) : (
+              <FiMic size={16} />
+            )}
+          </button>
+        </div>
+        <button
+          className="send-btn"
+          onClick={handleSendMessage}
+          disabled={!inputText.trim() || isProcessing}
+          aria-label="Send message"
+        >
+          <FiSend size={18} />
+        </button>
+      </div>
 
-          {/* Enhanced Input Container */}
-          <div className="enhanced-input-container">
-            <textarea
-              className="enhanced-input-field"
-              placeholder="Type or speak your message..."
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyPress}
-              disabled={isProcessing}
-              rows={1}
-            />
+      {/* Controls Container */}
+      <div className={`controls-container ${showProgressPanel ? 'progress-visible' : ''}`}>
+        <div className="coach-controls-bar">
+          <div className="controls-left">
             <button
-              className={`enhanced-mic-button ${isRecording ? 'listening' : ''}`}
-              onClick={isRecording ? handleStopRecording : handleStartRecording}
-              disabled={!isSpeechSupported || isProcessing}
-              aria-label={isRecording ? "Stop recording" : "Start recording"}
+              className="control-btn clear-btn"
+              onClick={handleClear}
+              disabled={isProcessing || messages.length === 0}
             >
-              {isRecording ? (
-                <>
-                  <FiMicOff size={18} />
-                  <div className="listening-pulse">
-                    <div className="pulse-ring"></div>
-                    <div className="pulse-ring"></div>
-                    <div className="pulse-ring"></div>
-                  </div>
-                </>
-              ) : (
-                <FiMic size={18} />
-              )}
+              <FiTrash2 size={16} />
+              Clear
             </button>
+          </div>
+          
+          <div className="controls-right">
             <button
-              className="enhanced-send-button"
-              onClick={handleSendMessage}
-              disabled={!inputText.trim() || isProcessing}
-              aria-label="Send message"
+              className={`control-btn progress-toggle-btn ${showProgressPanel ? 'active' : ''}`}
+              onClick={() => setShowProgressPanel(!showProgressPanel)}
             >
-              <FiSend size={18} />
+              <FiBarChart size={16} />
+              Progress
             </button>
           </div>
         </div>

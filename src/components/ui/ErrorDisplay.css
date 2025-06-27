@@ -1,0 +1,210 @@
+/* ErrorDisplay.css - Clean, accessible error display component */
+
+.error-display {
+  --error-primary: #ef4444;
+  --error-background: rgba(239, 68, 68, 0.1);
+  --error-border: rgba(239, 68, 68, 0.2);
+  --error-text: var(--text-primary);
+  --error-text-secondary: var(--text-secondary);
+  
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--error-background);
+  border: 1px solid var(--error-border);
+  border-radius: var(--radius-lg);
+  color: var(--error-text);
+  max-width: 100%;
+}
+
+.error-display__content {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.error-display__text {
+  flex: 1;
+  min-width: 0; /* Allow text to wrap */
+}
+
+.error-display__title {
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--error-text);
+}
+
+.error-display__message {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--error-text-secondary);
+  line-height: 1.5;
+}
+
+.error-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: var(--error-primary);
+}
+
+.error-display__actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.error-display__button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  min-height: 36px;
+}
+
+.error-display__button--primary {
+  background: var(--error-primary);
+  color: white;
+}
+
+.error-display__button--primary:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.error-display__button--secondary {
+  background: transparent;
+  color: var(--error-text-secondary);
+  border: 1px solid var(--border-secondary);
+}
+
+.error-display__button--secondary:hover {
+  background: var(--bg-tertiary);
+  color: var(--error-text);
+}
+
+/* Size variants */
+.error-display--small {
+  padding: var(--spacing-md);
+  gap: var(--spacing-sm);
+}
+
+.error-display--small .error-display__title {
+  font-size: var(--font-size-md);
+}
+
+.error-display--small .error-display__message {
+  font-size: var(--font-size-sm);
+}
+
+.error-display--small .error-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.error-display--large {
+  padding: var(--spacing-2xl);
+  gap: var(--spacing-xl);
+  text-align: center;
+}
+
+.error-display--large .error-display__content {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.error-display--large .error-display__title {
+  font-size: var(--font-size-2xl);
+}
+
+.error-display--large .error-icon {
+  width: 48px;
+  height: 48px;
+}
+
+/* Variant styles */
+.error-display--inline {
+  background: transparent;
+  border: none;
+  padding: var(--spacing-sm);
+  flex-direction: row;
+  align-items: center;
+}
+
+.error-display--inline .error-display__content {
+  margin: 0;
+}
+
+.error-display--banner {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .error-display {
+    padding: var(--spacing-md);
+    gap: var(--spacing-sm);
+  }
+  
+  .error-display__actions {
+    flex-direction: column;
+  }
+  
+  .error-display__button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .error-display--large {
+    padding: var(--spacing-xl);
+  }
+}
+
+/* Focus states for accessibility */
+.error-display__button:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .error-display {
+  --error-background: rgba(239, 68, 68, 0.15);
+  --error-border: rgba(239, 68, 68, 0.3);
+}
+
+/* Light theme adjustments */
+[data-theme="light"] .error-display {
+  --error-background: rgba(239, 68, 68, 0.08);
+  --error-border: rgba(239, 68, 68, 0.2);
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .error-display {
+    --error-border: var(--error-primary);
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .error-display__button {
+    transition: none;
+  }
+  
+  .error-display__button--primary:hover {
+    transform: none;
+  }
+} 

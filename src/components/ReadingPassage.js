@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import '../assets/styles/ReadingPassage.css';
 import CompactArticleBubble from './CompactArticleBubble';
 import api from '../api';
@@ -96,8 +96,18 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'reading' | 'creating'
   const [selectedArticleId, setSelectedArticleId] = useState(null);
   const [previousArticleId, setPreviousArticleId] = useState(null); // Track previous article
-  const [articleLimit, setArticleLimit] = useState({ current: 0, max: 3 });
+  const [articleLimit] = useState(5); // Default limit of 5 articles
   const [showLimitAlert, setShowLimitAlert] = useState(false);
+
+  // Article limit check
+  const checkArticleLimit = useCallback(() => {
+    const articleSessions = onNewSession?.getArticleSessions?.() || [];
+    if (articleSessions.length >= articleLimit) {
+      setShowLimitAlert(true);
+      return true;
+    }
+    return false;
+  }, [onNewSession, articleLimit]);
 
   // ENHANCED: Smart view mode determination - only show list when 2+ articles exist
   const [forceListView, setForceListView] = useState(false);
@@ -124,15 +134,13 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
       // Load the single article data
       handleOpenArticle(singleArticle.id);
     } else {
-      // Multiple articles - show list view
+      // Multiple articles - show list
       setViewMode('list');
     }
   }, [onNewSession, forceListView, handleOpenArticle]);
 
   // Enhanced session management with better unused instance detection
-  const [currentSessionId, setCurrentSessionId] = useState(() => {
-    return sessionId || `reading_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  });
+  const [currentSessionId] = useState(sessionId);
 
   // ENHANCED: Better interaction tracking - tracks meaningful user actions
   const [sessionInteractionLevel, setSessionInteractionLevel] = useState('none'); // 'none', 'wizard_started', 'article_generated', 'fully_engaged'
@@ -140,14 +148,6 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     hasStartedWizard: false,
     hasCompletedStep: false,
     hasSubmittedParams: false
-  });
-
-  // Session state tracking for duplicate prevention - removed unused sessionState variable
-  const [, setSessionState] = useState({
-    isNew: true,
-    hasContent: false,
-    lastInteractionTime: null,
-    isUnused: true
   });
 
   // Daily limit and usage state
@@ -165,39 +165,19 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   const wizardRef = useRef(null);
 
   // Enhanced viewport detection with debouncing
-  const [currentViewport, setCurrentViewport] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      return {
-        isMobile: width <= 767,
-        isTablet: width >= 768 && width <= 1023,
-        isDesktop: width >= 1024,
-        width: width,
-        height: height
-      };
-    }
-    return { isMobile: false, isTablet: false, isDesktop: true, width: 1024, height: 768 };
-  });
+  const currentViewport = useMemo(() => ({
+    isMobile: viewport?.isMobile || false,
+    isTablet: viewport?.isTablet || false,
+    isDesktop: viewport?.isDesktop || true,
+    width: viewport?.width || window.innerWidth,
+    height: viewport?.height || window.innerHeight
+  }), [viewport]);
 
   // ENHANCED: Comprehensive interaction tracking
-  const markUserInteraction = useCallback((interactionType, details = {}) => {
+  const handleUserInteraction = (interactionType, details = {}) => {
     const timestamp = Date.now();
     
-    console.log(`📊 [Interaction Tracking] ${interactionType}:`, details);
-    
-    // Update interaction level based on action type
     switch (interactionType) {
-      case 'wizard_navigation':
-        if (!wizardProgress.hasStartedWizard) {
-          setWizardProgress(prev => ({ ...prev, hasStartedWizard: true }));
-          setSessionInteractionLevel('wizard_started');
-        }
-        if (details.completedStep) {
-          setWizardProgress(prev => ({ ...prev, hasCompletedStep: true }));
-        }
-        break;
-        
       case 'wizard_submission':
         setWizardProgress(prev => ({ ...prev, hasSubmittedParams: true }));
         setSessionInteractionLevel('article_generated');
@@ -212,21 +192,30 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
         break;
         
       default:
-        // Any interaction marks the session as started
         if (sessionInteractionLevel === 'none') {
           setSessionInteractionLevel('wizard_started');
         }
     }
-    
-    // Update session state
-    setSessionState(prev => ({
-      ...prev,
-      isNew: false,
-      hasContent: interactionType !== 'wizard_navigation' || details.hasContent,
-      lastInteractionTime: timestamp,
-      isUnused: false
-    }));
-  }, [sessionInteractionLevel, wizardProgress]);
+  };
+
+  // Article limit check
+  const checkArticleLimit = useCallback(() => {
+    const articleSessions = onNewSession?.getArticleSessions?.() || [];
+    if (articleSessions.length >= articleLimit) {
+      setShowLimitAlert(true);
+      return true;
+    }
+    return false;
+  }, [onNewSession, articleLimit]);
+
+  // Handle creating new article
+  const handleCreateNewArticle = useCallback(() => {
+    if (checkArticleLimit()) {
+      return;
+    }
+    setViewMode('creating');
+    setSelectedArticleId(null);
+  }, [checkArticleLimit, setViewMode, setSelectedArticleId]);
 
   // ENHANCED: Smart session validation - determines if session is "used"
   const isSessionMeaningfullyUsed = useCallback(() => {
@@ -330,13 +319,13 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
         const { data } = await api.fetchReadingSession(currentSessionId);
         if (data.messages && data.messages.length > 0) {
           setChatMessages(data.messages);
-          markUserInteraction('session_restored', { messageCount: data.messages.length });
+          handleUserInteraction('session_restored', { messageCount: data.messages.length });
         }
         
         // Restore article content if exists
         if (data.articleData) {
           setTopic(data.articleData);
-          markUserInteraction('session_restored', { hasArticle: true });
+          handleUserInteraction('session_restored', { hasArticle: true });
         }
       } catch (error) {
         // Session doesn't exist yet, that's okay
@@ -347,7 +336,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     if (currentSessionId) {
       loadChatHistory();
     }
-  }, [currentSessionId, markUserInteraction]);
+  }, [currentSessionId, handleUserInteraction]);
 
   // Save chat messages to API whenever they change
   useEffect(() => {
@@ -474,7 +463,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
       });
       
       // Mark as meaningful interaction - article generated
-      markUserInteraction('wizard_submission', { 
+      handleUserInteraction('wizard_submission', { 
         articleGenerated: true, 
         category: params.category,
         difficulty: params.difficulty 
@@ -499,7 +488,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     } finally {
       setLoading(false);
     }
-  }, [params.category, params.difficulty, markUserInteraction]);
+  }, [params.category, params.difficulty, handleUserInteraction]);
 
   // Enhanced scroll tracking for reading progress with mobile optimization
   const handleScroll = useCallback(() => {
@@ -519,7 +508,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
       
       // Mark reading interaction if user has scrolled significantly
       if (progress > 0.1) {
-        markUserInteraction('article_interaction', { readingProgress: progress });
+        handleUserInteraction('article_interaction', { readingProgress: progress });
       }
     } else {
       // If content fits in viewport, consider it fully read
@@ -528,16 +517,16 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
       setReadWords(totalWords);
       
       // Mark as read if content is short
-      markUserInteraction('article_interaction', { readingProgress: 1, shortContent: true });
+      handleUserInteraction('article_interaction', { readingProgress: 1, shortContent: true });
     }
-  }, [topic?.content, markUserInteraction]);
+  }, [topic?.content, handleUserInteraction]);
 
   // Navigation functions with improved mobile scrolling and interaction tracking
   const nextStep = useCallback(() => {
     const newStep = Math.min(customStep + 1, 6);
     
     // Mark wizard navigation interaction
-    markUserInteraction('wizard_navigation', { 
+    handleUserInteraction('wizard_navigation', { 
       fromStep: customStep, 
       toStep: newStep,
       completedStep: true 
@@ -561,13 +550,13 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
         });
       }
     }, 100);
-  }, [customStep, selectedOptions, markUserInteraction]);
+  }, [customStep, selectedOptions, handleUserInteraction]);
 
   const prevStep = useCallback(() => {
     const newStep = Math.max(customStep - 1, 1);
     
     // Mark wizard navigation interaction
-    markUserInteraction('wizard_navigation', { 
+    handleUserInteraction('wizard_navigation', { 
       fromStep: customStep, 
       toStep: newStep,
       direction: 'back' 
@@ -584,7 +573,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
         });
       }
     }, 100);
-  }, [customStep, markUserInteraction]);
+  }, [customStep, handleUserInteraction]);
 
   // Reset to wizard when error occurs
   const resetToWizard = useCallback(() => {
@@ -615,58 +604,6 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   }, []);
 
   // ENHANCED: Article management functions
-  const handleCreateNewArticle = useCallback(async () => {
-    try {
-      // Check article limit first
-      const currentCount = await (onNewSession?.getArticleCount?.() || 0);
-      
-      if (currentCount >= 3) {
-        setArticleLimit(prev => ({ ...prev, current: currentCount }));
-        setShowLimitAlert(true);
-        return;
-      }
-      
-      // Set view mode to creating
-      setViewMode('creating');
-      setSelectedArticleId(null);
-      setForceListView(false); // Reset force list view when creating new
-      
-      // Reset all article state
-      setTopic(null);
-      setChatMessages([]);
-      setReadWords(0);
-      setReadingProgress(0);
-      setCustomStep(1);
-      setSelectedOptions([]);
-      setParams({
-        category: '',
-        paragraphCount: 3,
-        difficulty: 'medium',
-        ageGroup: '',
-        additionalInstruction: '',
-        fineTuning: ''
-      });
-      setError(null);
-      setDailyLimitStatus(null);
-      setShowLimitModal(false);
-      setShowUsageWarning(false);
-      
-      // Reset interaction tracking
-      setSessionInteractionLevel('none');
-      setWizardProgress({
-        hasStartedWizard: false,
-        hasCompletedStep: false,
-        hasSubmittedParams: false
-      });
-      
-      console.log('🆕 [Article Creation] Starting new article creation');
-      
-    } catch (error) {
-      console.error('❌ [Article Creation] Failed to start new article:', error);
-      setError('Failed to create new article. Please try again.');
-    }
-  }, [onNewSession]);
-
   const handleOpenArticle = useCallback(async (articleId) => {
     try {
       console.log('📖 [Article Open] Opening article:', articleId);
@@ -685,7 +622,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
       
       if (data.articleData || data.topic) {
         setTopic(data.articleData || data.topic);
-        markUserInteraction('article_opened', { articleId });
+        handleUserInteraction('article_opened', { articleId });
       }
       
       if (data.messages && data.messages.length > 0) {
@@ -697,7 +634,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
       setError('Failed to open article. Please try again.');
       setViewMode('list');
     }
-  }, [markUserInteraction]);
+  }, [handleUserInteraction]);
 
   const handleGoBackToList = useCallback(() => {
     console.log('🔙 [Navigation] Going back to article list');
@@ -743,17 +680,11 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
       setShowUsageWarning(false);
       
       // Reset interaction tracking
-      setSessionInteractionLevel('none');
+      handleUserInteraction('none');
       setWizardProgress({
         hasStartedWizard: false,
         hasCompletedStep: false,
         hasSubmittedParams: false
-      });
-      setSessionState({
-        isNew: true,
-        hasContent: false,
-        lastInteractionTime: null,
-        isUnused: true
       });
       
       console.log('🆕 [Session Management] Creating new session for new article:', newSessionId);
@@ -814,7 +745,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
 
   // Handle customization option toggle with interaction tracking
   const handleOptionToggle = useCallback((option) => {
-    markUserInteraction('wizard_navigation', { 
+    handleUserInteraction('wizard_navigation', { 
       action: 'option_toggle', 
       option,
       step: customStep 
@@ -825,11 +756,11 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
         ? prev.filter(o => o !== option)
         : [...prev, option]
     );
-  }, [markUserInteraction, customStep]);
+  }, [handleUserInteraction, customStep]);
 
   // Enhanced parameter setting with interaction tracking
   const handleParamChange = useCallback((paramName, value) => {
-    markUserInteraction('wizard_navigation', { 
+    handleUserInteraction('wizard_navigation', { 
       action: 'param_change', 
       param: paramName, 
       value,
@@ -837,7 +768,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     });
     
     setParams(prev => ({ ...prev, [paramName]: value }));
-  }, [markUserInteraction, customStep]);
+  }, [handleUserInteraction, customStep]);
 
   // Daily limit modal renderer
   const renderDailyLimitModal = () => {
@@ -968,7 +899,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     e.preventDefault();
     if (!chatInput.trim()) return;
     
-    markUserInteraction('chat_message', { messageLength: chatInput.length });
+    handleUserInteraction('chat_message', { messageLength: chatInput.length });
     
     setChatMessages(prev => [
       ...prev, 
@@ -983,7 +914,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
         { sender: 'system', text: "Understood – we'll apply that feedback.", timestamp: Date.now(), saved: false }
       ]);
     }, 500);
-  }, [chatInput, markUserInteraction]);
+  }, [chatInput, handleUserInteraction]);
 
   // ENHANCED: New session button renderer with smart logic
   const renderNewSessionButton = () => {
@@ -1287,7 +1218,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
           <p className="article-list-subtitle">
             {articleSessions.length === 0 
               ? 'Create your first reading article to get started'
-              : `You have ${articleSessions.length} of ${articleLimit.max} articles`
+              : `You have ${articleSessions.length} of ${articleLimit} articles`
             }
           </p>
         </header>
@@ -1343,7 +1274,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
               </div>
             ))}
             
-            {articleSessions.length < articleLimit.max && (
+            {articleSessions.length < articleLimit && (
               <div 
                 className="article-card create-new-card"
                 onClick={handleCreateNewArticle}
@@ -1364,39 +1295,17 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   // ENHANCED: Article Limit Alert Modal
   const renderArticleLimitAlert = () => {
     if (!showLimitAlert) return null;
-
+    
     return (
-      <div className="modal-backdrop">
-        <div className="modal article-limit-modal">
-          <div className="modal-header">
-            <h3 className="modal-title">Article Limit Reached</h3>
-            <button 
-              className="modal-close"
-              onClick={() => setShowLimitAlert(false)}
-            >
-              ×
-            </button>
-          </div>
-          <div className="modal-body">
-            <div className="limit-alert-content">
-              <div className="limit-icon">📚</div>
-              <p className="limit-message">
-                You've reached your maximum of <strong>{articleLimit.max} articles</strong>.
-              </p>
-              <p className="limit-suggestion">
-                To create a new article, please delete one of your existing articles first.
-              </p>
-            </div>
-          </div>
-          <div className="modal-footer">
-            <button 
-              onClick={() => setShowLimitAlert(false)}
-              className="btn btn-primary"
-            >
-              Got it
-            </button>
-          </div>
-        </div>
+      <div className="article-limit-alert">
+        <div className="limit-icon">📚</div>
+        <p className="limit-message">
+          You've reached your maximum of <strong>{articleLimit} articles</strong>.
+        </p>
+        <p className="limit-suggestion">
+          Please complete or delete an existing article before creating a new one.
+        </p>
+        <button onClick={() => setShowLimitAlert(false)}>Got it</button>
       </div>
     );
   };
