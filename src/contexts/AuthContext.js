@@ -209,11 +209,15 @@ export function AuthProvider({ children }) {
   // ENHANCED LOGIN FUNCTION
   // ============================================================================
   
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (credentials) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
+      setLoadingUser(true);
+      console.log('🔑 AuthContext login attempt:', credentials.email);
+      
+      const response = await api.post('/auth/login', credentials);
       const { access_token, user: userData } = response.data;
       
+      console.log('✅ Login successful, storing token and user data');
       localStorage.setItem('access_token', access_token);
       setToken(access_token);
       setUser(userData);
@@ -222,17 +226,21 @@ export function AuthProvider({ children }) {
       const decoded = jwtDecode(access_token);
       const timeUntilRefresh = (decoded.exp - (Date.now() / 1000) - 300) * 1000; // 5 mins before expiry
       console.log('⏰ Scheduling token refresh in', Math.floor(timeUntilRefresh / 1000), 'seconds');
-      refreshToken();
+      scheduleTokenRefresh(decoded.exp);
 
-      return { success: true };
+      // Navigate to chats after successful login
+      navigate('/chats');
+      
     } catch (error) {
-      console.error('Login failed:', error);
-      return {
-        success: false,
-        error: error.response?.data?.message || 'Login failed. Please try again.'
-      };
+      console.error('❌ AuthContext login failed:', error);
+      // Clear any partial state
+      clearAuth();
+      // Re-throw the error for the Login component to handle
+      throw error;
+    } finally {
+      setLoadingUser(false);
     }
-  }, []);
+  }, [navigate]);
 
   // ============================================================================
   // ENHANCED REGISTRATION FUNCTION

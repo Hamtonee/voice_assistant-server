@@ -57,6 +57,14 @@ const Login = () => {
       return 'Login failed. Please check your credentials and try again.';
     }
 
+    // Handle 422 validation errors
+    if (statusCode === 422) {
+      if (Array.isArray(error.response?.data?.detail)) {
+        return 'Please correct the validation errors and try again.';
+      }
+      return 'Invalid input format. Please check your email and password.';
+    }
+
     if (statusCode === 429) {
       return 'Too many login attempts. Please wait a few minutes before trying again.';
     }
@@ -161,6 +169,28 @@ const Login = () => {
       // Check for session conflict
       if (err.response?.status === 401 && err.response?.data?.code === 'SESSION_CONFLICT') {
         setShowSessionConflict(true);
+        return;
+      }
+
+      // Enhanced 422 error handling for validation errors
+      if (err.response?.status === 422) {
+        const validationErrors = err.response?.data?.detail || err.response?.data?.errors;
+        if (Array.isArray(validationErrors)) {
+          // Handle FastAPI validation errors
+          const emailError = validationErrors.find(e => e.loc?.includes('email'));
+          const passwordError = validationErrors.find(e => e.loc?.includes('password'));
+          
+          if (emailError) {
+            setFieldErrors(prev => ({ ...prev, email: emailError.msg }));
+          }
+          if (passwordError) {
+            setFieldErrors(prev => ({ ...prev, password: passwordError.msg }));
+          }
+          
+          setError('Please check the highlighted fields and try again.');
+        } else {
+          setError('Invalid input. Please check your email and password format.');
+        }
         return;
       }
 
