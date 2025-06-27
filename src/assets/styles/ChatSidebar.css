@@ -12,30 +12,19 @@
   Sidebar container - GRID LAYOUT COMPATIBLE
 -------------------------------------------------------*/
 .chat-sidebar {
-  /* Remove fixed positioning to work with CSS Grid */
   position: relative;
   width: 100%;
   height: 100%;
-  padding: 20px 16px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
   display: flex;
   flex-direction: column;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-family: 'Poppins', sans-serif;
   font-size: var(--font-size-sm);
   transition: var(--theme-transition);
   overflow: hidden;
-  border: none;
-  outline: none;
-  overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: auto;
-  box-sizing: border-box;
   border-right: 1px solid var(--border-primary);
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
+  box-sizing: border-box;
 }
 
 /* Collapsed state handled by grid layout in ChatWindow.css */
@@ -231,17 +220,14 @@
 -------------------------------------------------------*/
 .chat-sidebar__list {
   flex: 1;
-  overflow-y: auto !important;
+  overflow-y: auto;
   overflow-x: hidden;
-  margin-top: 0;
   padding-right: 6px;
   padding-bottom: 20px;
-  min-height: 0; /* Important for flexbox scrolling */
+  min-height: 0;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   position: relative;
-  /* Use flexbox growth instead of fixed height calculation */
-  height: auto;
 }
 
 /* Style the scrollbar in chat list */
@@ -1869,4 +1855,58 @@ interactive, and not blurry.
     touch-action: pan-y !important;
     overflow-y: auto !important;
   }
+}
+
+/* Fix layout issues in chat sidebar */
+.chat-sidebar {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: 'Poppins', sans-serif;
+  font-size: var(--font-size-sm);
+  transition: var(--theme-transition);
+  overflow: hidden;
+  border-right: 1px solid var(--border-primary);
+  box-sizing: border-box;
+}
+
+.chat-sidebar__list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  padding-bottom: 20px;
+  min-height: 0;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+/* Fix mobile layout issues */
+@media (max-width: 768px) {
+  .chat-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  .chat-sidebar__list {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+}
+
+/* Ensure proper stacking context */
+.chat-sidebar * {
+  position: relative;
+  z-index: auto;
 }
