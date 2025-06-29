@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import '../assets/styles/ReadingPassage.css';
 import CompactArticleBubble from './CompactArticleBubble';
 import api from '../api';
@@ -59,48 +59,104 @@ if (isDevelopment()) {
 }
 
 const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNewSession }) => {
+  const availableCategories = [
+    "Business", "Technology", "Finance", "Marketing",
+    "Education", "Science", "Health", "Sports", "Culture",
+    "Law", "History", "Politics", "Literature", "Philosophy",
+    "Engineering", "Arts", "Psychology", "Social Sciences",
+    "International Relations", "Journalism", "Architecture",
+    "Culinary Arts", "Music", "Fashion", "Travel", "Environment"
+  ];
+
+  const customizationOptionsExtended = [
+    "Include real-world examples",
+    "Use a conversational tone",
+    "Add statistics and data",
+    "Focus on recent developments",
+    "Define key terms"
+  ];
+
+  const ageGroupsExtended = [
+    { value: "child", label: "Child (6-12 years)" },
+    { value: "teen", label: "Teen (13-17 years)" },
+    { value: "adult", label: "Adult (18-64 years)" },
+    { value: "senior", label: "Senior (65+ years)" }
+  ];
+
+  const difficultyLevelsExtended = [
+    { value: "easy", label: "Easy", description: "Simple vocabulary, short sentences" },
+    { value: "medium", label: "Medium", description: "Moderate complexity, varied sentence structure" },
+    { value: "hard", label: "Hard", description: "Advanced vocabulary, complex concepts" }
+  ];
+
   // Refs
   const containerRef = useRef(null);
   const contentRef = useRef(null);
   const wizardRef = useRef(null);
   
-  // Core state management
+  // Enhanced state management with improved interaction tracking
   const [topic, setTopic] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  // eslint-disable-next-line no-unused-vars
   const [readWords, setReadWords] = useState(0);
   const [readingProgress, setReadingProgress] = useState(0);
   const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
   const [customStep, setCustomStep] = useState(1);
+  const [params, setParams] = useState({
+    category: '',
+    paragraphCount: 3,
+    difficulty: 'medium',
+    ageGroup: '',
+    additionalInstruction: '',
+    fineTuning: ''
+  });
   const [selectedOptions, setSelectedOptions] = useState([]);
-  // eslint-disable-next-line no-unused-vars
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  // Article and session management
-  const [viewMode, setViewMode] = useState('list');
+  // ENHANCED: Article navigation and management state
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'reading' | 'creating'
   const [selectedArticleId, setSelectedArticleId] = useState(null);
-  // eslint-disable-next-line no-unused-vars
-  const [previousArticleId, setPreviousArticleId] = useState(null);
+  const [previousArticleId, setPreviousArticleId] = useState(null); // Track previous article
+  const [articleLimit] = useState(5); // Default limit of 5 articles
   const [showLimitAlert, setShowLimitAlert] = useState(false);
-  // eslint-disable-next-line no-unused-vars
+
+  // Article limit check
+  const checkArticleLimit = useCallback(() => {
+    const articleSessions = onNewSession?.getArticleSessions?.() || [];
+    if (articleSessions.length >= articleLimit) {
+      setShowLimitAlert(true);
+      return true;
+    }
+    return false;
+  }, [onNewSession, articleLimit]);
+
+  // ENHANCED: Smart view mode determination - only show list when 2+ articles exist
   const [forceListView, setForceListView] = useState(false);
-  // eslint-disable-next-line no-unused-vars
+  
+  // Determine if we should show article list or direct reading view
+  const shouldShowArticleList = useCallback(() => {
+    const articleSessions = onNewSession?.getArticleSessions?.() || [];
+    return forceListView || articleSessions.length >= 2;
+  }, [forceListView, onNewSession]);
+
+  // Enhanced session management with better unused instance detection
   const [currentSessionId, setCurrentSessionId] = useState(sessionId);
 
-  // Session state and parameters
-  const [params, setParams] = useState({
-    ageGroup: '',
-    category: '',
-    difficulty: '',
-    customization: []
+  // ENHANCED: Better interaction tracking - tracks meaningful user actions
+  const [sessionInteractionLevel, setSessionInteractionLevel] = useState('none'); // 'none', 'wizard_started', 'article_generated', 'fully_engaged'
+  const [wizardProgress, setWizardProgress] = useState({
+    hasStartedWizard: false,
+    hasCompletedStep: false,
+    hasSubmittedParams: false
   });
-  
-  // Usage tracking state
+
+  // Daily limit and usage state
+  const [dailyLimitStatus, setDailyLimitStatus] = useState(null);
+  const [showLimitModal, setShowLimitModal] = useState(false);
   const [usageSummary, setUsageSummary] = useState(null);
   const [showUsageWarning, setShowUsageWarning] = useState(false);
-  const [showLimitModal, setShowLimitModal] = useState(false);
-  const [dailyLimitStatus, setDailyLimitStatus] = useState(null);
+
+  // Session state management
   const [sessionState, setSessionState] = useState({
     isNew: true,
     hasContent: false,
@@ -108,32 +164,23 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     isUnused: true
   });
 
-  // Session tracking and interaction state
-  const [sessionInteractionLevel, setSessionInteractionLevel] = useState('none');
-  const [wizardProgress, setWizardProgress] = useState({
-    hasStartedWizard: false,
-    hasCompletedStep: false,
-    hasSubmittedParams: false
-  });
+  // Sidebar transition state
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Enhanced viewport detection with debouncing
+  const currentViewport = useMemo(() => ({
+    isMobile: viewport?.isMobile || false,
+    isTablet: viewport?.isTablet || false,
+    isDesktop: viewport?.isDesktop || true,
+    width: viewport?.width || window.innerWidth,
+    height: viewport?.height || window.innerHeight
+  }), [viewport]);
 
   // ENHANCED: Comprehensive interaction tracking
-  const markUserInteraction = useCallback((interactionType, details = {}) => {
+  const handleUserInteraction = (interactionType, details = {}) => {
     const timestamp = Date.now();
     
-    console.log(`📊 [Interaction Tracking] ${interactionType}:`, details);
-    
-    // Update interaction level based on action type
     switch (interactionType) {
-      case 'wizard_navigation':
-        if (!wizardProgress.hasStartedWizard) {
-          setWizardProgress(prev => ({ ...prev, hasStartedWizard: true }));
-          setSessionInteractionLevel('wizard_started');
-        }
-        if (details.completedStep) {
-          setWizardProgress(prev => ({ ...prev, hasCompletedStep: true }));
-        }
-        break;
-        
       case 'wizard_submission':
         setWizardProgress(prev => ({ ...prev, hasSubmittedParams: true }));
         setSessionInteractionLevel('article_generated');
@@ -148,21 +195,30 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
         break;
         
       default:
-        // Any interaction marks the session as started
         if (sessionInteractionLevel === 'none') {
           setSessionInteractionLevel('wizard_started');
         }
     }
-    
-    // Update session state
-    setSessionState(prev => ({
-      ...prev,
-      isNew: false,
-      hasContent: interactionType !== 'wizard_navigation' || details.hasContent,
-      lastInteractionTime: timestamp,
-      isUnused: false
-    }));
-  }, [sessionInteractionLevel, wizardProgress]);
+  };
+
+  // Article limit check
+  const checkArticleLimit = useCallback(() => {
+    const articleSessions = onNewSession?.getArticleSessions?.() || [];
+    if (articleSessions.length >= articleLimit) {
+      setShowLimitAlert(true);
+      return true;
+    }
+    return false;
+  }, [onNewSession, articleLimit]);
+
+  // Handle creating new article
+  const handleCreateNewArticle = useCallback(() => {
+    if (checkArticleLimit()) {
+      return;
+    }
+    setViewMode('creating');
+    setSelectedArticleId(null);
+  }, [checkArticleLimit, setViewMode, setSelectedArticleId]);
 
   // Article management functions
   const handleOpenArticle = useCallback((articleId) => {
@@ -205,103 +261,327 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     setParams(prev => ({ ...prev, [paramName]: value }));
   }, []);
 
-  // eslint-disable-next-line no-unused-vars
-  const fetchTopic = useCallback(async () => {
+  // Load existing chat history from API on component mount
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      try {
+        const { data } = await api.fetchReadingSession(currentSessionId);
+        if (data.messages && data.messages.length > 0) {
+          setChatMessages(data.messages);
+          handleUserInteraction('session_restored', { messageCount: data.messages.length });
+        }
+        
+        // Restore article content if exists
+        if (data.articleData) {
+          setTopic(data.articleData);
+          handleUserInteraction('session_restored', { hasArticle: true });
+        }
+      } catch (error) {
+        // Session doesn't exist yet, that's okay
+        console.log('No existing reading session found, starting fresh');
+      }
+    };
+
+    if (currentSessionId) {
+      loadChatHistory();
+    }
+  }, [currentSessionId, handleUserInteraction]);
+
+  // Save chat messages to API whenever they change
+  useEffect(() => {
+    const saveChatHistory = async () => {
+      if (!Array.isArray(chatMessages) || chatMessages.length === 0) return;
+      
+      try {
+        // Create session if it doesn't exist
+        try {
+          await api.fetchReadingSession(currentSessionId);
+        } catch (error) {
+          if (error.response?.status === 404) {
+            await api.createReadingSession({
+              title: topic?.title || 'Reading Session',
+              category: params.category,
+              difficulty: params.difficulty,
+              articleData: topic
+            });
+          }
+        }
+
+        // Save the latest message
+        const lastMessage = Array.isArray(chatMessages) && chatMessages.length > 0 ? chatMessages[chatMessages.length - 1] : null;
+        if (lastMessage && !lastMessage.saved) {
+          await api.addReadingMessage(currentSessionId, {
+            role: lastMessage.sender === 'user' ? 'user' : 'assistant',
+            text: lastMessage.text,
+            timestamp: lastMessage.timestamp
+          });
+          
+          // Mark message as saved
+          setChatMessages(prev => prev.map((msg, index) => 
+            index === prev.length - 1 ? { ...msg, saved: true } : msg
+          ));
+        }
+      } catch (error) {
+        console.error('Failed to save chat message:', error);
+      }
+    };
+
+    saveChatHistory();
+  }, [chatMessages, currentSessionId, topic, params]);
+
+  // Fetch usage summary on component mount and periodically
+  useEffect(() => {
+    const fetchUsageSummary = async () => {
+      try {
+        const response = await fetch(USAGE_ENDPOINT);
+        if (response.ok) {
+          const data = await response.json();
+          setUsageSummary(data.usage_summary);
+          
+          // Check if user is close to reading article limit
+          const readingUsage = data.usage_summary.reading_article;
+          if (readingUsage && readingUsage.remaining <= 1 && readingUsage.remaining > 0) {
+            setShowUsageWarning(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch usage summary:', error);
+      }
+    };
+
+    fetchUsageSummary();
+    
+    // Fetch usage summary every 30 minutes
+    const intervalId = setInterval(fetchUsageSummary, 30 * 60 * 1000);
+    
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Enhanced fetch article with daily limit handling and improved error handling
+  const fetchTopic = useCallback(async (endpoint) => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      const response = await api.fetchTopic(params);
-      setTopic(response.data);
-      return response.data;
-    } catch (error) {
-      setError(error.message);
-      return null;
+      console.log('Fetching from:', endpoint); // For debugging
+      
+      const response = await fetch(endpoint);
+      
+      // Handle daily limit exceeded (429 status)
+      if (response.status === 429) {
+        const errorData = await response.json();
+        if (errorData.error === "Daily limit exceeded") {
+          setDailyLimitStatus(errorData);
+          setShowLimitModal(true);
+          throw new Error(`Daily limit exceeded for reading articles`);
+        }
+        throw new Error('Too many requests. Please try again later.');
+      }
+      
+      if (!response.ok) {
+        let detail = `Error fetching reading article (${response.status}).`;
+        try {
+          const errorBody = await response.json();
+          if (errorBody.detail) detail = errorBody.detail;
+        } catch {}
+        
+        // Add specific error messages for common network issues
+        if (response.status === 0 || !response.status) {
+          detail = 'Network error: Cannot connect to server. Check if the backend is running and accessible.';
+        } else if (response.status === 404) {
+          detail = 'API endpoint not found. Check if the backend server is running correctly.';
+        } else if (response.status >= 500) {
+          detail = 'Server error. Please try again later.';
+        }
+        
+        throw new Error(detail);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.content) {
+        throw new Error('Invalid article payload - no content received.');
+      }
+      
+      // Handle both title field and content-based title generation
+      const articleTitle = data.title || `${params.category} Article`;
+      
+      setTopic({
+        ...data,
+        title: articleTitle
+      });
+      
+      // Mark as meaningful interaction - article generated
+      handleUserInteraction('wizard_submission', { 
+        articleGenerated: true, 
+        category: params.category,
+        difficulty: params.difficulty 
+      });
+      
+      setChatMessages(prev => [
+        ...prev,
+        { sender: 'system', text: 'Great choice! Your Reading Article is ready.', timestamp: Date.now(), saved: false }
+      ]);
+
+      // Update usage summary after successful article generation
+      if (data.usage_info) {
+        setUsageSummary(prev => ({
+          ...prev,
+          reading_article: data.usage_info
+        }));
+      }
+      
+    } catch (err) {
+      console.error('Fetch error:', err); // For debugging
+      setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [params]); // Fixed: Added params dependency
+  }, [params.category, params.difficulty, handleUserInteraction]);
 
-  // Clean up unused variables with eslint-disable comments
-  // eslint-disable-next-line no-unused-vars
-  const [currentViewport, setCurrentViewport] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      return {
-        isMobile: width <= 767,
-        isTablet: width >= 768 && width <= 1023,
-        isDesktop: width >= 1024,
-        width: width,
-        height: height
-      };
-    }
-    return { isMobile: false, isTablet: false, isDesktop: true, width: 1024, height: 768 };
-  });
-
-  // Handle window resize
-  const handleResize = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      const viewport = {
-        isMobile: width <= 767,
-        isTablet: width >= 768 && width <= 1023,
-        isDesktop: width >= 1024,
-        width,
-        height
-      };
-      setCurrentViewport(viewport);
-    }
-  }, []);
-
-  // Set viewport height for mobile
-  const setVH = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
-    }
-  }, []);
-
-  // Load chat history
-  const loadChatHistory = useCallback(async () => {
-    if (!currentSessionId) return;
-    try {
-      const response = await api.getChatHistory(currentSessionId);
-      if (response.data && response.data.messages) {
-        setChatMessages(response.data.messages);
-      }
-    } catch (error) {
-      console.error('Failed to load chat history:', error);
-    }
-  }, [currentSessionId]);
-
-  // Save chat history
-  const saveChatHistory = useCallback(async () => {
-    if (!currentSessionId || !chatMessages.length) return;
-    try {
-      await api.saveChatHistory(currentSessionId, chatMessages);
-    } catch (error) {
-      console.error('Failed to save chat history:', error);
-    }
-  }, [currentSessionId, chatMessages]);
-
-  // Fetch usage summary
-  const fetchUsageSummary = useCallback(async () => {
-    try {
-      const response = await api.get(USAGE_ENDPOINT);
-      setUsageSummary(response.data);
+  // Enhanced scroll tracking for reading progress with mobile optimization
+  const handleScroll = useCallback(() => {
+    const content = topic?.content;
+    if (!content || !contentRef.current) return;
+    
+    const { scrollTop, clientHeight, scrollHeight } = contentRef.current;
+    const maxScroll = scrollHeight - clientHeight;
+    
+    if (maxScroll > 0) {
+      const progress = Math.min(Math.max(scrollTop / maxScroll, 0), 1);
+      setReadingProgress(progress);
       
-      // Check daily limits
-      const { dailyArticleCount, maxDailyArticles } = response.data;
-      if (dailyArticleCount >= maxDailyArticles) {
-        setShowLimitModal(true);
-        setDailyLimitStatus({ current: dailyArticleCount, max: maxDailyArticles });
-      } else if (dailyArticleCount >= maxDailyArticles * 0.8) {
-        setShowUsageWarning(true);
+      // Calculate words read more accurately
+      const totalWords = content.split(/\s+/).filter(w => w.trim()).length;
+      setReadWords(Math.floor(totalWords * progress));
+      
+      // Mark reading interaction if user has scrolled significantly
+      if (progress > 0.1) {
+        handleUserInteraction('article_interaction', { readingProgress: progress });
       }
-    } catch (error) {
-      console.error('Failed to fetch usage summary:', error);
+    } else {
+      // If content fits in viewport, consider it fully read
+      setReadingProgress(1);
+      const totalWords = content.split(/\s+/).filter(w => w.trim()).length;
+      setReadWords(totalWords);
+      
+      // Mark as read if content is short
+      handleUserInteraction('article_interaction', { readingProgress: 1, shortContent: true });
     }
+  }, [topic?.content, handleUserInteraction]);
+
+  // Navigation functions with improved mobile scrolling and interaction tracking
+  const nextStep = useCallback(() => {
+    const newStep = Math.min(customStep + 1, 6);
+    
+    // Mark wizard navigation interaction
+    handleUserInteraction('wizard_navigation', { 
+      fromStep: customStep, 
+      toStep: newStep,
+      completedStep: true 
+    });
+    
+    if (customStep === 5) {
+      setParams(prev => ({
+        ...prev,
+        additionalInstruction: selectedOptions.join(', ')
+      }));
+    }
+    
+    setCustomStep(newStep);
+    
+    // Improved scroll behavior for mobile
+    setTimeout(() => {
+      if (wizardRef.current) {
+        wizardRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    }, 100);
+  }, [customStep, selectedOptions, handleUserInteraction]);
+
+  const prevStep = useCallback(() => {
+    const newStep = Math.max(customStep - 1, 1);
+    
+    // Mark wizard navigation interaction
+    handleUserInteraction('wizard_navigation', { 
+      fromStep: customStep, 
+      toStep: newStep,
+      direction: 'back' 
+    });
+    
+    setCustomStep(newStep);
+    
+    // Improved scroll behavior for mobile
+    setTimeout(() => {
+      if (wizardRef.current) {
+        wizardRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    }, 100);
+  }, [customStep, handleUserInteraction]);
+
+  // Reset to wizard when error occurs
+  const resetToWizard = useCallback(() => {
+    setError(null);
+    setTopic(null);
+    setCustomStep(1);
+    setSelectedOptions([]);
+    setParams({
+      category: '',
+      paragraphCount: 3,
+      difficulty: 'medium',
+      ageGroup: '',
+      additionalInstruction: '',
+      fineTuning: ''
+    });
+    setReadWords(0);
+    setReadingProgress(0);
+    setDailyLimitStatus(null);
+    setShowLimitModal(false);
+    
+    // Reset interaction tracking
+    setSessionInteractionLevel('none');
+    setWizardProgress({
+      hasStartedWizard: false,
+      hasCompletedStep: false,
+      hasSubmittedParams: false
+    });
   }, []);
+
+  // ENHANCED: Article management functions
+  const handleOpenArticle = useCallback(async (articleId) => {
+    try {
+      console.log('📖 [Article Open] Opening article:', articleId);
+      
+      // Track previous article for navigation
+      if (selectedArticleId && selectedArticleId !== articleId) {
+        setPreviousArticleId(selectedArticleId);
+      }
+      
+      // Set selected article and switch to reading view
+      setSelectedArticleId(articleId);
+      setViewMode('reading');
+      
+      // Load article data
+      const { data } = await api.fetchReadingSession(articleId);
+      
+      if (data.articleData || data.topic) {
+        setTopic(data.articleData || data.topic);
+        handleUserInteraction('article_opened', { articleId });
+      }
+      
+      if (data.messages && data.messages.length > 0) {
+        setChatMessages(data.messages);
+      }
+      
+    } catch (error) {
+      console.error('Failed to open article:', error);
+    }
+  }, [selectedArticleId, setSelectedArticleId, setViewMode, handleUserInteraction]);
 
   // Track meaningful session usage
   // eslint-disable-next-line no-unused-vars
@@ -361,16 +641,32 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     setSessionInteractionLevel('wizard_reset');
   }, []);
 
-  const handleCreateNewArticle = useCallback(() => {
-    if (loading) return;
-    resetToWizard();
-  }, [loading, resetToWizard]);
+  // Handle customization option toggle with interaction tracking
+  const handleOptionToggle = useCallback((option) => {
+    handleUserInteraction('wizard_navigation', { 
+      action: 'option_toggle', 
+      option,
+      step: customStep 
+    });
+    
+    setSelectedOptions(prev =>
+      prev.includes(option)
+        ? prev.filter(o => o !== option)
+        : [...prev, option]
+    );
+  }, [handleUserInteraction, customStep]);
 
-  const handleGoBackToList = useCallback(() => {
-    setViewMode('list');
-    setSelectedArticleId(null);
-    setSessionInteractionLevel('navigation');
-  }, []);
+  // Enhanced parameter setting with interaction tracking
+  const handleParamChange = useCallback((paramName, value) => {
+    handleUserInteraction('wizard_navigation', { 
+      action: 'param_change', 
+      param: paramName, 
+      value,
+      step: customStep 
+    });
+    
+    setParams(prev => ({ ...prev, [paramName]: value }));
+  }, [handleUserInteraction, customStep]);
 
   // Daily limit modal renderer
   const renderDailyLimitModal = () => {
@@ -505,7 +801,10 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
         <header className="article-list-header">
           <h2 className="article-list-title">📚 Your Reading Articles</h2>
           <p className="article-list-subtitle">
-            {renderArticleCount(articleSessions)}
+            {articleSessions.length === 0 
+              ? 'Create your first reading article to get started'
+              : `You have ${articleSessions.length} of ${articleLimit} articles`
+            }
           </p>
         </header>
 
@@ -560,7 +859,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
               </div>
             ))}
             
-            {articleSessions.length < ARTICLE_LIMIT && (
+            {articleSessions.length < articleLimit && (
               <div 
                 className="article-card create-new-card"
                 onClick={handleCreateNewArticle}
@@ -581,7 +880,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   // ENHANCED: Article Limit Alert Modal
   const renderArticleLimitAlert = () => {
     if (!showLimitAlert) return null;
-
+    
     return (
       <div className="modal-backdrop">
         <div className="modal article-limit-modal">
@@ -674,7 +973,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
             <div className="option-grid">
               <div className="age-group-selection">
                 <label>Age Group</label>
-                {ageGroups.map(group => (
+                {ageGroupsExtended.map(group => (
                   <button
                     key={group.value}
                     className={`age-button ${params.ageGroup === group.value ? 'selected' : ''}`}
@@ -686,7 +985,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
               </div>
               <div className="difficulty-selection">
                 <label>Difficulty Level</label>
-                {difficultyLevels.map(level => (
+                {difficultyLevelsExtended.map(level => (
                   <button
                     key={level.value}
                     className={`difficulty-button ${params.difficulty === level.value ? 'selected' : ''}`}
@@ -706,7 +1005,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
           <div className="wizard-step customization">
             <h3>Customize Your Reading</h3>
             <div className="customization-options">
-              {customizationOptions.map((option, index) => (
+              {customizationOptionsExtended.map((option, index) => (
                 <label key={index} className="option-checkbox">
                   <input
                     type="checkbox"

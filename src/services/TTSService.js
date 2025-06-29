@@ -1,4 +1,5 @@
 import api from '../api';
+import { handleApiError, logError, createError } from '../utils/errorHandler';
 
 // Constants
 const ENDPOINTS = {
@@ -30,7 +31,7 @@ class TTSService {
             const response = await api.get('/health', { timeout: 5000 });
             this.isBrowserTTS = !response.data?.tts_available;
         } catch (error) {
-            console.warn('Server TTS unavailable, falling back to browser TTS:', error.message);
+            logError(error, 'TTS Service Initialization');
             this.isBrowserTTS = true;
         }
 
@@ -51,11 +52,13 @@ class TTSService {
                 await this.speakWithServer(text, options);
             }
         } catch (error) {
-            console.error('TTS error:', error);
+            logError(error, 'TTS Speak Operation');
             // Fallback to browser TTS if server fails
             if (!this.isBrowserTTS) {
                 this.isBrowserTTS = true;
                 await this.speakWithBrowser(text, options);
+            } else {
+                throw createError('TTS_ERROR', 'Text-to-speech service is currently unavailable', error);
             }
         }
     }
@@ -81,8 +84,8 @@ class TTSService {
 
             URL.revokeObjectURL(audioUrl);
         } catch (error) {
-            console.error('Server TTS failed:', error);
-            throw error;
+            logError(error, 'Server TTS Failed');
+            throw createError('TTS_ERROR', 'Server text-to-speech failed', error);
         }
     }
 
