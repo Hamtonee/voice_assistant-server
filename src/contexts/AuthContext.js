@@ -427,6 +427,7 @@ export function AuthProvider({ children }) {
             setLoadingUser(false);
             setInitializing(false);
           }
+          setIsAuthReady(true);
           return;
         }
         
