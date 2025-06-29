@@ -223,29 +223,29 @@ export function AuthProvider({ children }) {
       const response = await api.post('/auth/login', credentials);
       console.log('🔍 Login response data:', response.data);
       
-      // Handle different response formats from server
+      // Handle the server's actual response format
       let access_token, userData;
       
-      // Check for different possible response structures
-      if (response.data.access_token && response.data.user) {
-        // Format 1: { access_token: "...", user: {...} }
+      // Server returns: { access_token, refresh_token, token_type, expires_in, user_id }
+      if (response.data.access_token && response.data.user_id) {
+        access_token = response.data.access_token;
+        // We'll fetch user data separately since server only provides user_id
+        userData = null; // Will be fetched below
+      } else if (response.data.access_token && response.data.user) {
+        // Fallback: if server ever returns user object directly
         ({ access_token, user: userData } = response.data);
       } else if (response.data.token && response.data.user) {
-        // Format 2: { token: "...", user: {...} }
+        // Alternative format: { token: "...", user: {...} }
         access_token = response.data.token;
         userData = response.data.user;
       } else if (response.data.access_token && response.data.email) {
-        // Format 3: { access_token: "...", email: "...", name: "..." } - user data in root
+        // Format: { access_token: "...", email: "...", name: "..." } - user data in root
         access_token = response.data.access_token;
         userData = {
           email: response.data.email,
           name: response.data.name,
           id: response.data.id || response.data.user_id
         };
-      } else if (response.data.token) {
-        // Format 4: Just token, need to fetch user separately
-        access_token = response.data.token;
-        // We'll fetch user data after setting up the token
       } else {
         console.error('❌ Unexpected login response format:', response.data);
         throw new Error('Invalid response format from server');
@@ -275,21 +275,22 @@ export function AuthProvider({ children }) {
         throw new Error('Token expired on arrival');
       }
       
-      // If we don't have user data yet, fetch it
+      // If we don't have user data yet, fetch it using the token
       if (!userData) {
         try {
           console.log('👤 Fetching user profile after login...');
           const userResponse = await api.get('/auth/me');
           userData = userResponse.data;
+          console.log('✅ User profile fetched:', userData);
         } catch (fetchError) {
           console.error('❌ Failed to fetch user profile after login:', fetchError);
-          // Don't fail the login if we can't fetch user profile
-          // Create basic user data from token
+          // Create basic user data from token and response
           userData = {
+            id: response.data.user_id || decoded.sub || decoded.user_id,
             email: decoded.email || credentials.email,
-            name: decoded.name || 'User',
-            id: decoded.sub || decoded.user_id
+            name: decoded.name || 'User'
           };
+          console.log('🔄 Using fallback user data:', userData);
         }
       }
       

@@ -8,18 +8,30 @@ export const useWebSocketSession = () => {
   const { token, user, logout } = useContext(AuthContext);
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
   useEffect(() => {
     if (!token || !user) return;
 
     const connectWebSocket = () => {
       try {
-        // Connect to WebSocket with auth token
-        const wsUrl = `${process.env.REACT_APP_WS_URL || 'ws://localhost:3001'}/ws/session?token=${token}`;
+        // Safe environment variable access
+        const getWsUrl = () => {
+          try {
+            return (typeof process !== 'undefined' && process.env && process.env.REACT_APP_WS_URL) || 'ws://localhost:3001';
+          } catch (error) {
+            console.warn('Failed to access REACT_APP_WS_URL, using fallback');
+            return 'ws://localhost:3001';
+          }
+        };
+
+        const wsUrl = `${getWsUrl()}/ws/session?token=${token}`;
         wsRef.current = new WebSocket(wsUrl);
 
         wsRef.current.onopen = () => {
           console.log('🔗 WebSocket session connected');
+          reconnectAttempts.current = 0;
         };
 
         wsRef.current.onmessage = (event) => {
@@ -44,12 +56,11 @@ export const useWebSocketSession = () => {
         wsRef.current.onclose = (event) => {
           console.log('🔌 WebSocket disconnected:', event.code, event.reason);
           
-          // Reconnect after 5 seconds if not a normal closure
-          if (event.code !== 1000 && token && user) {
-            reconnectTimeoutRef.current = setTimeout(() => {
-              console.log('🔄 Reconnecting WebSocket...');
+          if (reconnectAttempts.current < maxReconnectAttempts) {
+            setTimeout(() => {
+              reconnectAttempts.current++;
               connectWebSocket();
-            }, 5000);
+            }, 1000 * Math.pow(2, reconnectAttempts.current));
           }
         };
 
@@ -166,6 +177,8 @@ export const useWebSocketSession = () => {
       }
     }, 3000);
   };
+
+  return wsRef.current;
 };
 
 export default useWebSocketSession;
