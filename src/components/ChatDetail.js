@@ -171,6 +171,14 @@ export default function ChatDetail({
         }
 
         try {
+          // Check if speech synthesis is available
+          if (typeof window === 'undefined' || !window.speechSynthesis) {
+            console.warn('Speech synthesis not available');
+            setUserFriendlyErrorMessage('audio_failed');
+            onComplete();
+            return;
+          }
+          
           // Cancel any existing speech
           window.speechSynthesis.cancel();
           
@@ -206,7 +214,11 @@ export default function ChatDetail({
           };
 
           window.speechSynthesis.speak(utterance);
-          audioRef.current = { pause: () => window.speechSynthesis.cancel() };
+          audioRef.current = { pause: () => {
+            if (typeof window !== 'undefined' && window.speechSynthesis) {
+              window.speechSynthesis.cancel();
+            }
+          } };
           
         } catch (error) {
           console.error('Browser TTS failed:', error);
@@ -280,7 +292,7 @@ export default function ChatDetail({
       audioRef.current = null;
     }
     
-    if (window.speechSynthesis) {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
       try {
         window.speechSynthesis.cancel();
       } catch (e) {
@@ -307,6 +319,11 @@ export default function ChatDetail({
 
   // IMPROVED: Speech recognition with better error handling
   const createRecognition = useCallback(() => {
+    if (typeof window === 'undefined') {
+      setMicStatus('unavailable');
+      return null;
+    }
+    
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
       setMicStatus('unavailable');
