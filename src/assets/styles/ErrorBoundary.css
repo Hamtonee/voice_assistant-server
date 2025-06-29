@@ -1,0 +1,189 @@
+/* ErrorBoundary.css - Professional Error Handling Styles */
+
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: var(--spacing-6);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.error-boundary--app {
+  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-modal);
+}
+
+.error-boundary__container {
+  max-width: 500px;
+  text-align: center;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-8);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-primary);
+}
+
+.error-boundary__icon {
+  font-size: 4rem;
+  margin-bottom: var(--spacing-4);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.error-boundary__title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--error);
+  margin: 0 0 var(--spacing-4);
+}
+
+.error-boundary__message {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-6);
+  line-height: var(--line-height-relaxed);
+}
+
+.error-boundary__details {
+  text-align: left;
+  margin: var(--spacing-6) 0;
+  padding: var(--spacing-4);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-secondary);
+}
+
+.error-boundary__details summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-2);
+}
+
+.error-boundary__stack {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: var(--font-size-sm);
+  background: var(--bg-primary);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-primary);
+}
+
+.error-boundary__actions {
+  display: flex;
+  gap: var(--spacing-3);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-6);
+}
+
+.error-boundary__retry,
+.error-boundary__reload {
+  padding: var(--spacing-3) var(--spacing-6);
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: var(--transition-normal);
+  min-width: 120px;
+}
+
+.error-boundary__retry {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.error-boundary__retry:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.error-boundary__reload {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+}
+
+.error-boundary__reload:hover {
+  background: var(--bg-quaternary);
+  color: var(--text-primary);
+}
+
+.error-boundary__help {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin: 0;
+  line-height: var(--line-height-relaxed);
+}
+
+.error-boundary__link {
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+}
+
+.error-boundary__link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+.error-boundary__help code {
+  background: var(--bg-tertiary);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-sm);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85em;
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.1); 
+    opacity: 0.8;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .error-boundary {
+    padding: var(--spacing-4);
+  }
+  
+  .error-boundary__container {
+    padding: var(--spacing-6);
+  }
+  
+  .error-boundary__icon {
+    font-size: 3rem;
+  }
+  
+  .error-boundary__title {
+    font-size: var(--font-size-xl);
+  }
+  
+  .error-boundary__actions {
+    flex-direction: column;
+  }
+  
+  .error-boundary__retry,
+  .error-boundary__reload {
+    min-width: auto;
+    width: 100%;
+  }
+} 
