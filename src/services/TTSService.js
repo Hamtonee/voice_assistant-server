@@ -44,8 +44,6 @@ class TTSService {
 
     async speak(text, options = {}) {
         if (!text?.trim()) return;
-
-        const cacheKey = `${text}-${JSON.stringify(options)}`;
         
         try {
             if (this.isBrowserTTS) {

@@ -170,7 +170,6 @@ const ChatWindow = React.memo(() => {
       console.error('⚠️ Using fallback handleFeatureSelect - this indicates hook import failed');
     },
     handleSelectScenario = () => {},
-    handleVoiceSelect = () => {},
     clearScenario = () => {},
     needsScenarioSelection = () => false,
     isFeatureReady = () => true

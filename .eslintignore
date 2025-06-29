@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Production builds
+build/
+dist/
+
+# Generated files
+*.generated.js
+*.generated.jsx
+
+# Third-party libraries
+src/lib/
+public/
+
+# Test coverage
+coverage/
+
+# Service worker
+public/sw.js
+src/serviceWorker.js
+
+# Development files
+.env*
+*.log
+
+# Legacy files (if any)
+src/legacy/
+
+# Auto-generated API files
+src/api/generated/ 

@@ -1,6 +1,6 @@
 import React from 'react';
 import '../assets/styles/CompactArticleBubble.css';
-import { BookOpen, Clock, User } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 
 const CompactArticleBubble = ({ 
   article, 
@@ -55,12 +55,12 @@ const CompactArticleBubble = ({
       {/* Bubble Header */}
       <div className="bubble-header">
         <div className="bubble-icon">
-          <BookOpen size={16} />
+          <MessageSquare size={16} />
         </div>
         <div className="bubble-meta">
           <span className="bubble-category">{category}</span>
           <span className="bubble-time">
-            <Clock size={10} />
+            <MessageSquare size={10} />
             {getRelativeTime()}
           </span>
         </div>
@@ -89,7 +89,7 @@ const CompactArticleBubble = ({
       {/* Hover overlay */}
       <div className="bubble-overlay">
         <div className="overlay-content">
-          <BookOpen size={24} />
+          <MessageSquare size={24} />
           <span>Read Article</span>
         </div>
       </div>
