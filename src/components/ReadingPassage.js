@@ -11,23 +11,22 @@ const ARTICLE_LIMIT = 5;
 
 // SECURE: Get individual API endpoints from environment variables
 const getApiEndpoints = () => {
-  const endpoints = {
-    READING_TOPIC: process.env.REACT_APP_READING_TOPIC_ENDPOINT,
-    USAGE_SUMMARY: process.env.REACT_APP_USAGE_ENDPOINT
+  // Safely access process.env with fallbacks
+  const getEnvVar = (name, fallback) => {
+    try {
+      return (typeof process !== 'undefined' && process.env && process.env[name]) || fallback;
+    } catch (error) {
+      console.warn(`Failed to access ${name}, using fallback:`, fallback);
+      return fallback;
+    }
   };
 
-  // Validate that all required endpoints are set
-  const missingEndpoints = Object.entries(endpoints)
-    .filter(([key, value]) => !value)
-    .map(([key]) => `REACT_APP_${key}_ENDPOINT`);
+  const endpoints = {
+    READING_TOPIC: getEnvVar('REACT_APP_READING_TOPIC_ENDPOINT', '/reading/generate'),
+    USAGE_SUMMARY: getEnvVar('REACT_APP_USAGE_ENDPOINT', '/usage/summary')
+  };
 
-  if (missingEndpoints.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missingEndpoints.join(', ')}. ` +
-      'Please check your .env file and ensure all API endpoints are configured.'
-    );
-  }
-
+  console.log('✅ [Reading Passage API Configuration] Endpoints configured:', endpoints);
   return endpoints;
 };
 
@@ -37,13 +36,25 @@ try {
   API_ENDPOINTS = getApiEndpoints();
 } catch (error) {
   console.error('❌ [API Configuration Error]:', error.message);
-  throw error;
+  // Use fallback endpoints
+  API_ENDPOINTS = {
+    READING_TOPIC: '/reading/generate',
+    USAGE_SUMMARY: '/usage/summary'
+  };
 }
 
 const USAGE_ENDPOINT = API_ENDPOINTS.USAGE_SUMMARY;
 
 // Log successful configuration (development only)
-if (process.env.NODE_ENV === 'development') {
+const isDevelopment = () => {
+  try {
+    return typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development';
+  } catch (error) {
+    return false;
+  }
+};
+
+if (isDevelopment()) {
   console.log('✅ [Reading Passage API Configuration] All endpoints configured successfully');
 }
 

@@ -221,10 +221,39 @@ export function AuthProvider({ children }) {
       console.log('🔑 AuthContext login attempt:', credentials.email);
       
       const response = await api.post('/auth/login', credentials);
-      const { access_token, user: userData } = response.data;
+      console.log('🔍 Login response data:', response.data);
       
-      if (!access_token || !userData) {
-        throw new Error('Invalid response from server');
+      // Handle different response formats from server
+      let access_token, userData;
+      
+      // Check for different possible response structures
+      if (response.data.access_token && response.data.user) {
+        // Format 1: { access_token: "...", user: {...} }
+        ({ access_token, user: userData } = response.data);
+      } else if (response.data.token && response.data.user) {
+        // Format 2: { token: "...", user: {...} }
+        access_token = response.data.token;
+        userData = response.data.user;
+      } else if (response.data.access_token && response.data.email) {
+        // Format 3: { access_token: "...", email: "...", name: "..." } - user data in root
+        access_token = response.data.access_token;
+        userData = {
+          email: response.data.email,
+          name: response.data.name,
+          id: response.data.id || response.data.user_id
+        };
+      } else if (response.data.token) {
+        // Format 4: Just token, need to fetch user separately
+        access_token = response.data.token;
+        // We'll fetch user data after setting up the token
+      } else {
+        console.error('❌ Unexpected login response format:', response.data);
+        throw new Error('Invalid response format from server');
+      }
+      
+      if (!access_token) {
+        console.error('❌ No access token found in response:', response.data);
+        throw new Error('Invalid response from server - no access token');
       }
       
       console.log('✅ Login successful, storing token and user data');
@@ -232,6 +261,11 @@ export function AuthProvider({ children }) {
       // Set up API authorization first
       api.defaults.headers.common.Authorization = `Bearer ${access_token}`;
       localStorage.setItem('access_token', access_token);
+      
+      // Store refresh token if provided
+      if (response.data.refresh_token) {
+        localStorage.setItem('refresh_token', response.data.refresh_token);
+      }
       
       // Decode token and validate expiry
       const decoded = jwtDecode(access_token);
@@ -241,6 +275,24 @@ export function AuthProvider({ children }) {
         throw new Error('Token expired on arrival');
       }
       
+      // If we don't have user data yet, fetch it
+      if (!userData) {
+        try {
+          console.log('👤 Fetching user profile after login...');
+          const userResponse = await api.get('/auth/me');
+          userData = userResponse.data;
+        } catch (fetchError) {
+          console.error('❌ Failed to fetch user profile after login:', fetchError);
+          // Don't fail the login if we can't fetch user profile
+          // Create basic user data from token
+          userData = {
+            email: decoded.email || credentials.email,
+            name: decoded.name || 'User',
+            id: decoded.sub || decoded.user_id
+          };
+        }
+      }
+      
       // Update states atomically
       setToken(access_token);
       setUser(userData);
@@ -248,9 +300,16 @@ export function AuthProvider({ children }) {
       // Schedule token refresh
       scheduleTokenRefresh(decoded.exp);
       
+      console.log('✅ Login completed successfully');
       return { success: true };
     } catch (error) {
       console.error('❌ Login failed:', error);
+      console.error('❌ Login error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
       setError(error.message || 'Login failed');
       clearAuth();
       throw error;
