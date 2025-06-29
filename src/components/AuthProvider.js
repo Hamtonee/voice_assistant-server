@@ -1,39 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
-import LottieLoader from './LottieLoader';
 import '../assets/styles/AuthProvider.css';
 
 export default function AuthProvider({ children }) {
-  const [initializing, setInitializing] = React.useState(true);
-  const [error, setError] = React.useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  React.useEffect(() => {
-    // Simulate initialization delay
-    const timer = setTimeout(() => {
-      setInitializing(false);
-    }, 1000);
+  useEffect(() => {
+    // Check if user is authenticated
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      navigate('/login');
+    }
+    setLoading(false);
+  }, [navigate]);
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (error) {
-    return (
-      <div className="auth-error">
-        <h2>Authentication Error</h2>
-        <p>{error.message}</p>
-        <button onClick={() => window.location.reload()}>
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  if (initializing) {
-    return <LottieLoader />;
+  if (loading) {
+    return <div>Loading...</div>;
   }
 
   return (
-    <AuthContext.Provider value={{}}>
+    <AuthContext.Provider value={{ loading }}>
       {children}
     </AuthContext.Provider>
   );

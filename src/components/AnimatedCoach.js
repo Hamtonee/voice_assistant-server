@@ -1,5 +1,5 @@
 // AnimatedCoach.js
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import '../assets/styles/AnimatedCoach.css'; // Import the CSS file
@@ -9,6 +9,33 @@ const AnimatedCoach = ({ isListening, isSpeaking, useProcedural = false }) => {
   const mixerRef = useRef(null);
   const listeningActionRef = useRef(null);
   const speakingActionRef = useRef(null);
+
+  // Mouse movement handlers
+  const handleMouseMove = useCallback((e) => {
+    const mount = mountRef.current;
+    if (!mount) return;
+
+    const rect = mount.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // Update coach animation based on mouse position
+    if (mount.style) {
+      mount.style.setProperty('--mouse-x', `${mouseX}px`);
+      mount.style.setProperty('--mouse-y', `${mouseY}px`);
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    const mount = mountRef.current;
+    if (!mount) return;
+
+    // Reset coach animation
+    if (mount.style) {
+      mount.style.removeProperty('--mouse-x');
+      mount.style.removeProperty('--mouse-y');
+    }
+  }, []);
 
   useEffect(() => {
     // Set up the scene, camera, and renderer.
@@ -160,6 +187,20 @@ const AnimatedCoach = ({ isListening, isSpeaking, useProcedural = false }) => {
       speakingActionRef.current.paused = !isSpeaking;
     }
   }, [isSpeaking]);
+
+  useEffect(() => {
+    const mount = mountRef.current;
+    
+    if (mount) {
+      mount.addEventListener('mousemove', handleMouseMove);
+      mount.addEventListener('mouseleave', handleMouseLeave);
+      
+      return () => {
+        mount.removeEventListener('mousemove', handleMouseMove);
+        mount.removeEventListener('mouseleave', handleMouseLeave);
+      };
+    }
+  }, [handleMouseMove, handleMouseLeave]);
 
   return <div ref={mountRef} className="animated-coach-container"></div>;
 };
