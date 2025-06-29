@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ttsVoices, voiceProfiles, createVoiceConfig } from '../data/ttsVoices';
 
 /**
@@ -6,6 +6,59 @@ import { ttsVoices, voiceProfiles, createVoiceConfig } from '../data/ttsVoices';
  * Add this temporarily to your main component to debug voice state
  */
 const VoiceDebugComponent = ({ selectedVoice, className = '' }) => {
+  const [debugInfo, setDebugInfo] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Safe environment check
+  const isDevelopment = () => {
+    try {
+      return typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development';
+    } catch (error) {
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    // Only show debug component in development
+    if (!isDevelopment()) {
+      return;
+    }
+
+    const gatherDebugInfo = async () => {
+      setIsLoading(true);
+      try {
+        const info = {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          languages: navigator.languages,
+          cookiesEnabled: navigator.cookieEnabled,
+          webkitSpeechRecognition: 'webkitSpeechRecognition' in window,
+          speechRecognition: 'SpeechRecognition' in window,
+          mediaDevices: 'mediaDevices' in navigator,
+          getUserMedia: 'getUserMedia' in navigator.mediaDevices || false
+        };
+
+        // Check for microphone permissions
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+          try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            info.audioInputDevices = devices.filter(device => device.kind === 'audioinput').length;
+          } catch (error) {
+            info.audioInputDevices = 'Permission denied or unavailable';
+          }
+        }
+
+        setDebugInfo(info);
+      } catch (error) {
+        console.error('Failed to gather debug info:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    gatherDebugInfo();
+  }, []);
+
   const debugInfo = {
     selectedVoice,
     selectedVoiceType: typeof selectedVoice,
@@ -36,10 +89,9 @@ const VoiceDebugComponent = ({ selectedVoice, className = '' }) => {
     currentConfig = createVoiceConfig('en-US-Chirp3-HD-Aoede', 'default');
   }
 
-  const isDevelopment = process.env.NODE_ENV === 'development';
-
-  if (!isDevelopment) {
-    return null; // Don't show in production
+  // Only render in development
+  if (!isDevelopment()) {
+    return null;
   }
 
   return (

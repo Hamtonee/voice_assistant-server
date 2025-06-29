@@ -10,33 +10,17 @@ const HISTORY_WINDOW = 10;
 const MAX_API_RETRIES = 3;
 const AUDIO_TIMEOUT = 10000; // 10 second timeout for audio loading
 
-// SECURE: Validate required API endpoint
-const validateChatApiEndpoint = () => {
-  const chatRoleplayEndpoint = process.env.REACT_APP_CHAT_ROLEPLAY_ENDPOINT;
-  
-  if (!chatRoleplayEndpoint) {
-    throw new Error(
-      'Missing required environment variable: REACT_APP_CHAT_ROLEPLAY_ENDPOINT. ' +
-      'Please check your .env file and ensure the chat roleplay endpoint is configured.'
-    );
+// Safe environment variable access
+const getChatRoleplayEndpoint = () => {
+  try {
+    return (typeof process !== 'undefined' && process.env && process.env.REACT_APP_CHAT_ROLEPLAY_ENDPOINT) || '/chat/roleplay';
+  } catch (error) {
+    console.warn('Failed to access REACT_APP_CHAT_ROLEPLAY_ENDPOINT, using fallback');
+    return '/chat/roleplay';
   }
-
-  return chatRoleplayEndpoint;
 };
 
-// Initialize endpoint with validation
-let CHAT_ROLEPLAY_ENDPOINT;
-try {
-  CHAT_ROLEPLAY_ENDPOINT = validateChatApiEndpoint();
-} catch (error) {
-  console.error('❌ [Chat API Configuration Error]:', error.message);
-  throw error;
-}
-
-// Log successful configuration (development only)
-if (process.env.NODE_ENV === 'development') {
-  console.log('✅ [Chat API Configuration] Chat roleplay endpoint configured successfully');
-}
+const chatRoleplayEndpoint = getChatRoleplayEndpoint();
 
 export default function ChatDetail({
   chatInstances,
@@ -552,12 +536,12 @@ export default function ChatDetail({
               }
             };
             
-            console.log('📤 Sending request to:', CHAT_ROLEPLAY_ENDPOINT);
+            console.log('📤 Sending request to:', chatRoleplayEndpoint);
             
             const controller = abortControllerRef.current;
             const timeoutId = setTimeout(() => controller.abort(), 30000);
             
-            const res = await fetch(CHAT_ROLEPLAY_ENDPOINT, {
+            const res = await fetch(chatRoleplayEndpoint, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(requestBody),

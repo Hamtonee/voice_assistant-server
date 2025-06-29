@@ -59,14 +59,6 @@ if (isDevelopment()) {
 }
 
 const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNewSession }) => {
-  const availableCategories = [
-    "Business", "Technology", "Finance", "Marketing",
-    "Education", "Science", "Health", "Sports", "Culture",
-    "Law", "History", "Politics", "Literature", "Philosophy",
-    "Engineering", "Arts", "Psychology", "Social Sciences",
-    "International Relations", "Journalism", "Architecture",
-    "Culinary Arts", "Music", "Fashion", "Travel", "Environment"
-  ];
 
   const customizationOptionsExtended = [
     "Include real-world examples",
@@ -120,24 +112,10 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   const [articleLimit] = useState(5); // Default limit of 5 articles
   const [showLimitAlert, setShowLimitAlert] = useState(false);
 
-  // Article limit check
-  const checkArticleLimit = useCallback(() => {
-    const articleSessions = onNewSession?.getArticleSessions?.() || [];
-    if (articleSessions.length >= articleLimit) {
-      setShowLimitAlert(true);
-      return true;
-    }
-    return false;
-  }, [onNewSession, articleLimit]);
+
 
   // ENHANCED: Smart view mode determination - only show list when 2+ articles exist
   const [forceListView, setForceListView] = useState(false);
-  
-  // Determine if we should show article list or direct reading view
-  const shouldShowArticleList = useCallback(() => {
-    const articleSessions = onNewSession?.getArticleSessions?.() || [];
-    return forceListView || articleSessions.length >= 2;
-  }, [forceListView, onNewSession]);
 
   // Enhanced session management with better unused instance detection
   const [currentSessionId, setCurrentSessionId] = useState(sessionId);
@@ -201,50 +179,30 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     }
   };
 
-  // Article limit check
-  const checkArticleLimit = useCallback(() => {
-    const articleSessions = onNewSession?.getArticleSessions?.() || [];
-    if (articleSessions.length >= articleLimit) {
-      setShowLimitAlert(true);
-      return true;
-    }
-    return false;
-  }, [onNewSession, articleLimit]);
-
   // Handle creating new article
   const handleCreateNewArticle = useCallback(() => {
-    if (checkArticleLimit()) {
+    const articleSessions = onNewSession?.getArticleSessions?.() || [];
+    if (articleSessions.length >= ARTICLE_LIMIT) {
+      setShowLimitAlert(true);
       return;
     }
     setViewMode('creating');
     setSelectedArticleId(null);
-  }, [checkArticleLimit, setViewMode, setSelectedArticleId]);
+  }, [onNewSession, setViewMode, setSelectedArticleId]);
 
-  // Article management functions
-  const handleOpenArticle = useCallback((articleId) => {
-    if (!articleId) return;
-    setSelectedArticleId(articleId);
-    setViewMode('detail');
-    markUserInteraction('article_interaction', { articleId });
-  }, [markUserInteraction]);
+  // Article management functions are handled by the enhanced handleOpenArticle function below
 
   const shouldShowArticleList = useCallback(() => {
     return viewMode === 'list' || forceListView;
   }, [viewMode, forceListView]);
 
-  // Session interaction tracking
-  const handleScroll = useCallback(() => {
-    if (!containerRef.current) return;
-    
-    const container = containerRef.current;
-    const scrollPosition = container.scrollTop;
-    const scrollHeight = container.scrollHeight - container.clientHeight;
-    
-    if (scrollHeight > 0) {
-      const progress = (scrollPosition / scrollHeight) * 100;
-      setReadingProgress(Math.min(100, Math.max(0, progress)));
-    }
+  // Handle going back to article list
+  const handleGoBackToList = useCallback(() => {
+    setViewMode('list');
+    setSelectedArticleId(null);
   }, []);
+
+  // Session interaction tracking is handled by the enhanced handleScroll function below
 
   // Add scroll event listener
   useEffect(() => {
@@ -255,11 +213,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     }
   }, [handleScroll]);
 
-  // These handlers are used in dynamic content generation
-  // eslint-disable-next-line no-unused-vars
-  const handleParamChange = useCallback((paramName, value) => {
-    setParams(prev => ({ ...prev, [paramName]: value }));
-  }, []);
+  // These handlers are used in dynamic content generation - handled by the enhanced handleParamChange function below
 
   // Load existing chat history from API on component mount
   useEffect(() => {
@@ -594,25 +548,8 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   }, [sessionState]);
 
   // Effect hooks
-  useEffect(() => {
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('resize', setVH);
-    setVH();
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('resize', setVH);
-    };
-  }, [handleResize, setVH]);
 
-  useEffect(() => {
-    loadChatHistory();
-    fetchUsageSummary();
-  }, [loadChatHistory, fetchUsageSummary]);
-
-  useEffect(() => {
-    const saveInterval = setInterval(saveChatHistory, 30000);
-    return () => clearInterval(saveInterval);
-  }, [saveChatHistory]);
+  // These functions are already called within their respective useEffect hooks above
 
   // Add missing state variables
   const [availableCategories] = useState([
@@ -624,22 +561,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     { id: 'current_events', name: 'Current Events', icon: '📰' }
   ]);
 
-  // Add missing functions
-  const resetToWizard = useCallback(() => {
-    setViewMode('creating');
-    setCustomStep(1);
-    setTopic(null);
-    setError(null);
-    setParams({
-      category: '',
-      paragraphCount: 3,
-      difficulty: 'medium',
-      ageGroup: '',
-      additionalInstruction: '',
-      fineTuning: ''
-    });
-    setSessionInteractionLevel('wizard_reset');
-  }, []);
+  // Additional functions are handled by the enhanced resetToWizard function above
 
   // Handle customization option toggle with interaction tracking
   const handleOptionToggle = useCallback((option) => {
