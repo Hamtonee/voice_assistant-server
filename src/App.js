@@ -1,5 +1,5 @@
 // src/App.js
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
@@ -69,13 +69,45 @@ const AppErrorFallback = ({ error, onRetry, onReload }) => (
 );
 
 export default function App() {
-  // Add debugging for development
-  React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🚀 SemaNami App initialized');
-      console.log('📱 User Agent:', navigator.userAgent);
-      console.log('🌐 Location:', window.location.href);
+  const [viewport, setViewport] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+    isMobile: window.innerWidth <= 768,
+    isTablet: window.innerWidth > 768 && window.innerWidth <= 1024,
+    isDesktop: window.innerWidth > 1024
+  });
+
+  useEffect(() => {
+    // Safe development check
+    const isDevelopment = () => {
+      try {
+        return typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development';
+      } catch (error) {
+        return false;
+      }
+    };
+
+    if (isDevelopment()) {
+      console.log('🚀 App initialized in development mode');
     }
+
+    // Initialize viewport handling
+    const handleResize = () => {
+      setViewport({
+        width: window.innerWidth,
+        height: window.innerHeight,
+        isMobile: window.innerWidth <= 768,
+        isTablet: window.innerWidth > 768 && window.innerWidth <= 1024,
+        isDesktop: window.innerWidth > 1024
+      });
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   // Handle unhandled promise rejections

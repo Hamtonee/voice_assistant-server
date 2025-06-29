@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { TTSService } from '../services/TTSService';
+import TTSService from '../services/TTSService';
 import api from '../api';
 import '../assets/styles/SpeechCoach.css';
 import { FiMic, FiMicOff, FiSend, FiTrash2, FiBarChart, FiX, FiChevronDown } from 'react-icons/fi';
