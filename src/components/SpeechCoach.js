@@ -88,19 +88,20 @@ export default function SpeechCoach({
 
   // Handle scroll detection
   useEffect(() => {
+    const messagesElement = messagesRef.current;
+    
     const handleScroll = () => {
-      if (messagesRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = messagesRef.current;
+      if (messagesElement) {
+        const { scrollTop, scrollHeight, clientHeight } = messagesElement;
         setShowScrollButton(scrollHeight - scrollTop - clientHeight > 100);
       }
     };
 
-    if (messagesRef.current) {
-      messagesRef.current.addEventListener('scroll', handleScroll);
+    if (messagesElement) {
+      messagesElement.addEventListener('scroll', handleScroll);
       return () => {
-        if (messagesRef.current) {
-          messagesRef.current.removeEventListener('scroll', handleScroll);
-        }
+        // Store ref value in closure to avoid stale ref in cleanup
+        messagesElement.removeEventListener('scroll', handleScroll);
       };
     }
   }, []);

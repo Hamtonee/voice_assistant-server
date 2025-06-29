@@ -39,12 +39,10 @@ console.log('🌐 Final API Base URL:', BASE_URL);
 // ============================================================================
 
 const api = axios.create({
-  baseURL: BASE_URL,
-  timeout: 60000, // 60 second timeout
-  withCredentials: true,
+  baseURL: process.env.REACT_APP_API_URL || 'https://api.semanami-ai.com/api',
+  timeout: parseInt(process.env.REACT_APP_API_TIMEOUT) || 60000,
   headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
+    'Content-Type': 'application/json'
   }
 });
 console.log('✅ Axios instance baseURL:', api.defaults.baseURL);
@@ -55,19 +53,15 @@ console.log('✅ Axios instance baseURL:', api.defaults.baseURL);
 
 api.interceptors.request.use(
   config => {
-    // Get token with multiple fallbacks
-    const token = localStorage.getItem('access_token') || 
-                  localStorage.getItem('token') || 
-                  localStorage.getItem('accessToken');
-    
     console.log('📡 Request interceptor - URL:', config.url);
+    const token = localStorage.getItem('access_token');
     console.log('📡 Request interceptor - Token:', token ? 'Present' : 'None');
-    console.log('📡 Request interceptor - Full URL:', `${config.baseURL}${config.url}`);
     
-    if (token && token !== 'null' && token !== 'undefined' && token.trim()) {
+    if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     
+    console.log('📡 Request interceptor - Full URL:', `${config.baseURL}${config.url}`);
     return config;
   },
   error => {

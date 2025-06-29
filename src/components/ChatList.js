@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import '../assets/styles/ChatList.css';
-import { MoreVertical, MessageSquare, Mic, BookOpen, Calendar, Clock, User } from 'lucide-react';
+import { MoreVertical, MessageSquare, Mic, BookOpen, Clock } from 'lucide-react';
 
 export default function ChatList({
   sessions = [], // Updated prop name for consistency
@@ -234,78 +234,10 @@ export default function ChatList({
 
   // Get feature-specific preview text for sessions
   const getSessionPreview = (session) => {
-    if (!session) return '';
-    
-    switch (selectedFeature) {
-      case 'tusome':
-        // For articles, show category and difficulty or article excerpt
-        if (session.metadata?.articleMetadata) {
-          const meta = session.metadata.articleMetadata;
-          const parts = [];
-          if (meta.category) parts.push(meta.category);
-          if (meta.difficulty) parts.push(meta.difficulty.charAt(0).toUpperCase() + meta.difficulty.slice(1));
-          if (meta.ageGroup) parts.push(meta.ageGroup);
-          return parts.join(' • ');
-        }
-        return 'Reading Article';
-        
-      case 'sema':
-        // For speech sessions, show speech configuration or practice type
-        if (session.metadata?.speechConfig) {
-          return 'Speech Practice Session';
-        }
-        return 'Speech Coaching';
-        
-      default:
-        // For chat, show scenario or last message
-        if (session.scenarioKey) {
-          return `${session.scenarioKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Roleplay`;
-        }
-        return 'Chat Conversation';
-    }
-  };
-
-  // Get session status based on content and interaction
-  const getSessionStatus = (session) => {
-    // Enhanced status detection for articles
-    if (selectedFeature === 'tusome') {
-      if (session.metadata?.articleMetadata) {
-        return {
-          icon: '📚',
-          text: 'Article Ready',
-          level: 'meaningful'
-        };
-      } else {
-        return {
-          icon: '📝',
-          text: 'In Progress',
-          level: 'started'
-        };
-      }
-    }
-    
-    // Default status logic for other features
-    const messageCount = session.messageCount || 0;
-    
-    if (messageCount === 0) {
-      return {
-        icon: '🆕',
-        text: 'New',
-        level: 'none'
-      };
-    } else if (messageCount >= 5) {
-      return {
-        icon: '✅',
-        text: 'Active',
-        level: 'meaningful'
-      };
-    } else {
-      return {
-        icon: '⚡',
-        text: 'Started',
-        level: 'engaged'
-      };
-    }
+    return {
+      preview: session.lastMessage || 'No messages yet',
+      timestamp: formatTime(session.updatedAt || session.createdAt)
+    };
   };
 
   // Loading state
@@ -338,8 +270,6 @@ export default function ChatList({
       {processedSessions.map(session => {
         const isActive = session.id === activeChatId;
         const isRenaming = renamingId === session.id;
-        const title = session.title || 'Untitled Session';
-        const timeStr = formatTime(session.updatedAt || session.createdAt);
         const FeatureIcon = getFeatureIcon();
         
         return (
@@ -386,7 +316,7 @@ export default function ChatList({
                 </div>
                 
                 <p className="chat-item-preview">
-                  {getSessionPreview(session)}
+                  {getSessionPreview(session).preview}
                 </p>
                 
                 {/* Enhanced metadata for articles */}
