@@ -26,7 +26,7 @@ const VoiceSelector = ({
   // UI state
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
   
   // Preview state
   const [previewText, setPreviewText] = useState('Hello! This is how I sound when I speak. How do you like my voice?');
@@ -55,13 +55,19 @@ const VoiceSelector = ({
     const handleResize = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        setIsMobile(window.innerWidth <= 768);
+        if (typeof window !== 'undefined') {
+          setIsMobile(window.innerWidth <= 768);
+        }
       }, 100);
     };
 
-    window.addEventListener('resize', handleResize);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+    }
     return () => {
-      window.removeEventListener('resize', handleResize);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', handleResize);
+      }
       clearTimeout(timeoutId);
     };
   }, []);
@@ -217,7 +223,7 @@ const VoiceSelector = ({
   // Simple speech cancellation
   const cancelCurrentSpeech = useCallback(() => {
     try {
-      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+      if (typeof window !== 'undefined' && window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
         window.speechSynthesis.cancel();
       }
       currentUtteranceRef.current = null;
@@ -444,22 +450,26 @@ const VoiceSelector = ({
       
       const utterance = new SpeechSynthesisUtterance(previewText.trim());
       
-      let voices = window.speechSynthesis.getVoices();
+      let voices = [];
       
-      if (voices.length === 0) {
-        console.log('⏳ Loading device voices...');
-        await new Promise((resolve) => {
-          const loadVoices = () => {
-            voices = window.speechSynthesis.getVoices();
-            if (voices.length > 0) resolve();
-          };
-          
-          if (window.speechSynthesis.onvoiceschanged !== undefined) {
-            window.speechSynthesis.onvoiceschanged = loadVoices;
-          }
-          setTimeout(resolve, 1000);
-        });
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
         voices = window.speechSynthesis.getVoices();
+        
+        if (voices.length === 0) {
+          console.log('⏳ Loading device voices...');
+          await new Promise((resolve) => {
+            const loadVoices = () => {
+              voices = window.speechSynthesis.getVoices();
+              if (voices.length > 0) resolve();
+            };
+            
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+              window.speechSynthesis.onvoiceschanged = loadVoices;
+            }
+            setTimeout(resolve, 1000);
+          });
+          voices = window.speechSynthesis.getVoices();
+        }
       }
       
       console.log(`🎙️ Found ${voices.length} device voices`);
@@ -561,7 +571,11 @@ const VoiceSelector = ({
         }, 30000);
         
         try {
-          window.speechSynthesis.speak(utterance);
+          if (typeof window !== 'undefined' && window.speechSynthesis) {
+            window.speechSynthesis.speak(utterance);
+          } else {
+            resolveOnce(false);
+          }
         } catch (error) {
           console.error('💥 Device voice exception:', error);
           resolveOnce(false);
