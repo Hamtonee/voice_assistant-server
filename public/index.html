@@ -98,7 +98,7 @@
     
     <!-- Service Worker Registration -->
     <script>
-      if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+      if ('serviceWorker' in navigator && typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production') {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('%PUBLIC_URL%/service-worker.js')
             .then((registration) => {

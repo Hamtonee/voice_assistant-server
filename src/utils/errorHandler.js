@@ -51,7 +51,7 @@ export const logError = (error, context = '', additionalData = {}) => {
   console.groupEnd();
 
   // Send to error tracking service in production
-  if (process.env.NODE_ENV === 'production' && window.gtag) {
+  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production' && window.gtag) {
     window.gtag('event', 'exception', {
       description: `${context}: ${error.message}`,
       fatal: false
