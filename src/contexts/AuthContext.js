@@ -39,6 +39,9 @@ export function AuthProvider({ children }) {
   const [loadingUser, setLoadingUser] = useState(true);
   const [initializing, setInitializing] = useState(true);
   const [sessionConflict, setSessionConflict] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [usageSummary, setUsageSummary] = useState(null);
   // Removed unused pendingNavigation state
   
   // Ref for tracking refresh state
@@ -71,6 +74,9 @@ export function AuthProvider({ children }) {
     setToken(null);
     setUser(null);
     setSessionConflict(null);
+    setIsAuthenticated(false);
+    setIsAuthReady(false);
+    setUsageSummary(null);
     
     // Clear any pending refresh operations
     authStateRef.current = {
@@ -136,6 +142,8 @@ export function AuthProvider({ children }) {
       if (response.data) {
         console.log('✅ User profile fetched successfully');
         setUser(response.data);
+        setIsAuthenticated(true);
+        setIsAuthReady(true);
         return response.data;
       } else {
         throw new Error('No user data received');
@@ -151,7 +159,7 @@ export function AuthProvider({ children }) {
       }
       throw error;
     }
-  }, [clearAuth]);
+  }, [clearAuth, setUser, setIsAuthenticated, setIsAuthReady]);
 
   // ============================================================================
   // ENHANCED TOKEN REFRESH WITH RETRY LOGIC
@@ -200,12 +208,13 @@ export function AuthProvider({ children }) {
         authStateRef.current.isRefreshing = false;
         setLoadingUser(false);
         setInitializing(false);
+        setIsAuthReady(true);
       }
     })();
     
     authStateRef.current.refreshPromise = refreshPromise;
     return refreshPromise;
-  }, [clearAuth, scheduleTokenRefresh, fetchUserProfile, setToken, setLoadingUser, setInitializing]);
+  }, [clearAuth, scheduleTokenRefresh, fetchUserProfile, setToken, setLoadingUser, setInitializing, setIsAuthReady]);
 
   // ============================================================================
   // ENHANCED LOGIN FUNCTION WITH IMPROVED STATE MANAGEMENT
@@ -297,11 +306,17 @@ export function AuthProvider({ children }) {
       // Update states atomically
       setToken(access_token);
       setUser(userData);
+      setIsAuthenticated(true);
+      setIsAuthReady(true);
       
       // Schedule token refresh
       scheduleTokenRefresh(decoded.exp);
       
       console.log('✅ Login completed successfully');
+      
+      // Hard redirect to clear component state and avoid race conditions
+      window.location.href = '/chats';
+      
       return { success: true };
     } catch (error) {
       console.error('❌ Login failed:', error);
@@ -317,7 +332,7 @@ export function AuthProvider({ children }) {
     } finally {
       setLoadingUser(false);
     }
-  }, [clearAuth, setLoadingUser, setError, setToken, setUser, scheduleTokenRefresh]);
+  }, [clearAuth, setLoadingUser, setError, setToken, setUser, scheduleTokenRefresh, setIsAuthenticated, setIsAuthReady]);
 
   // ============================================================================
   // ENHANCED REGISTRATION FUNCTION
@@ -368,15 +383,22 @@ export function AuthProvider({ children }) {
   // ENHANCED LOGOUT FUNCTION
   // ============================================================================
   
-  const logout = useCallback(() => {
+  const logout = useCallback(async (isIdle = false) => {
     localStorage.removeItem('access_token');
     setToken(null);
     setUser(null);
+    setIsAuthenticated(false);
+    setIsAuthReady(false);
+    setUsageSummary(null);
     if (window._refreshTimeout) {
       clearTimeout(window._refreshTimeout);
     }
-    navigate('/login');
-  }, [navigate, setToken, setUser]);
+    if (isIdle) {
+      navigate('/login');
+    } else {
+      window.location.href = '/login';
+    }
+  }, [navigate, setToken, setUser, setIsAuthenticated, setIsAuthReady, setUsageSummary]);
 
   // ============================================================================
   // INITIALIZATION EFFECT WITH CLEANUP
@@ -454,7 +476,7 @@ export function AuthProvider({ children }) {
     user,
     loadingUser,
     error,
-    isAuthenticated: Boolean(token && user),
+    isAuthenticated,
     initializing,
     sessionConflict,
     login,
@@ -464,6 +486,7 @@ export function AuthProvider({ children }) {
     clearSessionConflict,
     forceLogin,
     refreshToken,
+    isAuthReady,
   };
 
   // ============================================================================

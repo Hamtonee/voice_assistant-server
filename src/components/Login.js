@@ -6,32 +6,28 @@ import logo from '../assets/images/logo.png';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, forceLogin, clearSessionConflict, isAuthenticated } = useContext(AuthContext);
+  const { login, forceLogin, clearSessionConflict, isAuthenticated, isAuthReady, loading } = useContext(AuthContext);
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showSessionConflict, setShowSessionConflict] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
   const passwordInputRef = useRef(null);
   const emailInputRef = useRef(null);
 
-  // 🔧 FIX: Redirect to chats if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      console.log('🔍 User already authenticated, redirecting to chats');
+    if (isAuthReady && isAuthenticated) {
+      console.log('✅ Auth is ready and user is authenticated. Redirecting to chats...');
       navigate('/chats', { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, isAuthReady, navigate]);
 
-  // FIXED: Enhanced error message handler with better network error detection
   const getErrorMessage = (error) => {
     console.log('🔍 Processing error:', error);
     
     const errorMsg = error.response?.data?.error || error.response?.data?.message || error.response?.data?.detail || error.message || '';
     const statusCode = error.response?.status;
 
-    // Network/Connection errors (most important for your issue)
     if (!error.response || error.code === 'NETWORK_ERROR' || error.code === 'ECONNREFUSED') {
       return 'Connection problem. Please check your internet connection and try again.';
     }
@@ -40,12 +36,10 @@ const Login = () => {
       return 'Connection problem. Please check your internet connection and try again.';
     }
 
-    // Timeout errors
     if (error.code === 'ECONNABORTED' || errorMsg.toLowerCase().includes('timeout')) {
       return 'Request timed out. Please try again.';
     }
 
-    // Handle specific HTTP status codes
     if (statusCode === 401) {
       if (errorMsg.toLowerCase().includes('invalid credentials') || 
           errorMsg.toLowerCase().includes('incorrect email or password')) {
@@ -57,7 +51,6 @@ const Login = () => {
       return 'Login failed. Please check your credentials and try again.';
     }
 
-    // Handle 422 validation errors
     if (statusCode === 422) {
       if (Array.isArray(error.response?.data?.detail)) {
         return 'Please correct the validation errors and try again.';
@@ -77,11 +70,9 @@ const Login = () => {
       return 'Connection problem. Please check your internet connection and try again.';
     }
 
-    // Default fallback
     return errorMsg || 'Login failed. Please try again.';
   };
 
-  // Validate individual fields
   const validateField = (name, value) => {
     let fieldError = '';
     
@@ -108,19 +99,16 @@ const Login = () => {
   const handleChange = e => {
     const { name, value } = e.target;
     
-    // Clear general error when user starts typing
     if (error) {
       setError('');
     }
     
-    // Clear field-specific error when user starts typing
     if (fieldErrors[name]) {
       setFieldErrors(prev => ({ ...prev, [name]: '' }));
     }
     
     setForm(f => ({ ...f, [name]: value }));
     
-    // Real-time validation for better UX
     if (value.length > 0) {
       validateField(name, value);
     }
@@ -131,12 +119,10 @@ const Login = () => {
     setError('');
     setFieldErrors({ email: '', password: '' });
     
-    // Client-side validation
     const emailValid = validateField('email', form.email);
     const passwordValid = validateField('password', form.password);
     
     if (!emailValid || !passwordValid) {
-      // Focus the first invalid field
       setTimeout(() => {
         if (!emailValid && emailInputRef.current) {
           emailInputRef.current.focus();
@@ -147,58 +133,19 @@ const Login = () => {
       return;
     }
 
-    setLoading(true);
-
     try {
       console.log('🚀 Attempting login from Login component');
       
-      // Attempt login
       await login({ email: form.email.trim(), password: form.password });
       
       console.log('✅ Login successful from Login component perspective');
       
-      // 🔧 FIX: Don't set loading to false here, let the navigation happen
-      // The AuthContext will handle navigation and the loader will show during transition
-      
     } catch (err) {
       console.error('❌ Login failed in Login component:', err);
       
-      // Login failed - handle error and stay on page
-      setLoading(false);
-      
-      // Check for session conflict
-      if (err.response?.status === 401 && err.response?.data?.code === 'SESSION_CONFLICT') {
-        setShowSessionConflict(true);
-        return;
-      }
-
-      // Enhanced 422 error handling for validation errors
-      if (err.response?.status === 422) {
-        const validationErrors = err.response?.data?.detail || err.response?.data?.errors;
-        if (Array.isArray(validationErrors)) {
-          // Handle FastAPI validation errors
-          const emailError = validationErrors.find(e => e.loc?.includes('email'));
-          const passwordError = validationErrors.find(e => e.loc?.includes('password'));
-          
-          if (emailError) {
-            setFieldErrors(prev => ({ ...prev, email: emailError.msg }));
-          }
-          if (passwordError) {
-            setFieldErrors(prev => ({ ...prev, password: passwordError.msg }));
-          }
-          
-          setError('Please check the highlighted fields and try again.');
-        } else {
-          setError('Invalid input. Please check your email and password format.');
-        }
-        return;
-      }
-
-      // Show user-friendly error message
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
       
-      // Smart focus management based on error type
       setTimeout(() => {
         if (errorMessage.toLowerCase().includes('email') || 
             errorMessage.toLowerCase().includes('account')) {
@@ -207,7 +154,6 @@ const Login = () => {
             emailInputRef.current.select();
           }
         } else if (!errorMessage.toLowerCase().includes('connection')) {
-          // Don't focus password field for connection errors
           if (passwordInputRef.current) {
             passwordInputRef.current.focus();
             passwordInputRef.current.select();
@@ -215,22 +161,18 @@ const Login = () => {
         }
       }, 100);
       
-      // Explicitly return to prevent any further execution
       return;
     }
   };
 
   const handleForceLogin = async () => {
-    setLoading(true);
     setShowSessionConflict(false);
     setError('');
     
     try {
       await forceLogin({ email: form.email.trim(), password: form.password });
       clearSessionConflict();
-      // Navigation handled by AuthContext
     } catch (err) {
-      setLoading(false);
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
     }
@@ -239,10 +181,8 @@ const Login = () => {
   const handleCancelConflict = () => {
     setShowSessionConflict(false);
     clearSessionConflict();
-    setLoading(false); // 🔧 FIX: Reset loading state when canceling
   };
 
-  // Session Conflict Dialog
   if (showSessionConflict) {
     return (
       <div className="login-container">
