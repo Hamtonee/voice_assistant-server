@@ -7,6 +7,19 @@ import { handleApiError, handleSpeechError, logError } from '../utils/errorHandl
 import ErrorDisplay from './ui/ErrorDisplay';
 import { LoadingButton, InlineLoader } from './ui/LoadingStates';
 
+// Debounce function to prevent rapid-fire state changes
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 export default function SpeechCoach({ 
   sessionId, 
   selectedVoice, 
@@ -20,7 +33,7 @@ export default function SpeechCoach({
   onToggleListen = () => {}
 }) {
   // Speech recognition and TTS state
-  const [isRecording, setIsRecording] = useState(false);
+  const [isRecording, setIsRecording] = useState(alwaysListen);
   const [inputText, setInputText] = useState('');
   const [error, setError] = useState(null);
   const [ttsAvailable, setTTSAvailable] = useState(false);
@@ -39,13 +52,15 @@ export default function SpeechCoach({
   
   // UI state
   const [showScrollButton, setShowScrollButton] = useState(false);
-  
+  const [browserWarning, setBrowserWarning] = useState(null);
+
   // Refs
   const recognitionRef = useRef(null);
   const ttsRef = useRef(null);
   const ttsServiceRef = useRef(null);
   const isUnmountingRef = useRef(false);
   const messagesRef = useRef(null);
+  const audioRef = useRef(null); // Ref for the audio element
 
   // Initialize speech services
   useEffect(() => {
@@ -67,11 +82,7 @@ export default function SpeechCoach({
           setIsSpeechSupported(true);
         } else {
           setIsSpeechSupported(false);
-          const speechError = { 
-            type: 'SPEECH_RECOGNITION_ERROR', 
-            message: 'Speech recognition is not supported in your browser.' 
-          };
-          setError(speechError);
+          setBrowserWarning('Speech recognition is not supported in this browser. Please use Chrome or Edge for the best experience.');
         }
       } catch (error) {
         const handledError = handleSpeechError(error, 'Speech Service Initialization');
@@ -97,12 +108,12 @@ export default function SpeechCoach({
   useEffect(() => {
     const messagesElement = messagesRef.current;
     
-    const handleScroll = () => {
+    const handleScroll = debounce(() => {
       if (messagesElement) {
         const { scrollTop, scrollHeight, clientHeight } = messagesElement;
-        setShowScrollButton(scrollHeight - scrollTop - clientHeight > 100);
+        setShowScrollButton(scrollHeight - scrollTop > clientHeight + 50);
       }
-    };
+    }, 100);
 
     if (messagesElement) {
       messagesElement.addEventListener('scroll', handleScroll);
@@ -128,39 +139,49 @@ export default function SpeechCoach({
     if (!recognitionRef.current || isRecording) return;
 
     try {
-      recognitionRef.current.start();
       setIsRecording(true);
       setError(null);
 
       recognitionRef.current.onresult = (event) => {
-        if (event.results && Array.isArray(event.results)) {
-          const transcript = Array.from(event.results)
-            .map(result => result[0].transcript)
-            .join('');
-          setInputText(transcript);
+        let interimTranscript = '';
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
         }
+        setInputText(prev => prev + finalTranscript);
       };
 
       recognitionRef.current.onerror = (event) => {
-        const speechError = handleSpeechError(
-          { type: 'SPEECH_RECOGNITION_ERROR', message: event.error }, 
-          'Speech Recognition'
-        );
-        setError(speechError);
+        logError(event, 'Speech Recognition Error');
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setBrowserWarning('Microphone access denied. Please enable it in your browser settings.');
+        } else {
+          setError('An error occurred during speech recognition.');
+        }
         setIsRecording(false);
       };
 
       recognitionRef.current.onend = () => {
-        if (!isUnmountingRef.current) {
+        if (!isUnmountingRef.current && !alwaysListen) {
           setIsRecording(false);
         }
       };
-    } catch (error) {
-      const speechError = handleSpeechError(error, 'Start Recording');
-      setError(speechError);
-      setIsRecording(false);
+
+      recognitionRef.current.start();
+    } catch (err) {
+      if (err.name === 'InvalidStateError') {
+        // Already started, ignore.
+      } else {
+        logError(err, 'Start Recording Failed');
+        setError('Could not start microphone. Please check permissions.');
+        setIsRecording(false);
+      }
     }
-  }, [isRecording]);
+  }, [isRecording, alwaysListen]);
 
   // Stop recording
   const handleStopRecording = useCallback(() => {
@@ -169,31 +190,44 @@ export default function SpeechCoach({
     try {
       recognitionRef.current.stop();
       setIsRecording(false);
-    } catch (error) {
-      const speechError = handleSpeechError(error, 'Stop Recording');
-      setError(speechError);
+    } catch (err) {
+      logError(err, 'Stop Recording Failed');
     }
   }, [isRecording]);
 
+  // Effect to control listening state based on `alwaysListen` prop
+  useEffect(() => {
+    if (alwaysListen) {
+      handleStartRecording();
+    } else {
+      handleStopRecording();
+    }
+  }, [alwaysListen, handleStartRecording, handleStopRecording]);
+
+  const handleMicClick = () => {
+    if (alwaysListen) {
+      onToggleListen(); // Allow parent to change `alwaysListen` state
+    } else {
+      isRecording ? handleStopRecording() : handleStartRecording();
+    }
+  };
+
   // Send message
   const handleSendMessage = useCallback(async () => {
-    if (!inputText.trim()) {
-      const validationError = {
-        type: 'VALIDATION_ERROR',
-        message: 'Please say something before submitting.'
-      };
-      setError(validationError);
+    const trimmedInput = inputText.trim();
+    if (!trimmedInput) {
+      setError('Please say something or type a message before sending.');
       return;
     }
 
     setIsProcessing(true);
     setError(null);
+    handleStopRecording();
 
-    // Add user message to chat
     const userMessage = {
       id: Date.now(),
       type: 'user',
-      content: inputText.trim(),
+      content: trimmedInput,
       timestamp: new Date()
     };
     
@@ -207,7 +241,6 @@ export default function SpeechCoach({
         voice: selectedVoice
       });
 
-      // Add coach response to chat
       const coachMessage = {
         id: Date.now() + 1,
         type: 'coach',
@@ -221,35 +254,40 @@ export default function SpeechCoach({
 
       setMessages(prev => [...prev, coachMessage]);
 
-      // Update progress stats
       setProgressStats(prev => ({
         ...prev,
         interactions: prev.interactions + 1,
         vocabulary: prev.vocabulary + (data.vocabulary_introduced?.length || 0)
       }));
 
-      // Play TTS feedback
-      if (data.feedbackAudio && ttsServiceRef.current) {
-        const audio = new Audio(`data:audio/mp3;base64,${data.feedbackAudio}`);
-        ttsRef.current = audio;
+      if (data.feedbackAudio) {
+        const audioBlob = new Blob([Buffer.from(data.feedbackAudio, 'base64')], { type: 'audio/mp3' });
+        const audioUrl = URL.createObjectURL(audioBlob);
         
-        audio.onended = () => {
-          ttsRef.current = null;
-        };
-
-        await audio.play();
+        if (audioRef.current) {
+          audioRef.current.src = audioUrl;
+          audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+        }
       }
-
-      // Auto-scroll to bottom
-      setTimeout(scrollToBottom, 100);
-      
-    } catch (error) {
-      console.error('Failed to process speech:', error);
-      setError('Failed to process speech. Please try again.');
+    } catch (err) {
+      const apiError = handleApiError(err);
+      logError(apiError, 'SendMessage');
+      setError(apiError.message || 'Failed to get feedback from the coach.');
+      // Restore user input on failure
+      setInputText(trimmedInput);
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsProcessing(false);
+      // Resume listening if alwaysListen is on
+      if (alwaysListen && !isUnmountingRef.current) {
+        handleStartRecording();
+      }
     }
-  }, [inputText, sessionId, selectedVoice, scrollToBottom]);
+  }, [inputText, sessionId, selectedVoice, handleStopRecording, alwaysListen, handleStartRecording]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   // Handle enter key
   const handleKeyPress = useCallback((e) => {
@@ -261,44 +299,46 @@ export default function SpeechCoach({
 
   // Clear conversation
   const handleClear = useCallback(() => {
-    setMessages([]);
-    setInputText('');
-    setError(null);
-    setProgressStats({
-      interactions: 0,
-      vocabulary: 0,
-      proverbs: 0,
-      duration: '0m'
-    });
-  }, []);
+    if (window.confirm("Are you sure you want to clear the entire conversation?")) {
+      setMessages([]);
+      setInputText('');
+      setError(null);
+      setProgressStats({
+        interactions: 0,
+        vocabulary: 0,
+        proverbs: 0,
+        duration: '0m'
+      });
+      // Potentially call onNewSession to reset server-side state if needed
+      if(onNewSession) onNewSession();
+    }
+  }, [onNewSession]);
 
   return (
     <div className={`speech-coach ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-      {/* Conversation Area */}
+      <audio ref={audioRef} />
       <div className={`conversation-area ${showProgressPanel ? 'progress-visible' : ''}`} ref={messagesRef}>
         {messages.length === 0 ? (
           <div className="empty-state">
-            <p>Start speaking to practice with your AI speech coach!</p>
+            <p>Press the microphone and start speaking to practice with your AI speech coach.</p>
             <div className="voice-info">
-              <p><strong>Voice:</strong> {selectedVoice?.name || 'Default'}</p>
-              <p>The coach will provide feedback on pronunciation, grammar, and fluency.</p>
+              <p><strong>Coach's Voice:</strong> {selectedVoice?.name || 'Default'}</p>
+              <p>The coach will provide feedback on your pronunciation, grammar, and fluency.</p>
             </div>
           </div>
         ) : (
           messages.map(message => (
             <div key={message.id} className={`message ${message.type}`}>
               <p>{message.content}</p>
-              
               {message.correctedSentence && (
                 <div className="correction">
-                  <small>Corrected: {message.correctedSentence}</small>
+                  <small>Suggestion: <em>{message.correctedSentence}</em></small>
                 </div>
               )}
-              
-              {message.suggestions && message.suggestions.length > 0 && (
+              {message.suggestions?.length > 0 && (
                 <div className="coach-controls">
                   {message.suggestions.slice(0, 3).map((suggestion, index) => (
-                    <button key={index} className="suggestion-btn" disabled>
+                    <button key={index} className="suggestion-btn" onClick={() => setInputText(suggestion)}>
                       {suggestion}
                     </button>
                   ))}
@@ -309,7 +349,6 @@ export default function SpeechCoach({
         )}
       </div>
 
-      {/* Scroll to Bottom Button */}
       {showScrollButton && (
         <button 
           className={`scroll-to-bottom-btn ${showProgressPanel ? 'progress-visible' : ''}`}
@@ -320,138 +359,89 @@ export default function SpeechCoach({
         </button>
       )}
 
-      {/* Progress Panel */}
       {showProgressPanel && (
         <div className="progress-panel">
           <div className="progress-panel-header">
-            <h3>
-              <FiBarChart size={16} />
-              Session Progress
-            </h3>
-            <button 
-              className="progress-panel-close"
-              onClick={() => setShowProgressPanel(false)}
-              aria-label="Close progress panel"
-            >
-              <FiX size={16} />
+            <h3><FiBarChart /> Session Progress</h3>
+            <button className="progress-panel-close" onClick={() => setShowProgressPanel(false)} aria-label="Close progress panel">
+              <FiX />
             </button>
           </div>
-          
           <div className="progress-stats">
-            <div className="progress-stat">
-              <div className="progress-stat-value interactions">{progressStats.interactions}</div>
-              <div className="progress-stat-label">Interactions</div>
-            </div>
-            <div className="progress-stat">
-              <div className="progress-stat-value vocabulary">{progressStats.vocabulary}</div>
-              <div className="progress-stat-label">New Words</div>
-            </div>
-            <div className="progress-stat">
-              <div className="progress-stat-value proverbs">{progressStats.proverbs}</div>
-              <div className="progress-stat-label">Proverbs</div>
-            </div>
-            <div className="progress-stat">
-              <div className="progress-stat-value duration">{progressStats.duration}</div>
-              <div className="progress-stat-label">Duration</div>
-            </div>
+            {Object.entries(progressStats).map(([key, value]) => (
+              <div className="progress-stat" key={key}>
+                <div className={`progress-stat-value ${key}`}>{value}</div>
+                <div className="progress-stat-label">{key}</div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Speech Input Container with Integrated Mic */}
-      <div className={`speech-input-container ${showProgressPanel ? 'progress-visible' : ''}`}>
-        <div className="input-wrapper">
-          <textarea
-            className="chat-text-field"
-            placeholder="Type or speak your message..."
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyPress}
-            disabled={isProcessing}
-            rows={1}
-          />
-          <button
-            className={`integrated-mic-btn ${isRecording ? 'listening' : ''} ${!isSpeechSupported ? 'disabled' : ''}`}
-            onClick={isRecording ? handleStopRecording : handleStartRecording}
-            disabled={!isSpeechSupported || isProcessing}
-            aria-label={isRecording ? "Stop recording" : "Start recording"}
-          >
-            {isRecording ? (
-              <>
-                <FiMicOff size={16} />
-                <div className="listening-pulse">
-                  <div className="pulse-ring"></div>
-                  <div className="pulse-ring"></div>
-                  <div className="pulse-ring"></div>
+      <div className="speech-controls-wrapper">
+        <div className="controls-input-container">
+            <div className="enhanced-controls-bar">
+                <div className="controls-group left">
+                    <button
+                        className="action-button clear"
+                        onClick={handleClear}
+                        disabled={isProcessing || messages.length === 0}
+                        aria-label="Clear conversation"
+                    >
+                        <FiTrash2 size={14} />
+                        <span>Clear</span>
+                    </button>
                 </div>
-              </>
-            ) : (
-              <FiMic size={16} />
-            )}
-          </button>
+                <div className="controls-group right">
+                     <button
+                        className={`action-button progress ${showProgressPanel ? 'active' : ''}`}
+                        onClick={() => setShowProgressPanel(prev => !prev)}
+                        aria-label="Toggle progress panel"
+                    >
+                        <FiBarChart size={14} />
+                        <span>Progress</span>
+                    </button>
+                </div>
+            </div>
+            <div className="enhanced-input-container">
+                 <textarea
+                    className="enhanced-input-field"
+                    placeholder="Type or speak your message..."
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    disabled={isProcessing}
+                    rows={1}
+                />
+                <button
+                    className={`enhanced-mic-button ${isRecording ? 'listening' : ''}`}
+                    onClick={handleMicClick}
+                    disabled={!isSpeechSupported || isProcessing}
+                    aria-label={isRecording ? "Stop recording" : "Start recording"}
+                >
+                    {isRecording ? <FiMicOff size={18} /> : <FiMic size={18} />}
+                    {isRecording && <div className="listening-pulse"><div className="pulse-ring"></div><div className="pulse-ring"></div><div className="pulse-ring"></div></div>}
+                </button>
+                <button
+                    className="enhanced-send-button"
+                    onClick={handleSendMessage}
+                    disabled={!inputText.trim() || isProcessing}
+                    aria-label="Send message"
+                >
+                    {isProcessing ? <InlineLoader /> : <FiSend size={18} />}
+                </button>
+            </div>
         </div>
-        <button
-          className="send-btn"
-          onClick={handleSendMessage}
-          disabled={!inputText.trim() || isProcessing}
-          aria-label="Send message"
-        >
-          <FiSend size={18} />
-        </button>
       </div>
-
-      {/* Controls Container */}
-      <div className={`controls-container ${showProgressPanel ? 'progress-visible' : ''}`}>
-        <div className="coach-controls-bar">
-          <div className="controls-left">
-            <button
-              className="control-btn clear-btn"
-              onClick={handleClear}
-              disabled={isProcessing || messages.length === 0}
-            >
-              <FiTrash2 size={16} />
-              Clear
-            </button>
-          </div>
-          
-          <div className="controls-right">
-            <button
-              className={`control-btn progress-toggle-btn ${showProgressPanel ? 'active' : ''}`}
-              onClick={() => setShowProgressPanel(!showProgressPanel)}
-            >
-              <FiBarChart size={16} />
-              Progress
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Error Banner */}
-      {error && (
-        <div className="error-banner">
-          <span>{error}</span>
-          <button onClick={() => setError(null)} aria-label="Close error">
+      
+      {error && <ErrorDisplay message={error} onDismiss={() => setError(null)} />}
+      
+      {browserWarning && (
+        <div className="browser-warning">
+          <p>{browserWarning}</p>
+          <button onClick={() => setBrowserWarning(null)} aria-label="Dismiss warning">
             <FiX size={16} />
           </button>
-        </div>
-      )}
-
-      {/* Browser Warning */}
-      {!isSpeechSupported && (
-        <div className="browser-warning">
-          <p>
-            Speech recognition is not supported in your browser.
-            Please try using Chrome, Edge, or Safari.
-          </p>
-        </div>
-      )}
-
-      {!ttsAvailable && (
-        <div className="browser-warning">
-          <p>
-            Text-to-speech service is currently unavailable.
-            You will not hear audio feedback.
-          </p>
         </div>
       )}
     </div>

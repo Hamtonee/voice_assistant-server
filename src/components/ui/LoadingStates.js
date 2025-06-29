@@ -1,24 +1,34 @@
 import React from 'react';
-import { FiLoader } from 'react-icons/fi';
+import LottieLoader from '../LottieLoader';
 import './LoadingStates.css';
 
 /**
- * Spinner component with customizable size and color
+ * Spinner component now uses Lottie for a uniform look.
+ * Size prop is mapped to dimensions suitable for different contexts.
  */
 export const Spinner = ({ 
   size = 'medium', 
-  color = 'primary', 
   className = '',
   'aria-label': ariaLabel = 'Loading...'
 }) => {
+  // Map size prop to pixel dimensions
+  const sizeMap = {
+    small: 24,
+    medium: 48,
+    large: 96,
+  };
+  const dimension = sizeMap[size] || 48;
+
   return (
     <div 
-      className={`spinner spinner--${size} spinner--${color} ${className}`}
+      className={`spinner-wrapper spinner-wrapper--${size} ${className}`}
       role="status"
       aria-label={ariaLabel}
     >
-      <FiLoader className="spinner__icon" />
-      <span className="sr-only">{ariaLabel}</span>
+      <LottieLoader
+        width={dimension}
+        height={dimension}
+      />
     </div>
   );
 };
@@ -63,13 +73,13 @@ export const LoadingOverlay = ({
  * Inline loading state for buttons and small components
  */
 export const InlineLoader = ({ 
-  message = 'Loading...', 
+  message,
   size = 'small' 
 }) => {
   return (
     <div className="inline-loader">
       <Spinner size={size} />
-      <span className="inline-loader__message">{message}</span>
+      {message && <span className="inline-loader__message">{message}</span>}
     </div>
   );
 };
@@ -131,10 +141,10 @@ export const LoadingButton = ({
       {...props}
     >
       {loading ? (
-        <>
+        <div className="loading-button__content">
           <Spinner size="small" />
-          <span>{loadingText}</span>
-        </>
+          {loadingText && <span>{loadingText}</span>}
+        </div>
       ) : (
         children
       )}
