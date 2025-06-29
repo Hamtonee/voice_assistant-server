@@ -1102,10 +1102,10 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
                 <span className="usage-title">Daily Usage</span>
               </div>
               <div className="usage-info-content">
-                Reading Articles: {usageSummary.reading_article.used}/{usageSummary.reading_article.daily_limit} used today
-                {usageSummary.reading_article.remaining > 0 && (
+                Reading Articles: {usageSummary.reading_article.used || 0}/{usageSummary.reading_article.daily_limit || 0} used today
+                {(usageSummary.reading_article.remaining || 0) > 0 && (
                   <span className="usage-remaining">
-                    {' '}({usageSummary.reading_article.remaining} remaining)
+                    {' '}({usageSummary.reading_article.remaining || 0} remaining)
                   </span>
                 )}
               </div>
