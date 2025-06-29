@@ -59,7 +59,7 @@ export default function SpeechCoach({
         setTTSAvailable(ttsAvailable);
         
         // Initialize speech recognition
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
           const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
           recognitionRef.current = new SpeechRecognition();
           recognitionRef.current.continuous = true;
