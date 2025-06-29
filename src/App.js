@@ -2,6 +2,7 @@
 import React, { useContext, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthContext, AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
@@ -60,11 +61,13 @@ function App() {
   return (
     <Router>
       <ErrorBoundary>
-        <AuthProvider>
-          <Suspense fallback={<LottieLoader />}>
-            <AuthRoutes />
-          </Suspense>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <Suspense fallback={<LottieLoader />}>
+              <AuthRoutes />
+            </Suspense>
+          </AuthProvider>
+        </ThemeProvider>
       </ErrorBoundary>
     </Router>
   );
