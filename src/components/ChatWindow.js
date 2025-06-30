@@ -106,7 +106,7 @@ class ChatWindowErrorBoundary extends React.Component {
       return (
         <div className="error-container">
           <h3>Something went wrong</h3>
-          <p>We're sorry, but there was an error loading the chat interface.</p>
+          <p>We&apos;re sorry, but there was an error loading the chat interface.</p>
           <button 
             className="retry-button" 
             onClick={() => this.setState({ hasError: false, error: null })}

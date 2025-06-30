@@ -266,93 +266,41 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
           </div>
         )}
 
-        {/* Grid of scenarios */}
-        <div className="scenario-grid-wrapper">
-          {categoryOrder.map(category => {
-            const items = filtered.filter(s => s.category === category);
-            if (!Array.isArray(items) || items.length === 0) return null;
-
-            return (
-              <div key={category} className="scenario-category-block">
-                <h4 className="category-heading">
-                  {category}
-                  <span className="category-count">({items.length})</span>
-                </h4>
+        {/* Category Sections */}
+        {filtered.length > 0 ? (
+          categoryOrder
+            .map(category => ({
+              category,
+              items: filtered.filter(s => s.category === category)
+            }))
+            .filter(g => g.items.length > 0)
+            .map(({ category, items }) => (
+              <div key={category} className="category-section">
+                <h2 className="category-title">{category}</h2>
                 <div className="scenario-grid">
-                  {items.map((scenario, index) => (
-                    <div
-                      key={scenario.key}
-                      className={`scenario-card ${loadingScenario === scenario.key ? 'loading' : ''} ${loadingScenario && loadingScenario !== scenario.key ? 'disabled' : ''}`}
-                      onClick={() => !loadingScenario && handleScenarioSelect(scenario)}
-                      role="button"
-                      tabIndex={loadingScenario ? -1 : 0}
-                      onKeyDown={(e) => {
-                        if (!loadingScenario && (e.key === 'Enter' || e.key === ' ')) {
-                          e.preventDefault();
-                          handleScenarioSelect(scenario);
-                        }
-                      }}
+                  {items.map((s, index) => (
+                    <div 
+                      key={s.key} 
+                      className={`scenario-card ${loadingScenario === s.key ? 'loading-active' : ''}`}
+                      onClick={() => handleScenarioSelect(s)}
                     >
-                      {loadingScenario === scenario.key && (
-                        <div className="card-loading-overlay">
-                          <LottieLoader 
-                            size={60} 
-                            message="Loading..." 
-                          />
-                        </div>
-                      )}
-                      
-                      {scenario.image && (
-                        <ScenarioImage scenario={scenario} index={index} />
-                      )}
-                      
+                      <ScenarioImage scenario={s} index={index} />
                       <div className="card-content">
-                        <div 
-                          className="card-label"
-                          title={scenario.label.length > 25 ? scenario.label : ''}
-                        >
-                          {scenario.label}
-                        </div>
-                        {scenario.subtitle && (
-                          <div 
-                            className="card-subtitle"
-                            title={scenario.subtitle.length > 50 ? scenario.subtitle : ''}
-                          >
-                            {scenario.subtitle}
-                          </div>
-                        )}
-                        {scenario.difficulty && (
-                          <div className={`card-difficulty ${scenario.difficulty.toLowerCase()}`}>
-                            {scenario.difficulty}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="card-hover-overlay">
-                        <span>Start Session</span>
+                        <h3 className="card-title">{s.label}</h3>
+                        <p className="card-subtitle">{s.subtitle}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            );
-          })}
-          
-          {filtered.length === 0 && (
-            <div className="no-scenarios">
-              <Search size={48} className="no-scenarios-icon" />
-              <h3>No scenarios match your search</h3>
-              <p>Try adjusting your search terms or browse all categories</p>
-              <button 
-                className="clear-search-btn"
-                onClick={() => setSearch('')}
-                disabled={!!loadingScenario}
-              >
-                Clear Search
-              </button>
-            </div>
-          )}
-        </div>
+            ))
+        ) : (
+          <div className="no-results">
+            <Search size={48} className="no-results-icon" />
+            <h3>No Scenarios Found</h3>
+            <p>Your search for &quot;{search}&quot; did not match any scenarios.</p>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="scenario-footer">

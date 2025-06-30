@@ -3,4 +3,5 @@ export { useSessionManagement } from './useSessionManagement';
 export { useResponsiveLayout } from './useResponsiveLayout';
 export { useFeatureNavigation } from './useFeatureNavigation';
 export { useSessionHeartbeat } from './useSessionHeartbeat';
-export { useWebSocketSession } from './useWebSocketSession'; 
+export { useWebSocketSession } from './useWebSocketSession';
+export { useMediaQuery } from './useMediaQuery'; 

@@ -152,7 +152,7 @@ export const LoadingButton = ({
   );
 };
 
-export default {
+const LoadingStates = {
   Spinner,
   Skeleton,
   LoadingOverlay,
@@ -160,4 +160,6 @@ export default {
   LoadingCard,
   LoadingList,
   LoadingButton
-}; 
+};
+
+export default LoadingStates; 

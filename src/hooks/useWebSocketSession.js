@@ -75,10 +75,11 @@ export const useWebSocketSession = () => {
     // Connect WebSocket
     connectWebSocket();
 
+    const timeoutRef = reconnectTimeoutRef.current;
     // Cleanup
     return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
+      if (timeoutRef) {
+        clearTimeout(timeoutRef);
       }
       if (wsRef.current) {
         wsRef.current.close(1000, 'Component unmounted');

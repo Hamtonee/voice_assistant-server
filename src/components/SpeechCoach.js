@@ -3,9 +3,7 @@ import TTSService from '../services/TTSService';
 import api from '../api';
 import '../assets/styles/SpeechCoach.css';
 import { FiMic, FiMicOff, FiSend, FiTrash2, FiBarChart, FiX, FiChevronDown } from 'react-icons/fi';
-import { handleApiError, handleSpeechError, logError } from '../utils/errorHandler';
-import ErrorDisplay from './ui/ErrorDisplay';
-import { LoadingButton, InlineLoader } from './ui/LoadingStates';
+import { handleApiError, handleSpeechError } from '../utils/errorHandler';
 
 // Debounce function to prevent rapid-fire state changes
 function debounce(func, wait) {
@@ -36,7 +34,7 @@ export default function SpeechCoach({
   const [isRecording, setIsRecording] = useState(alwaysListen);
   const [inputText, setInputText] = useState('');
   const [error, setError] = useState(null);
-  const [ttsAvailable, setTTSAvailable] = useState(false);
+  // const [ttsAvailable, setTTSAvailable] = useState(false);
   const [isSpeechSupported, setIsSpeechSupported] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -70,8 +68,8 @@ export default function SpeechCoach({
     const initializeApp = async () => {
       try {
         // Check TTS availability
-        const ttsAvailable = await ttsServiceRef.current.checkStatus();
-        setTTSAvailable(ttsAvailable);
+        // const ttsAvailable = await ttsServiceRef.current.checkStatus();
+        // setTTSAvailable(ttsAvailable);
         
         // Initialize speech recognition
         if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
@@ -143,20 +141,20 @@ export default function SpeechCoach({
       setError(null);
 
       recognitionRef.current.onresult = (event) => {
-        let interimTranscript = '';
+        // let interimTranscript = '';
         let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
             finalTranscript += event.results[i][0].transcript;
           } else {
-            interimTranscript += event.results[i][0].transcript;
+            // interimTranscript += event.results[i][0].transcript;
           }
         }
         setInputText(prev => prev + finalTranscript);
       };
 
       recognitionRef.current.onerror = (event) => {
-        logError(event, 'Speech Recognition Error');
+        console.error('Speech Recognition Error:', event);
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           setBrowserWarning('Microphone access denied. Please enable it in your browser settings.');
         } else {
@@ -176,7 +174,7 @@ export default function SpeechCoach({
       if (err.name === 'InvalidStateError') {
         // Already started, ignore.
       } else {
-        logError(err, 'Start Recording Failed');
+        console.error('Start Recording Failed:', err);
         setError('Could not start microphone. Please check permissions.');
         setIsRecording(false);
       }
@@ -191,7 +189,7 @@ export default function SpeechCoach({
       recognitionRef.current.stop();
       setIsRecording(false);
     } catch (err) {
-      logError(err, 'Stop Recording Failed');
+      console.error('Stop Recording Failed:', err);
     }
   }, [isRecording]);
 
@@ -271,7 +269,7 @@ export default function SpeechCoach({
       }
     } catch (err) {
       const apiError = handleApiError(err);
-      logError(apiError, 'SendMessage');
+      console.error('SendMessage error:', apiError);
       setError(apiError.message || 'Failed to get feedback from the coach.');
       // Restore user input on failure
       setInputText(trimmedInput);
@@ -428,13 +426,20 @@ export default function SpeechCoach({
                     disabled={!inputText.trim() || isProcessing}
                     aria-label="Send message"
                 >
-                    {isProcessing ? <InlineLoader /> : <FiSend size={18} />}
+                    {isProcessing ? <span>...</span> : <FiSend size={18} />}
                 </button>
             </div>
         </div>
       </div>
       
-      {error && <ErrorDisplay message={error} onDismiss={() => setError(null)} />}
+      {error && (
+        <div className="error-display">
+          <p>{error}</p>
+          <button onClick={() => setError(null)} aria-label="Dismiss error">
+            <FiX size={16} />
+          </button>
+        </div>
+      )}
       
       {browserWarning && (
         <div className="browser-warning">

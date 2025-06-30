@@ -28,7 +28,7 @@ export default function PrivacyPolicy() {
             <li><a href="#information-sharing">Information Sharing and Disclosure</a></li>
             <li><a href="#data-retention">Data Retention and Security</a></li>
             <li><a href="#your-rights">Your Privacy Rights</a></li>
-            <li><a href="#children">Children's Privacy</a></li>
+            <li><a href="#children">Children&apos;s Privacy</a></li>
             <li><a href="#international">International Data Transfers</a></li>
             <li><a href="#changes-policy">Changes to This Privacy Policy</a></li>
             <li><a href="#contact-privacy">Contact Us</a></li>
@@ -38,7 +38,7 @@ export default function PrivacyPolicy() {
         <div className="legal-sections">
           <section id="introduction">
             <h2>1. Introduction</h2>
-            <p>At SemaNami, we respect your privacy and are committed to protecting your personal data. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform, including our website, mobile applications, or any other products or services offered by SemaNami ("Services").</p>
+            <p>At SemaNami, we respect your privacy and are committed to protecting your personal data. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform, including our website, mobile applications, or any other products or services offered by SemaNami (&quot;Services&quot;).</p>
             <p>Please read this Privacy Policy carefully. By using our Services, you consent to the collection, use, and sharing of your information as described in this Privacy Policy. If you do not agree with our policies and practices, please do not use our Services.</p>
             <p>This Privacy Policy applies to all information collected through our Services and any related services, sales, marketing, or events.</p>
           </section>
@@ -117,7 +117,7 @@ export default function PrivacyPolicy() {
 
             <h3>Data Security</h3>
             <p>We have implemented appropriate technical and organizational security measures designed to protect the security of any personal information we process. However, despite our safeguards and efforts to secure your information, no electronic transmission over the Internet or information storage technology can be guaranteed to be 100% secure.</p>
-            <p>We will make any legally required disclosures of any breach of the security, confidentiality, or integrity of your electronically stored "personal data" to you via email or conspicuous posting on our Services in the most expedient time possible and without unreasonable delay, as consistent with (i) the legitimate needs of law enforcement or (ii) any measures necessary to determine the scope of the breach and restore the reasonable integrity of the data system.</p>
+            <p>We will make any legally required disclosures of any breach of the security, confidentiality, or integrity of your electronically stored &quot;personal data&quot; to you via email or conspicuous posting on our Services in the most expedient time possible and without unreasonable delay, as consistent with (i) the legitimate needs of law enforcement or (ii) any measures necessary to determine the scope of the breach and restore the reasonable integrity of the data system.</p>
           </section>
 
           <section id="your-rights">
@@ -131,7 +131,7 @@ export default function PrivacyPolicy() {
               <li><strong>Right to Object to Processing:</strong> You have the right to object to our processing of your personal information, under certain conditions.</li>
               <li><strong>Right to Data Portability:</strong> You have the right to request that we transfer the data we have collected to another organization, or directly to you, under certain conditions.</li>
             </ul>
-            <p>If you make a request, we have one month to respond to you. To exercise any of these rights, please contact us using the information provided in the "Contact Us" section.</p>
+            <p>If you make a request, we have one month to respond to you. To exercise any of these rights, please contact us using the information provided in the &quot;Contact Us&quot; section.</p>
 
             <h3>Opt-out of Marketing Communications</h3>
             <p>You can opt out of receiving marketing communications from us at any time by following the instructions provided in those communications or by contacting us. Please note that even if you opt out of receiving marketing communications, we may still send you non-promotional communications, such as those about your account or our ongoing business relations.</p>
@@ -141,10 +141,10 @@ export default function PrivacyPolicy() {
           </section>
 
           <section id="children">
-            <h2>7. Children's Privacy</h2>
+            <h2>7. Children&apos;s Privacy</h2>
             <p>Our Services are designed to be accessible to users of various age groups, including children. We offer age-appropriate content options for children, teens, adults, and seniors.</p>
             
-            <p>For users under 16 years of age, we recommend parental supervision and involvement. Parents or guardians of children under 16 have the right to review, delete, or prohibit the further collection of their child's personal information. If you are a parent or guardian and you are aware that your child has provided us with personal information without your consent, please contact us.</p>
+            <p>For users under 16 years of age, we recommend parental supervision and involvement. Parents or guardians of children under 16 have the right to review, delete, or prohibit the further collection of their child&apos;s personal information. If you are a parent or guardian and you are aware that your child has provided us with personal information without your consent, please contact us.</p>
             
             <p>We collect only the minimal information necessary to provide our Services to younger users, and we implement additional safeguards for child users. We do not knowingly collect or solicit personal information from children under 13 without verifiable parental consent. If we learn we have collected personal information from a child under 13 without verification of parental consent, we will take steps to delete that information from our servers.</p>
           </section>

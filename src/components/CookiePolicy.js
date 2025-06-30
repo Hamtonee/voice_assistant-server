@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import '../assets/styles/LegalPages.css';
 import logoImage from '../assets/images/logo.png';
 
-export default function TermsOfService() {
+export default function CookiePolicy() {
   return (
     <div className="legal-page-container">
       <div className="legal-page-header">
@@ -15,12 +15,12 @@ export default function TermsOfService() {
             </div>
           </Link>
           <div className="legal-nav-links">
-            <Link to="/terms" className="active">Terms of Service</Link>
+            <Link to="/terms">Terms of Service</Link>
             <Link to="/privacy">Privacy Policy</Link>
-            <Link to="/cookies">Cookie Policy</Link>
+            <Link to="/cookies" className="active">Cookie Policy</Link>
           </div>
         </div>
-        <h1>Terms of Service</h1>
+        <h1>Cookie Policy</h1>
         <p className="legal-page-subtitle">Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
       </div>
 
@@ -47,7 +47,7 @@ export default function TermsOfService() {
         <div className="legal-sections">
           <section id="acceptance">
             <h2>1. Acceptance of Terms</h2>
-            <p>Welcome to SemaNami. By accessing or using our platform, including our website, mobile applications, or any other products or services offered by SemaNami ("Services"), you agree to be bound by these Terms of Service ("Terms"), our Privacy Policy, and any other terms or policies referenced herein.</p>
+            <p>Welcome to SemaNami. By accessing or using our platform, including our website, mobile applications, or any other products or services offered by SemaNami (&quot;Services&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;), our Privacy Policy, and any other terms or policies referenced herein.</p>
             <p>These Terms constitute a legally binding agreement between you and SemaNami regarding your use of the Services. If you do not agree to these Terms, you may not access or use the Services.</p>
           </section>
 
@@ -63,7 +63,7 @@ export default function TermsOfService() {
             <ul>
               <li>Users under 13 years old must have parental or guardian consent and supervision while using our Services.</li>
               <li>Users between 13 and 16 years old should obtain parental or guardian consent before using our Services.</li>
-              <li>Parents or guardians are responsible for monitoring their children's use of our Services and ensuring it is appropriate for their age and development.</li>
+              <li>Parents or guardians are responsible for monitoring their children&apos;s use of our Services and ensuring it is appropriate for their age and development.</li>
             </ul>
             <p>By using our Services, you represent and warrant that you meet these requirements or have obtained the necessary consent if you are under the age of 16.</p>
           </section>
@@ -104,13 +104,13 @@ export default function TermsOfService() {
             <ul>
               <li>Violate any applicable law, regulation, or these Terms</li>
               <li>Impersonate any person or entity or falsely state or otherwise misrepresent your affiliation with a person or entity</li>
-              <li>Engage in any conduct that restricts or inhibits anyone's use or enjoyment of the Services</li>
-              <li>Use the Services in any manner that could disable, overburden, damage, or impair the site or interfere with any other party's use of the Services</li>
+              <li>Engage in any conduct that restricts or inhibits anyone&apos;s use or enjoyment of the Services</li>
+              <li>Use the Services in any manner that could disable, overburden, damage, or impair the site or interfere with any other party&apos;s use of the Services</li>
               <li>Upload, transmit, or distribute any material that contains viruses, worms, malware, Trojan horses, or other harmful computer code</li>
               <li>Attempt to gain unauthorized access to, interfere with, damage, or disrupt any parts of the Services or any server, computer, or database connected to the Services</li>
               <li>Attack the Services via a denial-of-service attack or a distributed denial-of-service attack</li>
               <li>Collect or harvest any information from the Services, including user accounts</li>
-              <li>Engage in any other conduct that restricts or inhibits anyone's use or enjoyment of the Services, or which, as determined by us, may harm us or users of the Services or expose them to liability</li>
+              <li>Engage in any other conduct that restricts or inhibits anyone&apos;s use or enjoyment of the Services, or which, as determined by us, may harm us or users of the Services or expose them to liability</li>
             </ul>
           </section>
 
@@ -135,7 +135,7 @@ export default function TermsOfService() {
 
           <section id="disclaimers">
             <h2>10. Disclaimers</h2>
-            <p>THE SERVICES ARE PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICES WILL BE UNINTERRUPTED OR ERROR-FREE, THAT DEFECTS WILL BE CORRECTED, OR THAT THE SERVICES OR THE SERVERS THAT MAKE THEM AVAILABLE ARE FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS.</p>
+            <p>THE SERVICES ARE PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICES WILL BE UNINTERRUPTED OR ERROR-FREE, THAT DEFECTS WILL BE CORRECTED, OR THAT THE SERVICES OR THE SERVERS THAT MAKE THEM AVAILABLE ARE FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS.</p>
             <p>We make no guarantees regarding the accuracy, reliability, or completeness of any content available through the Services, including content provided by users or third parties.</p>
             <p>AI-generated responses are for educational and personal growth only, and may be inaccurate, incomplete, or inappropriate; always use your own judgment and do not rely solely on the Service for important decisions.</p>
           </section>

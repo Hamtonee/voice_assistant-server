@@ -198,7 +198,7 @@ const Login = () => {
           <div className="session-conflict-content">
             <div className="session-conflict-icon">🔒</div>
             <p className="session-conflict-message">
-              You're already logged in on another device or browser. 
+              You&apos;re already logged in on another device or browser. 
               SemaNami allows only one active session at a time.
             </p>
             <p className="session-conflict-sub">

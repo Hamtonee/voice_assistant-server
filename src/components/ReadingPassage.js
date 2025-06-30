@@ -109,10 +109,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'reading' | 'creating'
   const [selectedArticleId, setSelectedArticleId] = useState(null);
   const [previousArticleId, setPreviousArticleId] = useState(null); // Track previous article
-  const [articleLimit] = useState(5); // Default limit of 5 articles
   const [showLimitAlert, setShowLimitAlert] = useState(false);
-
-
 
   // ENHANCED: Smart view mode determination - only show list when 2+ articles exist
   const [forceListView, setForceListView] = useState(false);
@@ -122,11 +119,6 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
 
   // ENHANCED: Better interaction tracking - tracks meaningful user actions
   const [sessionInteractionLevel, setSessionInteractionLevel] = useState('none'); // 'none', 'wizard_started', 'article_generated', 'fully_engaged'
-  const [wizardProgress, setWizardProgress] = useState({
-    hasStartedWizard: false,
-    hasCompletedStep: false,
-    hasSubmittedParams: false
-  });
 
   // Daily limit and usage state
   const [dailyLimitStatus, setDailyLimitStatus] = useState(null);
@@ -155,12 +147,9 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   }), [viewport]);
 
   // ENHANCED: Comprehensive interaction tracking
-  const handleUserInteraction = (interactionType, details = {}) => {
-    const timestamp = Date.now();
-    
+  const handleUserInteraction = useCallback((interactionType, details = {}) => {
     switch (interactionType) {
       case 'wizard_submission':
-        setWizardProgress(prev => ({ ...prev, hasSubmittedParams: true }));
         setSessionInteractionLevel('article_generated');
         break;
         
@@ -177,7 +166,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
           setSessionInteractionLevel('wizard_started');
         }
     }
-  };
+  }, [sessionInteractionLevel]);
 
   // Handle creating new article
   const handleCreateNewArticle = useCallback(() => {
@@ -499,11 +488,6 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     
     // Reset interaction tracking
     setSessionInteractionLevel('none');
-    setWizardProgress({
-      hasStartedWizard: false,
-      hasCompletedStep: false,
-      hasSubmittedParams: false
-    });
   }, []);
 
   // ENHANCED: Article management functions
@@ -725,7 +709,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
           <p className="article-list-subtitle">
             {articleSessions.length === 0 
               ? 'Create your first reading article to get started'
-              : `You have ${articleSessions.length} of ${articleLimit} articles`
+              : `You have ${articleSessions.length} of ${ARTICLE_LIMIT} articles`
             }
           </p>
         </header>
@@ -781,7 +765,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
               </div>
             ))}
             
-            {articleSessions.length < articleLimit && (
+            {articleSessions.length < ARTICLE_LIMIT && (
               <div 
                 className="article-card create-new-card"
                 onClick={handleCreateNewArticle}

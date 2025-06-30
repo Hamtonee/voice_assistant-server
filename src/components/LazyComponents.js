@@ -22,7 +22,7 @@ export const LazyTermsOfService = lazy(() => import('./TermsOfService'));
 export const LazyCookiePolicy = lazy(() => import('./CookiePolicy'));
 
 // Loading fallback component
-export const ComponentLoader = ({ children, fallback = <div className="component-loading">Loading...</div> }) => {
+export const ComponentLoader = ({ children }) => {
   return (
     <div className="lazy-component-wrapper">
       {children}

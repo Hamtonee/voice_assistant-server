@@ -90,7 +90,7 @@ export function AuthProvider({ children }) {
       clearTimeout(window._refreshTimeout);
       delete window._refreshTimeout;
     }
-  }, []);
+  }, [setUsageSummary]);
 
   // ============================================================================
   // SMART TOKEN REFRESH SCHEDULING
@@ -159,7 +159,7 @@ export function AuthProvider({ children }) {
       }
       throw error;
     }
-  }, [clearAuth, setUser, setIsAuthenticated, setIsAuthReady]);
+  }, [clearAuth, refreshToken, setUser, setIsAuthenticated, setIsAuthReady]);
 
   // ============================================================================
   // ENHANCED TOKEN REFRESH WITH RETRY LOGIC
@@ -193,13 +193,14 @@ export function AuthProvider({ children }) {
         api.defaults.headers.common.Authorization = `Bearer ${access_token}`;
         localStorage.setItem('access_token', access_token);
         setToken(access_token);
-        
+        setUser(response.data.user);
+        setIsAuthenticated(true);
+        setError(null);
+
         const decoded = jwtDecode(access_token);
         scheduleTokenRefresh(decoded.exp);
         
-        await fetchUserProfile();
-        
-        return access_token;
+        return response.data;
       } catch (error) {
         console.error('❌ Token refresh failed:', error);
         clearAuth();
@@ -214,7 +215,7 @@ export function AuthProvider({ children }) {
     
     authStateRef.current.refreshPromise = refreshPromise;
     return refreshPromise;
-  }, [clearAuth, scheduleTokenRefresh, fetchUserProfile, setToken, setLoadingUser, setInitializing, setIsAuthReady]);
+  }, [clearAuth, scheduleTokenRefresh]);
 
   // ============================================================================
   // ENHANCED LOGIN FUNCTION WITH IMPROVED STATE MANAGEMENT
@@ -383,22 +384,22 @@ export function AuthProvider({ children }) {
   // ENHANCED LOGOUT FUNCTION
   // ============================================================================
   
-  const logout = useCallback(async (isIdle = false) => {
-    localStorage.removeItem('access_token');
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-    setIsAuthReady(false);
-    setUsageSummary(null);
-    if (window._refreshTimeout) {
-      clearTimeout(window._refreshTimeout);
+  const logout = useCallback(async (redirectPath = '/login') => {
+    console.log('🚪 Logging out...');
+    try {
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken) {
+        await api.post('/auth/logout', { refresh_token: refreshToken });
+      }
+    } catch (error) {
+      console.error('Logout failed:', error);
+      setError(error.response?.data?.message || 'Logout failed');
+    } finally {
+      clearAuth();
+      console.log(`Navigating to ${redirectPath}`);
+      navigate(redirectPath, { replace: true });
     }
-    if (isIdle) {
-      navigate('/login');
-    } else {
-      window.location.href = '/login';
-    }
-  }, [navigate, setToken, setUser, setIsAuthenticated, setIsAuthReady, setUsageSummary]);
+  }, [clearAuth, navigate]);
 
   // ============================================================================
   // INITIALIZATION EFFECT WITH CLEANUP
@@ -488,6 +489,8 @@ export function AuthProvider({ children }) {
     forceLogin,
     refreshToken,
     isAuthReady,
+    usageSummary,
+    setUsageSummary
   };
 
   // ============================================================================

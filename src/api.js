@@ -309,13 +309,9 @@ export const createChat = ({ scenarioKey, feature, title } = {}) => {
   });
 };
 
-export const createScenarioChat = ({ scenarioKey, title, prompt }) => {
+export const createScenarioChat = ({ scenarioKey, title }) => {
   console.log('💬 Creating scenario chat:', { scenarioKey, title });
-  return api.post('/chats', { 
-    scenarioKey, 
-    feature: 'roleplay',
-    title: title || `${scenarioKey} Chat`
-  });
+  return api.post('/chats', { scenarioKey, feature: 'roleplay', title: title || `${scenarioKey} Chat` });
 };
 
 export const createFeatureChat = ({ feature, scenarioKey, title, prompt }) => {
