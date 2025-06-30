@@ -3,9 +3,7 @@ import TTSService from '../services/TTSService';
 import api from '../api';
 import '../assets/styles/SpeechCoach.css';
 import { FiMic, FiMicOff, FiSend, FiTrash2, FiBarChart, FiX, FiChevronDown } from 'react-icons/fi';
-import { handleApiError, handleSpeechError, logError } from '../utils/errorHandler';
-import ErrorDisplay from './ui/ErrorDisplay';
-import { LoadingButton, InlineLoader } from './ui/LoadingStates';
+import { handleApiError, handleSpeechError } from '../utils/errorHandler';
 
 export default function SpeechCoach({ 
   sessionId, 
