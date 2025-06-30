@@ -59,7 +59,7 @@ const VoiceDebugComponent = ({ selectedVoice, className = '' }) => {
     gatherDebugInfo();
   }, []);
 
-  const debugInfo = {
+  const voiceDebugInfo = {
     selectedVoice,
     selectedVoiceType: typeof selectedVoice,
     selectedVoiceKeys: selectedVoice && typeof selectedVoice === 'object' ? Object.keys(selectedVoice) : 'N/A',
@@ -102,7 +102,7 @@ const VoiceDebugComponent = ({ selectedVoice, className = '' }) => {
         <div>
           <h5 className="font-semibold text-yellow-700 mb-1">Selected Voice Input:</h5>
           <pre className="bg-white p-2 rounded border text-xs overflow-auto">
-            {JSON.stringify(debugInfo, null, 2)}
+            {JSON.stringify(voiceDebugInfo, null, 2)}
           </pre>
         </div>
         
