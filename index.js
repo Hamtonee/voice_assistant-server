@@ -4,6 +4,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import { PrismaClient } from '@prisma/client';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import authRoutes from './routes/authRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import concurrentLimiter from './middleware/concurrentLimiter.js';
@@ -95,12 +97,52 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// --- Serve frontend in production ---
+if (process.env.NODE_ENV === 'production') {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
+
+  app.use(express.static(clientBuildPath, {
+    maxAge: '1y',
+    immutable: true,
+    // Set custom headers for caching
+    setHeaders: (res, path) => {
+      if (path.endsWith('.js') || path.endsWith('.css') || path.endsWith('.png') || path.endsWith('.webp') || path.endsWith('.jpg')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }));
+}
+
+// Static file serving with caching
+app.use(express.static('public', {
+  maxAge: '1y',
+  immutable: true,
+  setHeaders: (res, path) => {
+    if (path.endsWith('.webp')) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }
+}));
+
 // ——— Limit concurrent users ———
 app.use(concurrentLimiter);
 
 // ——— Routes ———
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
+
+// --- Handle SPA routing for production ---
+if (process.env.NODE_ENV === 'production') {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.resolve(clientBuildPath, 'index.html'));
+  });
+}
 
 // ——— Root Health Check ———
 app.get('/', (_req, res) => {
