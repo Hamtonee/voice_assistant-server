@@ -9,21 +9,17 @@ import {
   useFeatureNavigation as useFeatureNavigationHook 
 } from '../hooks';
 
-// Component imports with fallbacks
-import FeatureHeader from './FeatureHeader';
-import ChatSidebar from './ChatSidebar';
-import LottieLoader from './LottieLoader';
-
-// CRITICAL FIX: Use proper ES6 imports for lazy components
-import { 
+// Component imports from the new barrel file
+import {
+  FeatureHeader,
+  ChatSidebar,
+  LottieLoader,
   LazyScenarioPicker,
   LazySpeechCoach,
   LazyReadingPassage,
-  LazyChatDetail
-} from './LazyComponents';
-
-// Direct import for ScenarioPicker (if lazy loading fails)
-import ScenarioPicker from './ScenarioPicker';
+  LazyChatDetail,
+  ScenarioPicker
+} from './';
 
 // Data imports - using proper ES6 imports
 import { availableScenarios } from '../data/rolePlayScenarios';

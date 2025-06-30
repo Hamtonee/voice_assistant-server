@@ -29,7 +29,11 @@ const AuthRoutes = () => {
   // 🔧 FIX: Display a full-screen loader while the auth state is being confirmed.
   // This is the definitive fix to prevent any rendering race conditions.
   if (!isAuthReady) {
-    return <LottieLoader />;
+    return (
+      <Suspense fallback={<div>Loading...</div>}>
+        <LottieLoader />
+      </Suspense>
+    );
   }
 
   return (
