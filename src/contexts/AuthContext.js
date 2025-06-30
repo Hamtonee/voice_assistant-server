@@ -146,23 +146,71 @@ export function AuthProvider({ children }) {
       console.log('⏳ Too soon to refresh, waiting...');
       return;
     }
+
+    // Check if we have a refresh token
+    const storedRefreshToken = localStorage.getItem('refresh_token');
+    if (!storedRefreshToken) {
+      console.log('❌ No refresh token available, clearing auth');
+      clearAuth();
+      return;
+    }
     
     authStateRef.current.isRefreshing = true;
     authStateRef.current.lastRefreshAttempt = now;
     
     const refreshPromise = (async () => {
       try {
-        const response = await api.post('/auth/refresh');
+        console.log('🔄 Attempting token refresh with refresh token');
+        
+        // Try different refresh token formats that servers commonly expect
+        let response;
+        try {
+          // Method 1: Send refresh token in request body
+          response = await api.post('/auth/refresh', { 
+            refresh_token: storedRefreshToken 
+          });
+        } catch (error) {
+          if (error.response?.status === 400 || error.response?.status === 422) {
+            // Method 2: Try different payload format
+            console.log('🔄 Trying alternative refresh format');
+            response = await api.post('/auth/refresh', { 
+              refreshToken: storedRefreshToken 
+            });
+          } else {
+            throw error;
+          }
+        }
+
         const { access_token } = response.data;
         
         if (!access_token) {
           throw new Error('No token received from refresh endpoint');
         }
         
+        console.log('✅ Token refresh successful');
+        
         api.defaults.headers.common.Authorization = `Bearer ${access_token}`;
         localStorage.setItem('access_token', access_token);
         setToken(access_token);
-        setUser(response.data.user);
+        
+        // Update refresh token if provided
+        if (response.data.refresh_token) {
+          localStorage.setItem('refresh_token', response.data.refresh_token);
+        }
+        
+        // Set user data if provided, otherwise fetch it
+        if (response.data.user) {
+          setUser(response.data.user);
+        } else {
+          // Fetch user profile with new token
+          try {
+            const userResponse = await api.get('/auth/me');
+            setUser(userResponse.data);
+          } catch (fetchError) {
+            console.warn('⚠️ Could not fetch user profile after refresh:', fetchError);
+          }
+        }
+        
         setIsAuthenticated(true);
         setError(null);
 
@@ -172,6 +220,13 @@ export function AuthProvider({ children }) {
         return response.data;
       } catch (error) {
         console.error('❌ Token refresh failed:', error);
+        console.error('❌ Refresh error details:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data
+        });
+        
+        // If refresh fails, clear everything and force re-login
         clearAuth();
         throw error;
       } finally {
