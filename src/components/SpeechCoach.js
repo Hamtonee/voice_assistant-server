@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import TTSService from '../services/TTSService';
 import api from '../api';
@@ -452,3 +453,5 @@ export default function SpeechCoach({
     </div>
   );
 }
+=======
+>>>>>>> 03e432aecd5dca6302a5a4968f0afdc6b9481a81
