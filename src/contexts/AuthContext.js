@@ -93,7 +93,7 @@ export function AuthProvider({ children }) {
   }, [setUsageSummary]);
 
   // ============================================================================
-  // SMART TOKEN REFRESH SCHEDULING
+  // SMART TOKEN REFRESH SCHEDULING - MOVED BEFORE refreshToken
   // ============================================================================
   
   const scheduleTokenRefresh = useCallback((expTimestamp) => {
@@ -129,37 +129,6 @@ export function AuthProvider({ children }) {
       }
     }, refreshDelay);
   }, [token, clearAuth, navigate]);
-
-  // ============================================================================
-  // ENHANCED USER PROFILE FETCHING
-  // ============================================================================
-  
-  const fetchUserProfile = useCallback(async () => {
-    try {
-      console.log('👤 Fetching user profile...');
-      const response = await api.get('/auth/me');
-      
-      if (response.data) {
-        console.log('✅ User profile fetched successfully');
-        setUser(response.data);
-        setIsAuthenticated(true);
-        setIsAuthReady(true);
-        return response.data;
-      } else {
-        throw new Error('No user data received');
-      }
-    } catch (error) {
-      console.error('❌ Failed to fetch user profile:', error);
-      
-      if (error.response?.status === 401) {
-        console.log('🔄 Token invalid, attempting refresh...');
-        await refreshToken();
-      } else {
-        clearAuth();
-      }
-      throw error;
-    }
-  }, [clearAuth, refreshToken, setUser, setIsAuthenticated, setIsAuthReady]);
 
   // ============================================================================
   // ENHANCED TOKEN REFRESH WITH RETRY LOGIC
@@ -216,6 +185,39 @@ export function AuthProvider({ children }) {
     authStateRef.current.refreshPromise = refreshPromise;
     return refreshPromise;
   }, [clearAuth, scheduleTokenRefresh]);
+
+
+
+  // ============================================================================
+  // ENHANCED USER PROFILE FETCHING - NOW AFTER refreshToken
+  // ============================================================================
+  
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      console.log('👤 Fetching user profile...');
+      const response = await api.get('/auth/me');
+      
+      if (response.data) {
+        console.log('✅ User profile fetched successfully');
+        setUser(response.data);
+        setIsAuthenticated(true);
+        setIsAuthReady(true);
+        return response.data;
+      } else {
+        throw new Error('No user data received');
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch user profile:', error);
+      
+      if (error.response?.status === 401) {
+        console.log('🔄 Token invalid, attempting refresh...');
+        await refreshToken();
+      } else {
+        clearAuth();
+      }
+      throw error;
+    }
+  }, [clearAuth, refreshToken, setUser, setIsAuthenticated, setIsAuthReady]);
 
   // ============================================================================
   // ENHANCED LOGIN FUNCTION WITH IMPROVED STATE MANAGEMENT

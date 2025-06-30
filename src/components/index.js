@@ -16,7 +16,7 @@ export { default as ErrorBoundary } from './ErrorBoundary';
 export { default as FeatureHeader } from './FeatureHeader';
 export { default as ForgotPassword } from './ForgotPassword';
 export { default as LandingPage } from './LandingPage';
-export { default as LazyComponents } from './LazyComponents';
+export * from './LazyComponents';
 export { default as LoadingStates } from './LoadingStates';
 export { default as Login } from './Login';
 export { default as LottieLoader } from './LottieLoader';
@@ -41,4 +41,4 @@ export { default as VoiceSelector } from './VoiceSelector';
 export { default as VoiceTestPanel } from './VoiceTestPanel';
 
 export * from './layout';
-export * from './ui'; 
+export * from './ui';
