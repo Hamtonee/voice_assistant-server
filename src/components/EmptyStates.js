@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, MessageCircle, FileText, Users, Settings, Plus } from 'lucide-react';
-import '../assets/styles/EmptyStates.css';
+// import '../assets/styles/EmptyStates.css';
 
 // Generic empty state component
 export const EmptyState = ({ 
