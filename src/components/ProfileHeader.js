@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FiMenu, FiX, FiLogOut } from 'react-icons/fi';
 import Avatar from './Avatar';
-import '../assets/styles//ProfileHeader.css';
+// import '../assets/styles//ProfileHeader.css';
 
 export default function ProfileHeader({
   sidebarOpen,
