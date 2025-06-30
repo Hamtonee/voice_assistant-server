@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import '../assets/styles/AnimatedCoach.css'; // Import the CSS file
+// import '../assets/styles/AnimatedCoach.css'; // Import the CSS file
 
 const AnimatedCoach = ({ isListening, isSpeaking, useProcedural = false }) => {
   const mountRef = useRef(null);
