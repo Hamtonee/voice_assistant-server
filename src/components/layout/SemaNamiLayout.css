@@ -1,0 +1,407 @@
+/* SemaNami Platform Layout - Comprehensive UI Architecture */
+
+/* ====================================================================
+   GLOBAL LAYOUT VARIABLES
+   Based on architectural UI plan and industry standards
+   ==================================================================== */
+
+:root {
+  /* Layout Grid System */
+  --layout-sidebar-width-desktop: 320px;
+  --layout-sidebar-width-tablet: 280px;
+  --layout-sidebar-width-mobile: 80vw;
+  --layout-sidebar-collapsed-width: 80px;
+  
+  /* Header Heights */
+  --layout-header-height-desktop: 64px;
+  --layout-header-height-tablet: 56px;
+  --layout-header-height-mobile: 52px;
+  
+  /* Content Spacing */
+  --layout-content-padding-desktop: 32px;
+  --layout-content-padding-tablet: 24px;
+  --layout-content-padding-mobile: 16px;
+  
+  /* Z-Index Hierarchy */
+  --layout-z-sidebar: 60;
+  --layout-z-header: 70;
+  --layout-z-backdrop: 50;
+  --layout-z-controls: 110;
+  --layout-z-modals: 200;
+  
+  /* Transitions */
+  --layout-transition-fast: 0.15s ease;
+  --layout-transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --layout-transition-slow: 0.5s ease;
+  
+  /* Colors - fallbacks if not available */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --border-primary: #e9ecef;
+  --border-secondary: #dee2e6;
+  --accent-primary: #007bff;
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  /* Touch & Accessibility */
+  --layout-touch-target-min: 44px;
+  --layout-focus-ring: 2px solid var(--accent-primary);
+  --layout-focus-offset: 2px;
+}
+
+/* ====================================================================
+   MAIN LAYOUT CONTAINER
+   Grid-based layout with sidebar + main content
+   ==================================================================== */
+
+.semanami-layout {
+  display: grid;
+  grid-template-areas: 
+    "sidebar main";
+  grid-template-columns: var(--layout-sidebar-width-desktop) 1fr;
+  grid-template-rows: 1fr;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--bg-primary);
+  font-family: var(--font-family);
+  transition: grid-template-columns var(--layout-transition-normal);
+  position: relative;
+}
+
+/* Sidebar States */
+.semanami-layout--sidebar-closed {
+  grid-template-columns: 0 1fr;
+}
+
+.semanami-layout--sidebar-open {
+  grid-template-columns: var(--layout-sidebar-width-desktop) 1fr;
+}
+
+/* ====================================================================
+   SIDEBAR AREA
+   Navigation, branding, chat history, new session
+   ==================================================================== */
+
+.semanami-layout__sidebar {
+  grid-area: sidebar;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-primary);
+  overflow: hidden;
+  transition: transform var(--layout-transition-normal), width var(--layout-transition-normal);
+  z-index: var(--layout-z-sidebar);
+  position: relative;
+}
+
+/* Sidebar Content Structure */
+.semanami-layout__sidebar .chat-sidebar {
+  height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* Hide sidebar when closed */
+.semanami-layout--sidebar-closed .semanami-layout__sidebar {
+  transform: translateX(-100%);
+  width: 0;
+}
+
+/* ====================================================================
+   MAIN CONTENT AREA
+   Header + scrollable content
+   ==================================================================== */
+
+.semanami-layout__main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ====================================================================
+   FEATURE HEADER
+   Sticky header with title, subtitle, actions
+   ==================================================================== */
+
+.semanami-layout__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--layout-header-height-desktop);
+  padding: 0 var(--layout-content-padding-desktop);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  position: sticky;
+  top: 0;
+  z-index: var(--layout-z-header);
+  flex-shrink: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ====================================================================
+   FEATURE CONTENT AREA
+   Scrollable main content for each feature
+   ==================================================================== */
+
+.semanami-layout__content {
+  flex: 1;
+  overflow: auto;
+  padding: var(--layout-content-padding-desktop);
+  position: relative;
+  /* Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-secondary) transparent;
+}
+
+.semanami-layout__content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.semanami-layout__content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.semanami-layout__content::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: 4px;
+}
+
+.semanami-layout__content::-webkit-scrollbar-thumb:hover {
+  background: var(--border-primary);
+}
+
+/* ====================================================================
+   MOBILE BACKDROP
+   Overlay for mobile sidebar
+   ==================================================================== */
+
+.semanami-layout__backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: var(--layout-z-backdrop);
+  opacity: 0;
+  animation: fadeIn var(--layout-transition-fast) forwards;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ====================================================================
+   RESPONSIVE DESIGN
+   Tablet and mobile adaptations
+   ==================================================================== */
+
+/* Tablet Layout (768px - 1024px) */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .semanami-layout--sidebar-open {
+    grid-template-columns: var(--layout-sidebar-width-tablet) 1fr;
+  }
+  
+  .semanami-layout__sidebar .chat-sidebar {
+    padding: 20px;
+  }
+  
+  .semanami-layout__header {
+    height: var(--layout-header-height-tablet);
+    padding: 0 var(--layout-content-padding-tablet);
+  }
+  
+  .semanami-layout__content {
+    padding: var(--layout-content-padding-tablet);
+  }
+}
+
+/* Mobile Layout (0 - 768px) */
+@media (max-width: 768px) {
+  .semanami-layout {
+    grid-template-areas: "main";
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
+  
+  .semanami-layout__sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--layout-sidebar-width-mobile);
+    height: 100vh;
+    transform: translateX(-100%);
+    z-index: var(--layout-z-sidebar);
+  }
+  
+  .semanami-layout--sidebar-open .semanami-layout__sidebar {
+    transform: translateX(0);
+  }
+  
+  .semanami-layout__sidebar .chat-sidebar {
+    padding: 16px;
+  }
+  
+  .semanami-layout__header {
+    height: var(--layout-header-height-mobile);
+    padding: 0 var(--layout-content-padding-mobile);
+  }
+  
+  .semanami-layout__content {
+    padding: var(--layout-content-padding-mobile);
+  }
+  
+  .semanami-layout__backdrop {
+    display: block;
+  }
+}
+
+/* Feature-specific styles */
+.semanami-layout--chat .semanami-layout__content {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.semanami-layout--sema .semanami-layout__content {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 120px;
+}
+
+.semanami-layout--tusome .semanami-layout__content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-top: 24px;
+}
+
+/* Accessibility */
+.semanami-layout button:focus-visible,
+.semanami-layout [tabindex]:focus-visible {
+  outline: var(--layout-focus-ring);
+  outline-offset: var(--layout-focus-offset);
+  border-radius: 4px;
+}
+
+/* Touch optimizations */
+.semanami-layout button,
+.semanami-layout [role="button"] {
+  min-height: var(--layout-touch-target-min);
+  min-width: var(--layout-touch-target-min);
+}
+
+/* Utility classes */
+.semanami-layout .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .semanami-layout {
+    border: 2px solid;
+  }
+  
+  .semanami-layout__sidebar {
+    border-right: 3px solid;
+  }
+  
+  .semanami-layout__header {
+    border-bottom: 3px solid;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .semanami-layout,
+  .semanami-layout__sidebar,
+  .semanami-layout__backdrop {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Scroll behavior improvements */
+.semanami-layout__content {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+@media (max-width: 768px) {
+  .semanami-layout__content {
+    overscroll-behavior: contain;
+  }
+  
+  .semanami-layout__content::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ====================================================================
+   PRINT STYLES
+   ==================================================================== */
+
+@media print {
+  .semanami-layout {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+  
+  .semanami-layout__sidebar {
+    display: none;
+  }
+  
+  .semanami-layout__header {
+    position: static;
+    border-bottom: 2px solid #000;
+  }
+  
+  .semanami-layout__content {
+    padding: 0;
+    overflow: visible;
+  }
+  
+  .semanami-layout__backdrop {
+    display: none;
+  }
+}
+
+/* ====================================================================
+   UTILITY CLASSES
+   ==================================================================== */
+
+.semanami-layout .full-height {
+  height: 100%;
+}
+
+.semanami-layout .full-width {
+  width: 100%;
+}
+
+.semanami-layout .no-scroll {
+  overflow: hidden;
+}
+
+.semanami-layout .scroll-y {
+  overflow-y: auto;
+}
+
+.semanami-layout .scroll-x {
+  overflow-x: auto;
+} 
