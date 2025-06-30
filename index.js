@@ -133,6 +133,22 @@ app.use(concurrentLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
 
+// ——— Health Check Endpoint ———
+app.get('/api/health', (_req, res) => {
+  const timestamp = new Date().toISOString();
+  const ttsAvailable = process.env.TTS_SERVICE_URL || process.env.GOOGLE_CREDENTIALS_BASE64 ? true : false;
+  
+  res.json({
+    status: 'healthy',
+    timestamp,
+    tts_available: ttsAvailable,
+    version: process.env.VERSION || '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    server: 'express',
+    uptime: process.uptime()
+  });
+});
+
 // --- Handle SPA routing for production ---
 if (process.env.NODE_ENV === 'production') {
   const __filename = fileURLToPath(import.meta.url);
