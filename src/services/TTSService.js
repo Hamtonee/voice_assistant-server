@@ -36,7 +36,21 @@ class TTSService {
         if (this.isInitialized) return;
         
         try {
-            // Try server TTS first - make health check optional
+            // Initialize browser TTS first
+            if (typeof window !== 'undefined') {
+                try {
+                    this.browserSynth = window.speechSynthesis;
+                    if (this.browserSynth) {
+                        // Pre-load voices safely
+                        this.browserSynth.getVoices();
+                    }
+                } catch (voiceError) {
+                    console.warn('⚠️ Failed to initialize browser TTS:', voiceError.message);
+                    this.browserSynth = null;
+                }
+            }
+
+            // Try server TTS - make health check optional
             try {
                 const response = await api.get(ENDPOINTS.HEALTH, { timeout: 5000 });
                 this.isBrowserTTS = !response.data?.tts_available;
@@ -49,29 +63,6 @@ class TTSService {
         } catch (error) {
             logError(error, 'TTS Service Initialization');
             this.isBrowserTTS = true;
-        }
-
-        // Initialize browser TTS as fallback - with safety checks
-        if (this.isBrowserTTS && typeof window !== 'undefined') {
-            try {
-                // Ensure browserSynth is properly initialized
-                this.browserSynth = window.speechSynthesis;
-                if (this.browserSynth) {
-                    // Pre-load voices safely
-                    this.browserSynth.getVoices();
-                    
-                    // Bind speak method - critical for proper operation
-                    if (typeof this.browserSynth.speak === 'function') {
-                        this.browserSynth.speak = this.browserSynth.speak.bind(this.browserSynth);
-                    } else {
-                        console.warn('⚠️ Speech synthesis speak method not available');
-                        this.browserSynth = null;
-                    }
-                }
-            } catch (voiceError) {
-                console.warn('⚠️ Failed to initialize browser TTS:', voiceError.message);
-                this.browserSynth = null;
-            }
         }
         
         this.isInitialized = true;
@@ -166,8 +157,18 @@ class TTSService {
                     reject(new Error('Speech synthesis failed'));
                 };
                 
-                // Use the bound speak method
-                this.browserSynth.speak(utterance);
+                // Use a safer way to call speak
+                if (typeof this.browserSynth.speak === 'function') {
+                    try {
+                        const boundSpeak = this.browserSynth.speak.bind(this.browserSynth);
+                        boundSpeak(utterance);
+                    } catch (error) {
+                        console.error('Failed to speak:', error);
+                        reject(error);
+                    }
+                } else {
+                    reject(new Error('Speech synthesis speak method not available'));
+                }
             } catch (error) {
                 console.error('Failed to initialize speech:', error);
                 reject(error);
