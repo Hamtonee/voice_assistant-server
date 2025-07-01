@@ -119,9 +119,9 @@ export default function SpeechCoach({
       try {
         // Initialize TTS service first
         if (!ttsServiceRef.current) {
-          ttsServiceRef.current = new TTSService();
-          // Wait for TTS to initialize
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          ttsServiceRef.current = TTSService.getInstance();
+          // Initialize TTS
+          await ttsServiceRef.current.initialize();
         }
         
         // Initialize speech recognition
