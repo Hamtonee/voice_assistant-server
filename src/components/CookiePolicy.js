@@ -89,7 +89,7 @@ export default function CookiePolicy() {
 
           <section id="user-content">
             <h2>6. User Content</h2>
-            <p>The Services may allow you to upload, submit, store, send, or receive content ("User Content"). You retain ownership of any intellectual property rights that you hold in that User Content.</p>
+            <p>The Services may allow you to upload, submit, store, send, or receive content (&quot;User Content&quot;). You retain ownership of any intellectual property rights that you hold in that User Content.</p>
             <p>By uploading, submitting, storing, sending, or receiving User Content through our Services, you grant SemaNami a worldwide, royalty-free license to use, host, store, reproduce, modify, create derivative works, communicate, publish, publicly perform, publicly display, and distribute that User Content for the limited purpose of operating, promoting, and improving our Services.</p>
             <p>You represent and warrant that:</p>
             <ul>

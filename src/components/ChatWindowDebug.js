@@ -92,7 +92,7 @@ const ChatWindowDebug = () => {
           borderRadius: 'var(--border-radius, 0px)',
           border: '1px solid var(--border-color, purple)'
         }}>
-          This should be styled with CSS variables if they're working properly.
+          This should be styled with CSS variables if they&apos;re working properly.
           <br />
           Background should not be red, text should not be blue, border should not be purple.
         </div>

@@ -64,6 +64,9 @@ console.log('✅ Axios instance baseURL:', api.defaults.baseURL);
 
 api.interceptors.request.use(
   config => {
+    // Remove any double /api paths
+    config.url = config.url.replace(/^\/api\//, '/');
+    
     console.log('📡 Request interceptor - URL:', config.url);
     const token = localStorage.getItem('access_token');
     console.log('📡 Request interceptor - Token:', token ? 'Present' : 'None');

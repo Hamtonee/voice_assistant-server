@@ -160,11 +160,12 @@ export const DataLoader = ({
 export const SearchLoader = ({ searching = false, query = "" }) => (
   <div className={`search-loader ${searching ? 'search-loader--active' : ''}`}>
     <InlineSpinner size="sm" />
-    <span>Searching for "{query}"...</span>
+    <span>Searching for &quot;{query}&quot;...</span>
   </div>
 );
 
-export default {
+// Create named object before export
+const LoadingStates = {
   PageLoader,
   SkeletonLoader,
   CardSkeleton,
@@ -174,4 +175,6 @@ export default {
   ChatLoader,
   DataLoader,
   SearchLoader
-}; 
+};
+
+export default LoadingStates; 

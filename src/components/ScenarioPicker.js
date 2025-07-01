@@ -259,7 +259,7 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
         {search && (
           <div className="search-results-info">
             {filtered.length === 0 ? (
-              <span>No scenarios found for "{search}"</span>
+              <span>No scenarios found for &quot;{search}&quot;</span>
             ) : (
               <span>{filtered.length} scenario{filtered.length !== 1 ? 's' : ''} found</span>
             )}

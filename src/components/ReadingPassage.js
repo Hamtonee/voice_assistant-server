@@ -1,27 +1,17 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import '../assets/styles/ReadingPassage.css';
-import CompactArticleBubble from './CompactArticleBubble';
 import api from '../api';
 import { 
   Book, 
   Plus, 
-  ChevronLeft, 
-  ChevronRight, 
   BarChart3, 
   Clock, 
-  Target, 
-  Sparkles,
-  CheckCircle,
   AlertCircle,
-  X,
-  FileText,
-  User,
-  Settings,
   RefreshCw
 } from 'lucide-react';
 
 // Constants
-const ageGroups = [
+const _ageGroups = [
   { value: 'child', label: 'Child (6-12)', icon: '🧒', description: 'Simple vocabulary and short sentences' },
   { value: 'teen', label: 'Teen (13-17)', icon: '👦', description: 'Age-appropriate topics and moderate complexity' },
   { value: 'adult', label: 'Adult (18-64)', icon: '👨', description: 'Professional and sophisticated content' },
@@ -115,7 +105,7 @@ const categories = [
   { id: 'urban_legends', name: 'Urban Legends', icon: '🌃', color: '#495057' }
 ];
 
-const customizationOptions = [
+const _customizationOptions = [
   { id: 'examples', label: 'Include real-world examples', icon: '🌍' },
   { id: 'conversational', label: 'Use a conversational tone', icon: '💬' },
   { id: 'statistics', label: 'Add statistics and data', icon: '📊' },
@@ -153,21 +143,21 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   // State management
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'reading' | 'creating'
   const [selectedArticleId, setSelectedArticleId] = useState(null);
-  const [previousArticleId, setPreviousArticleId] = useState(null);
+  const [_previousArticleId, setPreviousArticleId] = useState(null);
   
   // Article generation state
   const [topic, setTopic] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
   // Reading progress state
-  const [readWords, setReadWords] = useState(0);
-  const [readingProgress, setReadingProgress] = useState(0);
-  const [readingTime, setReadingTime] = useState(0);
+  const [_readWords, setReadWords] = useState(0);
+  const [_readingProgress, setReadingProgress] = useState(0);
+  const [_readingTime, setReadingTime] = useState(0);
   
   // Wizard state
-  const [wizardStep, setWizardStep] = useState(1);
-  const [wizardParams, setWizardParams] = useState({
+  const [_wizardStep, setWizardStep] = useState(1);
+  const [_wizardParams, setWizardParams] = useState({
     category: '',
     difficulty: 'medium',
     ageGroup: 'adult',
@@ -239,7 +229,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
 
   // Enhanced state management with improved interaction tracking
   const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput] = useState('');
+  const [_chatInput, setChatInput] = useState('');
   const [customStep, setCustomStep] = useState(1);
   const [params, setParams] = useState({
     category: '',
@@ -272,7 +262,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Enhanced viewport detection with debouncing
-  const currentViewport = useMemo(() => ({
+  const _currentViewport = useMemo(() => ({
     isMobile: viewport?.isMobile || false,
     isTablet: viewport?.isTablet || false,
     isDesktop: viewport?.isDesktop || true,
@@ -312,6 +302,68 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     setViewMode('creating');
     setSelectedArticleId(null);
   }, [onNewSession, setViewMode, setSelectedArticleId]);
+
+  // Move handleOpenArticle definition before renderArticleListView
+  const handleOpenArticle = useCallback(async (articleId) => {
+    try {
+      console.log('📖 [Article Open] Opening article:', articleId);
+      
+      // Track previous article for navigation
+      if (selectedArticleId && selectedArticleId !== articleId) {
+        setPreviousArticleId(selectedArticleId);
+      }
+      
+      // Set selected article and switch to reading view
+      setSelectedArticleId(articleId);
+      setViewMode('reading');
+      
+      // Load article data
+      const { data } = await api.fetchReadingSession(articleId);
+      
+      if (data.articleData || data.topic) {
+        setTopic(data.articleData || data.topic);
+        handleUserInteraction('article_opened', { articleId });
+      }
+      
+      if (data.messages && data.messages.length > 0) {
+        setChatMessages(data.messages);
+      }
+      
+    } catch (error) {
+      console.error('Failed to open article:', error);
+    }
+  }, [selectedArticleId, setSelectedArticleId, setViewMode, handleUserInteraction]);
+
+  // Move handleScroll definition before useEffect
+  const handleScroll = useCallback(() => {
+    const content = topic?.content;
+    if (!content || !contentRef.current) return;
+    
+    const { scrollTop, clientHeight, scrollHeight } = contentRef.current;
+    const maxScroll = scrollHeight - clientHeight;
+    
+    if (maxScroll > 0) {
+      const progress = Math.min(Math.max(scrollTop / maxScroll, 0), 1);
+      setReadingProgress(progress);
+      
+      // Calculate words read more accurately
+      const totalWords = content.split(/\s+/).filter(w => w.trim()).length;
+      setReadWords(Math.floor(totalWords * progress));
+      
+      // Mark reading interaction if user has scrolled significantly
+      if (progress > 0.1) {
+        handleUserInteraction('article_interaction', { readingProgress: progress });
+      }
+    } else {
+      // If content fits in viewport, consider it fully read
+      setReadingProgress(1);
+      const totalWords = content.split(/\s+/).filter(w => w.trim()).length;
+      setReadWords(totalWords);
+      
+      // Mark as read if content is short
+      handleUserInteraction('article_interaction', { readingProgress: 1, shortContent: true });
+    }
+  }, [topic?.content, handleUserInteraction, setReadingProgress, setReadWords]);
 
   // Article List View Renderer
   const renderArticleListView = useCallback(() => {
@@ -387,7 +439,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
         ) : articles.length === 0 ? (
           <div className="empty-articles">
             <div className="empty-icon">
-              <FileText size={48} />
+              <Book size={48} />
             </div>
             <h3>No Articles Yet</h3>
             <p>Create your first personalized reading article to begin your reading journey.</p>
@@ -395,7 +447,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
               className="btn btn-primary btn-large"
               onClick={handleCreateNewArticle}
             >
-              <Sparkles size={16} />
+              <Plus size={16} />
               Create Your First Article
             </button>
           </div>
@@ -453,21 +505,21 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
         )}
       </div>
     );
-  }, [articles, articlesLoading, articlesError, categories, difficultyLevels, handleCreateNewArticle, handleOpenArticle, usageSummary]);
+  }, [articles, articlesLoading, articlesError, handleCreateNewArticle, handleOpenArticle, usageSummary, fetchArticles]);
 
-  // Article management functions are handled by the enhanced handleOpenArticle function below
+  // Article management functions are handled by the enhanced handleOpenArticle function above
 
-  const shouldShowArticleList = useCallback(() => {
+  const _shouldShowArticleList = useCallback(() => {
     return viewMode === 'list' || forceListView;
   }, [viewMode, forceListView]);
 
   // Handle going back to article list
-  const handleGoBackToList = useCallback(() => {
+  const handleGoBackToList = useEffect(() => {
     setViewMode('list');
     setSelectedArticleId(null);
   }, []);
 
-  // Session interaction tracking is handled by the enhanced handleScroll function below
+  // Session interaction tracking is handled by the enhanced handleScroll function above
 
   // Add scroll event listener
   useEffect(() => {
@@ -658,39 +710,8 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     }
   }, [params.category, params.difficulty, handleUserInteraction]);
 
-  // Enhanced scroll tracking for reading progress with mobile optimization
-  const handleScroll = useCallback(() => {
-    const content = topic?.content;
-    if (!content || !contentRef.current) return;
-    
-    const { scrollTop, clientHeight, scrollHeight } = contentRef.current;
-    const maxScroll = scrollHeight - clientHeight;
-    
-    if (maxScroll > 0) {
-      const progress = Math.min(Math.max(scrollTop / maxScroll, 0), 1);
-      setReadingProgress(progress);
-      
-      // Calculate words read more accurately
-      const totalWords = content.split(/\s+/).filter(w => w.trim()).length;
-      setReadWords(Math.floor(totalWords * progress));
-      
-      // Mark reading interaction if user has scrolled significantly
-      if (progress > 0.1) {
-        handleUserInteraction('article_interaction', { readingProgress: progress });
-      }
-    } else {
-      // If content fits in viewport, consider it fully read
-      setReadingProgress(1);
-      const totalWords = content.split(/\s+/).filter(w => w.trim()).length;
-      setReadWords(totalWords);
-      
-      // Mark as read if content is short
-      handleUserInteraction('article_interaction', { readingProgress: 1, shortContent: true });
-    }
-  }, [topic?.content, handleUserInteraction]);
-
   // Navigation functions with improved mobile scrolling and interaction tracking
-  const nextStep = useCallback(() => {
+  const _nextStep = useCallback(() => {
     const newStep = Math.min(customStep + 1, 6);
     
     // Mark wizard navigation interaction
@@ -720,7 +741,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     }, 100);
   }, [customStep, selectedOptions, handleUserInteraction]);
 
-  const prevStep = useCallback(() => {
+  const _prevStep = useCallback(() => {
     const newStep = Math.max(customStep - 1, 1);
     
     // Mark wizard navigation interaction
@@ -765,37 +786,6 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     // Reset interaction tracking
     setSessionInteractionLevel('none');
   }, []);
-
-  // ENHANCED: Article management functions
-  const handleOpenArticle = useCallback(async (articleId) => {
-    try {
-      console.log('📖 [Article Open] Opening article:', articleId);
-      
-      // Track previous article for navigation
-      if (selectedArticleId && selectedArticleId !== articleId) {
-        setPreviousArticleId(selectedArticleId);
-      }
-      
-      // Set selected article and switch to reading view
-      setSelectedArticleId(articleId);
-      setViewMode('reading');
-      
-      // Load article data
-      const { data } = await api.fetchReadingSession(articleId);
-      
-      if (data.articleData || data.topic) {
-        setTopic(data.articleData || data.topic);
-        handleUserInteraction('article_opened', { articleId });
-      }
-      
-      if (data.messages && data.messages.length > 0) {
-        setChatMessages(data.messages);
-      }
-      
-    } catch (error) {
-      console.error('Failed to open article:', error);
-    }
-  }, [selectedArticleId, setSelectedArticleId, setViewMode, handleUserInteraction]);
 
   // Track meaningful session usage
   // eslint-disable-next-line no-unused-vars
@@ -886,7 +876,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
           
           <div style={{ marginBottom: '20px', color: '#666' }}>
             <p style={{ margin: '0 0 12px 0' }}>
-              You've reached your daily limit of <strong>{dailyLimitStatus.usage_info?.daily_limit}</strong>
+              You&apos;ve reached your daily limit of <strong>{dailyLimitStatus.usage_info?.daily_limit}</strong>
               {' '}reading article requests.
             </p>
             
@@ -909,7 +899,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
               <div style={{ background: '#f0f9ff', borderRadius: '8px', padding: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                   <span style={{ fontSize: '16px' }}>📊</span>
-                  <span style={{ fontSize: '14px', fontWeight: '600' }}>Today's Usage</span>
+                  <span style={{ fontSize: '14px', fontWeight: '600' }}>Today&apos;s Usage</span>
                 </div>
                 <div style={{ fontSize: '13px', color: '#0369a1' }}>
                   {Object.entries(usageSummary).map(([service, info]) => (
@@ -997,7 +987,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
             <div className="limit-alert-content">
               <div className="limit-icon">📚</div>
               <p className="limit-message">
-                You've reached your maximum of <strong>{ARTICLE_LIMIT} articles</strong>.
+                You&apos;ve reached your maximum of <strong>{ARTICLE_LIMIT} articles</strong>.
               </p>
               <p className="limit-description">
                 To continue practicing with new articles, please complete or remove some existing ones.
@@ -1174,7 +1164,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   };
 
   // Split topic into paragraphs for rendering
-  const paragraphs = topic ? topic.split('\n\n').filter(Boolean) : [];
+  const _paragraphs = topic ? topic.split('\n\n').filter(Boolean) : [];
 
   // Render article count
   const renderArticleCount = (articleSessions) => {

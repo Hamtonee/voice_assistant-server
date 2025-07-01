@@ -59,6 +59,58 @@ export default function SpeechCoach({
   const messagesRef = useRef(null);
   const audioRef = useRef(null);
 
+  // Move cleanup function definition before useEffect
+  const cleanup = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.warn('Error stopping recognition:', e);
+      }
+    }
+    if (ttsRef.current) {
+      try {
+        ttsRef.current.pause();
+        ttsRef.current = null;
+      } catch (e) {
+        console.warn('Error cleaning up TTS:', e);
+      }
+    }
+  }, []);
+
+  // Move function definitions before useEffect
+  const handleRecognitionResult = useCallback((event) => {
+    let finalTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript;
+      }
+    }
+    setInputText(prev => prev + finalTranscript);
+  }, []);
+
+  const handleRecognitionError = useCallback((event) => {
+    console.error('Recognition error:', event.error);
+    setError('Speech recognition error: ' + event.error);
+  }, []);
+
+  const handleRecognitionEnd = useCallback(() => {
+    if (!isUnmountingRef.current) {
+      recognitionRef.current = null;
+    }
+  }, []);
+
+  // useEffect for recognition setup
+  useEffect(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.onresult = handleRecognitionResult;
+      recognitionRef.current.onerror = handleRecognitionError;
+      recognitionRef.current.onend = handleRecognitionEnd;
+      
+      return cleanup;
+    }
+  }, [recognitionRef, handleRecognitionResult, handleRecognitionError, handleRecognitionEnd, cleanup]);
+
   // Initialize speech services
   useEffect(() => {
     isUnmountingRef.current = false;
@@ -82,11 +134,6 @@ export default function SpeechCoach({
             recognitionRef.current.continuous = true;
             recognitionRef.current.interimResults = true;
             
-            // Bind event handlers
-            recognitionRef.current.onresult = handleRecognitionResult;
-            recognitionRef.current.onerror = handleRecognitionError;
-            recognitionRef.current.onend = handleRecognitionEnd;
-            
             setIsSpeechSupported(true);
           }
         } else {
@@ -105,53 +152,7 @@ export default function SpeechCoach({
       isUnmountingRef.current = true;
       cleanup();
     };
-  }, []);
-
-  // Cleanup function
-  const cleanup = useCallback(() => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (e) {
-        console.warn('Error stopping recognition:', e);
-      }
-    }
-    if (ttsRef.current) {
-      try {
-        ttsRef.current.pause();
-        ttsRef.current = null;
-      } catch (e) {
-        console.warn('Error cleaning up TTS:', e);
-      }
-    }
-  }, []);
-
-  // Recognition event handlers
-  const handleRecognitionResult = useCallback((event) => {
-    let finalTranscript = '';
-    for (let i = event.resultIndex; i < event.results.length; ++i) {
-      if (event.results[i].isFinal) {
-        finalTranscript += event.results[i][0].transcript;
-      }
-    }
-    setInputText(prev => prev + finalTranscript);
-  }, []);
-
-  const handleRecognitionError = useCallback((event) => {
-    console.error('Speech Recognition Error:', event);
-    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-      setBrowserWarning('Microphone access denied. Please enable it in your browser settings.');
-    } else {
-      setError('An error occurred during speech recognition.');
-    }
-    setIsRecording(false);
-  }, []);
-
-  const handleRecognitionEnd = useCallback(() => {
-    if (!isUnmountingRef.current && !alwaysListen) {
-      setIsRecording(false);
-    }
-  }, [alwaysListen]);
+  }, [cleanup, handleRecognitionResult, handleRecognitionError, handleRecognitionEnd]);
 
   // Handle scroll detection
   useEffect(() => {
@@ -342,7 +343,7 @@ export default function SpeechCoach({
           <div className="empty-state">
             <p>Press the microphone and start speaking to practice with your AI speech coach.</p>
             <div className="voice-info">
-              <p><strong>Coach's Voice:</strong> {selectedVoice?.name || 'Default'}</p>
+              <p><strong>Coach&apos;s Voice:</strong> {selectedVoice?.name || 'Default'}</p>
               <p>The coach will provide feedback on your pronunciation, grammar, and fluency.</p>
             </div>
           </div>

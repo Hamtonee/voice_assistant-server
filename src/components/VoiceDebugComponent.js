@@ -6,7 +6,7 @@ import { ttsVoices, voiceProfiles, createVoiceConfig } from '../data/ttsVoices';
  * Add this temporarily to your main component to debug voice state
  */
 const VoiceDebugComponent = ({ selectedVoice, className = '' }) => {
-  const [debugInfo, setDebugInfo] = useState({});
+  const [_debugInfo, setDebugInfo] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Safe environment check

@@ -1,4 +1,3 @@
-export { default as AnimatedCoach } from './AnimatedCoach';
 export { default as AuthProvider } from './AuthProvider';
 export { default as Avatar } from './Avatar';
 export { default as ChatDetail } from './ChatDetail';

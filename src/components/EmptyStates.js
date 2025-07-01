@@ -211,7 +211,11 @@ export const QuickEmpty = ({ children, className = "" }) => (
   </div>
 );
 
-export default {
+// Create named object before export
+const EmptyStates = {
+  NoChats: NoChatSessions,
+  NoMessages: NoChatSessions,
+  NoResults: NoSearchResults,
   EmptyState,
   NoSearchResults,
   NoChatSessions,
@@ -222,4 +226,6 @@ export default {
   MaintenanceMode,
   AccessDenied,
   QuickEmpty
-}; 
+};
+
+export default EmptyStates; 

@@ -9,7 +9,7 @@ const ChatInput = ({ onSend }) => {
   const [recording, setRecording] = useState(false);
   const [recordTime, setRecordTime] = useState(0);
   const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [transcript, setTranscript] = useState('');
+  const [_transcript, setTranscript] = useState('');
   const [suggestionModalVisible, setSuggestionModalVisible] = useState(false);
   const [suggestionMessage, setSuggestionMessage] = useState('');
   const [stutterHandled, setStutterHandled] = useState(false);
@@ -197,7 +197,7 @@ const ChatInput = ({ onSend }) => {
         <div className="suggestion-modal">
           <div className="modal-content">
             <h3>Stutter Detected</h3>
-            <p>Here's a suggestion to continue your thought:</p>
+            <p>Here&apos;s a suggestion to continue your thought:</p>
             <blockquote>{suggestionMessage}</blockquote>
             <button onClick={handleResumeRecording}>
               Continue Recording
@@ -205,6 +205,8 @@ const ChatInput = ({ onSend }) => {
           </div>
         </div>
       )}
+
+      <div className="error-message">Couldn&apos;t process audio</div>
     </div>
   );
 };

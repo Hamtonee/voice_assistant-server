@@ -259,7 +259,7 @@ export const ResponsiveSidebar = ({
   );
 };
 
-export default {
+const ResponsiveLayout = {
   ResponsiveProvider,
   ResponsiveContainer,
   ResponsiveGrid,
@@ -270,4 +270,6 @@ export default {
   HideOn,
   ResponsiveSidebar,
   useResponsive
-}; 
+};
+
+export default ResponsiveLayout; 

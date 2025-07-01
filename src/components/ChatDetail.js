@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import api from '../api';
+import React from 'react';
 import '../assets/styles/ChatDetail.css';
 // import { Mic, Send, ChevronDown, AlertCircle, Loader, Volume2, X, MicOff, Headphones } from 'lucide-react';
 // import { createVoiceConfig } from '../data/ttsVoices';
 import PropTypes from 'prop-types';
 // import OptimizedImage from './ui/OptimizedImage';
 
-const AUTO_SEND_DELAY = 2500;
-const ALWAYS_IDLE_TIMEOUT = 120000; // 2min idle for always-listen
-const HISTORY_WINDOW = 10;
-const MAX_API_RETRIES = 3;
-const AUDIO_TIMEOUT = 10000; // 10 second timeout for audio loading
+const _AUTO_SEND_DELAY = 3000;
+const _ALWAYS_IDLE_TIMEOUT = 5000;
+const _HISTORY_WINDOW = 10;
+const _MAX_API_RETRIES = 3;
+const _AUDIO_TIMEOUT = 30000;
+const _CHAT_ROLEPLAY_ENDPOINT = '/api/chat/roleplay';
 
 // Safe environment variable access
 const getChatRoleplayEndpoint = () => {
@@ -22,7 +22,7 @@ const getChatRoleplayEndpoint = () => {
   }
 };
 
-const chatRoleplayEndpoint = getChatRoleplayEndpoint();
+const _chatRoleplayEndpoint = getChatRoleplayEndpoint();
 
 const ChatDetail = ({ session, onToggleChatList, isMobile }) => {
   return (

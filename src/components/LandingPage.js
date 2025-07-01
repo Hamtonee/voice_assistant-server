@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { FiArrowDown, FiTwitter, FiFacebook, FiLinkedin } from 'react-icons/fi';
 import ResponsiveContainer, { Grid, Stack, Center } from './layout/ResponsiveContainer';
 import Button from './ui/Button';
-import ErrorDisplay from './ui/ErrorDisplay';
+// Removed unused import: ErrorDisplay
 import '../assets/styles/LandingPage.css';
 // Import your logo - place logo.png in src/assets/images/
 import logoImage from '../assets/images/logo.png';
