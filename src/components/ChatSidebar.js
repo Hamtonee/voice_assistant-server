@@ -44,9 +44,17 @@ const ChatSidebar = ({
   }, []);
 
   return (
-    <div className={`chat-sidebar ${isDark ? 'dark' : ''} ${isCollapsed ? 'collapsed' : ''}`} ref={sidebarRef}>
+    <div 
+      className={`chat-sidebar ${isDark ? 'dark' : ''} ${isCollapsed ? 'collapsed' : ''}`} 
+      ref={sidebarRef}
+      data-theme={isDark ? 'dark' : 'light'}
+    >
       {/* Toggle Button */}
-      <button className="chat-sidebar__toggle" onClick={toggleSidebar}>
+      <button 
+        className="chat-sidebar__toggle" 
+        onClick={toggleSidebar}
+        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
         {isCollapsed ? (
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M9 5l7 7-7 7"/>
@@ -71,21 +79,21 @@ const ChatSidebar = ({
           onClick={() => onSelectFeature('chat')}
         >
           <span role="img" aria-label="chat">💬</span>
-          Chat
+          <span>Chat</span>
         </button>
         <button
           className={`chat-sidebar__nav-btn ${selectedFeature === 'sema' ? 'active' : ''}`}
           onClick={() => onSelectFeature('sema')}
         >
           <span role="img" aria-label="microphone">🎤</span>
-          Sema
+          <span>Sema</span>
         </button>
         <button
           className={`chat-sidebar__nav-btn ${selectedFeature === 'tusome' ? 'active' : ''}`}
           onClick={() => onSelectFeature('tusome')}
         >
           <span role="img" aria-label="book">📚</span>
-          Tusome
+          <span>Tusome</span>
         </button>
 
         {/* New Chat Button */}
@@ -94,7 +102,7 @@ const ChatSidebar = ({
           onClick={onNewChat}
         >
           <span>+</span>
-          New {selectedFeature === 'sema' ? 'Speech' : selectedFeature === 'tusome' ? 'Reading' : 'Chat'} Session
+          <span>New {selectedFeature === 'sema' ? 'Speech' : selectedFeature === 'tusome' ? 'Reading' : 'Chat'} Session</span>
         </button>
       </div>
 
