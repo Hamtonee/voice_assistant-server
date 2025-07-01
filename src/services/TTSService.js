@@ -21,24 +21,40 @@ class TTSService {
         this.audioCache = new Map();
         this.pendingRequests = new Map();
         this.isBrowserTTS = false;
-        this.browserSynth = window.speechSynthesis;
-        this.initializeTTS();
+        
+        // Safely check for browser TTS availability
+        this.browserSynth = typeof window !== 'undefined' && window.speechSynthesis ? 
+            window.speechSynthesis : null;
+            
+        // Initialize asynchronously to avoid constructor issues
+        setTimeout(() => this.initializeTTS(), 0);
     }
 
     async initializeTTS() {
         try {
-            // Try server TTS first
-            const response = await api.get('/health', { timeout: 5000 });
-            this.isBrowserTTS = !response.data?.tts_available;
+            // Try server TTS first - make health check optional
+            try {
+                const response = await api.get('/health', { timeout: 5000 });
+                this.isBrowserTTS = !response.data?.tts_available;
+                console.log('✅ TTS health check successful');
+            } catch (healthError) {
+                console.warn('⚠️ Health check failed, continuing anyway:', healthError.message);
+                // Don't throw - just log and continue with browser TTS
+                this.isBrowserTTS = true;
+            }
         } catch (error) {
             logError(error, 'TTS Service Initialization');
             this.isBrowserTTS = true;
         }
 
-        // Initialize browser TTS as fallback
+        // Initialize browser TTS as fallback - with safety checks
         if (this.isBrowserTTS && this.browserSynth) {
-            // Pre-load voices
-            this.browserSynth.getVoices();
+            try {
+                // Pre-load voices safely
+                this.browserSynth.getVoices();
+            } catch (voiceError) {
+                console.warn('⚠️ Failed to get browser voices:', voiceError.message);
+            }
         }
     }
 
@@ -95,8 +111,12 @@ class TTSService {
             return;
         }
 
-        // Cancel any ongoing speech
-        this.browserSynth.cancel();
+        // Safely cancel any ongoing speech
+        try {
+            this.browserSynth.cancel();
+        } catch (error) {
+            console.warn('Failed to cancel speech:', error.message);
+        }
 
         return new Promise((resolve, reject) => {
             try {
@@ -107,19 +127,30 @@ class TTSService {
                 utterance.pitch = options.pitch || 1;
                 utterance.volume = options.volume || 1;
                 
-                // Try to match requested voice
-                if (options.voice) {
-                    const voices = this.browserSynth.getVoices();
-                    const voice = voices.find(v => 
-                        v.name.toLowerCase().includes(options.voice.toLowerCase())
-                    );
-                    if (voice) utterance.voice = voice;
+                // Try to match requested voice - with safety checks
+                if (options.voice && this.browserSynth) {
+                    try {
+                        const voices = this.browserSynth.getVoices();
+                        if (voices && voices.length > 0) {
+                            const voice = voices.find(v => 
+                                v.name.toLowerCase().includes(options.voice.toLowerCase())
+                            );
+                            if (voice) utterance.voice = voice;
+                        }
+                    } catch (voiceError) {
+                        console.warn('Failed to set voice:', voiceError.message);
+                    }
                 }
 
                 utterance.onend = resolve;
                 utterance.onerror = reject;
                 
-                this.browserSynth.speak(utterance);
+                // Safe speak with direct method call (no binding)
+                if (this.browserSynth) {
+                    this.browserSynth.speak(utterance);
+                } else {
+                    reject(new Error('Speech synthesis not available'));
+                }
             } catch (error) {
                 reject(error);
             }
@@ -128,7 +159,11 @@ class TTSService {
 
     stop() {
         if (this.isBrowserTTS && this.browserSynth) {
-            this.browserSynth.cancel();
+            try {
+                this.browserSynth.cancel();
+            } catch (error) {
+                console.warn('Failed to stop speech:', error.message);
+            }
         }
         // Implement server-side stop if needed
     }
@@ -225,16 +260,24 @@ class TTSService {
 
     async useBrowserTTS(text) {
         return new Promise((resolve, reject) => {
-            if (!window.speechSynthesis) {
+            // Safety check for browser TTS
+            if (!window?.speechSynthesis) {
+                console.error('Browser TTS not available');
                 reject(new Error('Browser TTS not available'));
                 return;
             }
 
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.onend = () => resolve({ success: true, source: 'browser' });
-            utterance.onerror = (event) => reject(new Error(`Browser TTS failed: ${event.error}`));
+            try {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.onend = () => resolve({ success: true, source: 'browser' });
+                utterance.onerror = (event) => reject(new Error(`Browser TTS failed: ${event.error || 'Unknown error'}`));
 
-            window.speechSynthesis.speak(utterance);
+                // Direct method call (no binding)
+                window.speechSynthesis.speak(utterance);
+            } catch (error) {
+                console.error('Browser TTS failed:', error);
+                reject(error);
+            }
         });
     }
 
@@ -252,14 +295,19 @@ class TTSService {
 
     async checkStatus() {
         try {
-            // Simple test to check if TTS service is available
-            // Try to make a basic request to the API to test connectivity
-            const testResponse = await api.get('/health', { timeout: 5000 });
-            return testResponse.status === 200;
-        } catch (error) {
-            console.warn('TTS status check failed, falling back to browser TTS:', error);
+            // Make health check optional
+            try {
+                const testResponse = await api.get('/health', { timeout: 5000 });
+                return testResponse.status === 200;
+            } catch (healthError) {
+                console.warn('⚠️ TTS health check failed, checking browser fallback:', healthError.message);
+            }
+            
             // Check if browser TTS is available as fallback
-            return !!window.speechSynthesis;
+            return typeof window !== 'undefined' && !!window.speechSynthesis;
+        } catch (error) {
+            console.warn('TTS status check completely failed:', error);
+            return false;
         }
     }
 }

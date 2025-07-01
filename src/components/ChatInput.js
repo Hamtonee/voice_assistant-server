@@ -3,7 +3,6 @@
 import React, { useState, useRef } from 'react';
 import api from '../api';
 import '../assets/styles/ChatInput.css';
-import { useSpeechRecognition } from 'react-speech-recognition';
 
 const ChatInput = ({ onSend }) => {
   const [message, setMessage] = useState('');
@@ -24,12 +23,6 @@ const ChatInput = ({ onSend }) => {
     'https://img.icons8.com/material-outlined/24/000000/microphone.png';
   const sendIconUrl =
     'https://img.icons8.com/material-outlined/24/000000/send.png';
-
-  useSpeechRecognition({
-    onResult: (result) => {
-      setTranscript(result);
-    }
-  });
 
   const handleInputChange = (e) => {
     setMessage(e.target.value);

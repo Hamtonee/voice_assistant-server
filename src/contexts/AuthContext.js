@@ -42,7 +42,6 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [usageSummary, setUsageSummary] = useState(null);
-  // Removed unused pendingNavigation state
   
   // Ref for tracking refresh state
   const authStateRef = useRef({
@@ -90,10 +89,10 @@ export function AuthProvider({ children }) {
       clearTimeout(window._refreshTimeout);
       delete window._refreshTimeout;
     }
-  }, [setUsageSummary]);
+  }, []);
 
   // ============================================================================
-  // SMART TOKEN REFRESH SCHEDULING - MOVED BEFORE refreshToken
+  // SMART TOKEN REFRESH SCHEDULING
   // ============================================================================
   
   const scheduleTokenRefresh = useCallback((expTimestamp) => {
@@ -131,10 +130,10 @@ export function AuthProvider({ children }) {
   }, [token, clearAuth, navigate]);
 
   // ============================================================================
-  // ENHANCED TOKEN REFRESH WITH RETRY LOGIC
+  // ENHANCED TOKEN REFRESH WITH RETRY LOGIC - Defined first to avoid circular dependency
   // ============================================================================
   
-  const refreshToken = useCallback(async () => {
+  const refreshTokenFn = useCallback(async () => {
     if (authStateRef.current.isRefreshing) {
       console.log('🔄 Refresh already in progress, waiting...');
       return authStateRef.current.refreshPromise;
@@ -146,71 +145,23 @@ export function AuthProvider({ children }) {
       console.log('⏳ Too soon to refresh, waiting...');
       return;
     }
-
-    // Check if we have a refresh token
-    const storedRefreshToken = localStorage.getItem('refresh_token');
-    if (!storedRefreshToken) {
-      console.log('❌ No refresh token available, clearing auth');
-      clearAuth();
-      return;
-    }
     
     authStateRef.current.isRefreshing = true;
     authStateRef.current.lastRefreshAttempt = now;
     
     const refreshPromise = (async () => {
       try {
-        console.log('🔄 Attempting token refresh with refresh token');
-        
-        // Try different refresh token formats that servers commonly expect
-        let response;
-        try {
-          // Method 1: Send refresh token in request body
-          response = await api.post('/auth/refresh', { 
-            refresh_token: storedRefreshToken 
-          });
-        } catch (error) {
-          if (error.response?.status === 400 || error.response?.status === 422) {
-            // Method 2: Try different payload format
-            console.log('🔄 Trying alternative refresh format');
-            response = await api.post('/auth/refresh', { 
-              refreshToken: storedRefreshToken 
-            });
-          } else {
-            throw error;
-          }
-        }
-
+        const response = await api.post('/auth/refresh');
         const { access_token } = response.data;
         
         if (!access_token) {
           throw new Error('No token received from refresh endpoint');
         }
         
-        console.log('✅ Token refresh successful');
-        
         api.defaults.headers.common.Authorization = `Bearer ${access_token}`;
         localStorage.setItem('access_token', access_token);
         setToken(access_token);
-        
-        // Update refresh token if provided
-        if (response.data.refresh_token) {
-          localStorage.setItem('refresh_token', response.data.refresh_token);
-        }
-        
-        // Set user data if provided, otherwise fetch it
-        if (response.data.user) {
-          setUser(response.data.user);
-        } else {
-          // Fetch user profile with new token
-          try {
-            const userResponse = await api.get('/auth/me');
-            setUser(userResponse.data);
-          } catch (fetchError) {
-            console.warn('⚠️ Could not fetch user profile after refresh:', fetchError);
-          }
-        }
-        
+        setUser(response.data.user);
         setIsAuthenticated(true);
         setError(null);
 
@@ -220,13 +171,6 @@ export function AuthProvider({ children }) {
         return response.data;
       } catch (error) {
         console.error('❌ Token refresh failed:', error);
-        console.error('❌ Refresh error details:', {
-          message: error.message,
-          status: error.response?.status,
-          data: error.response?.data
-        });
-        
-        // If refresh fails, clear everything and force re-login
         clearAuth();
         throw error;
       } finally {
@@ -241,10 +185,8 @@ export function AuthProvider({ children }) {
     return refreshPromise;
   }, [clearAuth, scheduleTokenRefresh]);
 
-
-
   // ============================================================================
-  // ENHANCED USER PROFILE FETCHING - NOW AFTER refreshToken
+  // ENHANCED USER PROFILE FETCHING
   // ============================================================================
   
   const fetchUserProfile = useCallback(async () => {
@@ -266,13 +208,19 @@ export function AuthProvider({ children }) {
       
       if (error.response?.status === 401) {
         console.log('🔄 Token invalid, attempting refresh...');
-        await refreshToken();
+        try {
+          // Use refreshTokenFn directly to avoid circular dependency
+          await refreshTokenFn();
+        } catch (refreshError) {
+          clearAuth();
+          throw refreshError;
+        }
       } else {
         clearAuth();
       }
       throw error;
     }
-  }, [clearAuth, refreshToken, setUser, setIsAuthenticated, setIsAuthReady]);
+  }, [clearAuth, refreshTokenFn]);
 
   // ============================================================================
   // ENHANCED LOGIN FUNCTION WITH IMPROVED STATE MANAGEMENT
@@ -390,7 +338,7 @@ export function AuthProvider({ children }) {
     } finally {
       setLoadingUser(false);
     }
-  }, [clearAuth, setLoadingUser, setError, setToken, setUser, scheduleTokenRefresh, setIsAuthenticated, setIsAuthReady]);
+  }, [clearAuth, scheduleTokenRefresh]);
 
   // ============================================================================
   // ENHANCED REGISTRATION FUNCTION
@@ -404,14 +352,20 @@ export function AuthProvider({ children }) {
       const response = await api.post('/auth/register', {
         email: email.trim().toLowerCase(),
         password,
-        name: name?.trim() || ''
+        name
       });
       
-      console.log('✅ Registration successful');
-      return { success: true, user: response.data };
+      console.log('✅ Registration successful:', response.data);
       
+      // Auto-login after registration if the server returns tokens
+      if (response.data.access_token) {
+        return login({ email, password });
+      }
+      
+      return { success: true };
     } catch (error) {
       console.error('❌ Registration failed:', error);
+      setError(error.response?.data?.message || error.message || 'Registration failed');
       throw error;
     } finally {
       setLoadingUser(false);
@@ -419,13 +373,12 @@ export function AuthProvider({ children }) {
   };
 
   // ============================================================================
-  // FORCE LOGIN FOR SESSION CONFLICTS
+  // FORCE LOGIN (OVERRIDE SESSION CONFLICT)
   // ============================================================================
   
   const forceLogin = async (credentials) => {
-    console.log('🔄 Force login initiated');
     setSessionConflict(null);
-    return await login(credentials.email, credentials.password);
+    return login({ ...credentials, force: true });
   };
 
   // ============================================================================
@@ -433,137 +386,123 @@ export function AuthProvider({ children }) {
   // ============================================================================
   
   const clearSessionConflict = () => {
-    console.log('🧹 Clearing session conflict');
     setSessionConflict(null);
   };
 
   // ============================================================================
-  // ENHANCED LOGOUT FUNCTION
+  // LOGOUT FUNCTION
   // ============================================================================
   
-  const logout = useCallback(async (redirectPath = '/login') => {
-    console.log('🚪 Logging out...');
+  const logout = useCallback(async () => {
     try {
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (refreshToken) {
-        await api.post('/auth/logout', { refresh_token: refreshToken });
+      if (token) {
+        await api.post('/auth/logout', {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(err => console.log('Logout API error (non-critical):', err));
       }
     } catch (error) {
-      console.error('Logout failed:', error);
-      setError(error.response?.data?.message || 'Logout failed');
+      console.error('Error during logout API call:', error);
     } finally {
       clearAuth();
-      console.log(`Navigating to ${redirectPath}`);
-      navigate(redirectPath, { replace: true });
+      // Hard redirect to clear all state
+      window.location.href = '/login';
     }
-  }, [clearAuth, navigate]);
+  }, [token, clearAuth]);
 
   // ============================================================================
-  // INITIALIZATION EFFECT WITH CLEANUP
+  // INITIALIZE AUTH STATE
   // ============================================================================
   
   useEffect(() => {
-    let mounted = true;
-    const abortController = new AbortController();
-    
     const initializeAuth = async () => {
-      console.log('🚀 Initializing authentication...');
-      
-      // Set a timeout to prevent infinite loading
-      const timeoutId = setTimeout(() => {
-        if (mounted) {
-          console.warn('⚠️ Auth initialization timeout, forcing completion');
-          setLoadingUser(false);
-          setInitializing(false);
-        }
-      }, 10000);
-      
       try {
-        if (!token) {
-          console.log('❌ No token found, user not authenticated');
-          if (mounted) {
-            setLoadingUser(false);
-            setInitializing(false);
-          }
-          setIsAuthReady(true);
+        setInitializing(true);
+        
+        // Check if we have a token in storage
+        const storedToken = localStorage.getItem('access_token');
+        if (!storedToken) {
+          console.log('🔒 No token found, user is not authenticated');
+          clearAuth();
+          setInitializing(false);
           return;
         }
         
-        // Validate token
+        console.log('🔑 Found token, validating...');
+        
+        // Set up API headers with the token
+        api.defaults.headers.common.Authorization = `Bearer ${storedToken}`;
+        
         try {
-          const decoded = jwtDecode(token);
+          // Decode token to check expiration
+          const decoded = jwtDecode(storedToken);
           const now = Date.now() / 1000;
           
           if (decoded.exp <= now) {
-            console.log('🕒 Token expired, attempting refresh');
-            await refreshToken();
+            console.log('⚠️ Token expired, attempting refresh...');
+            await refreshTokenFn();
           } else {
-            console.log('✅ Token valid, scheduling refresh');
+            // Token is valid, schedule refresh
             scheduleTokenRefresh(decoded.exp);
+            
+            // Fetch user profile
             await fetchUserProfile();
           }
         } catch (error) {
-          console.error('❌ Token validation failed:', error);
+          console.error('❌ Error during auth initialization:', error);
           clearAuth();
         }
-      } catch (error) {
-        console.error('❌ Auth initialization failed:', error);
-        clearAuth();
       } finally {
-        clearTimeout(timeoutId);
-        if (mounted) {
-          setLoadingUser(false);
-          setInitializing(false);
-        }
+        setInitializing(false);
+        setIsAuthReady(true);
       }
     };
     
     initializeAuth();
     
+    // Cleanup on unmount
     return () => {
-      mounted = false;
-      abortController.abort();
+      if (window._refreshTimeout) {
+        clearTimeout(window._refreshTimeout);
+      }
     };
-  }, [token, clearAuth, scheduleTokenRefresh, fetchUserProfile, refreshToken]);
+  }, [clearAuth, fetchUserProfile, refreshTokenFn, scheduleTokenRefresh]);
 
   // ============================================================================
-  // CONTEXT VALUE WITH COMPUTED PROPERTIES
+  // CONTEXT VALUE
   // ============================================================================
   
   const contextValue = {
-    token,
     user,
-    loadingUser,
-    error,
+    token,
     isAuthenticated,
-    initializing,
-    sessionConflict,
-    login,
-    register,
-    logout,
-    setUser,
-    clearSessionConflict,
-    forceLogin,
-    refreshToken,
     isAuthReady,
+    error,
+    loadingUser,
+    sessionConflict,
     usageSummary,
-    setUsageSummary
+    setUsageSummary,
+    login,
+    logout,
+    register,
+    forceLogin,
+    clearSessionConflict,
+    refreshToken: refreshTokenFn,
+    fetchUserProfile
   };
-
+  
   // ============================================================================
-  // RENDER WITH LOADING STATE MANAGEMENT
+  // RENDER
   // ============================================================================
   
-  // Show loading only during initial setup, not during normal operations
   if (initializing) {
-    return <LottieLoader />;
+    return (
+      <div className="auth-loading">
+        <LottieLoader />
+        <p>Initializing...</p>
+      </div>
+    );
   }
-
-  // Fallback safety check - if loading is stuck for too long, show children anyway
-  if (loadingUser) {
-    console.warn('⚠️ LoadingUser state detected, but initializing is false. This might indicate a stuck state.');
-  }
-
+  
   return (
     <AuthContext.Provider value={contextValue}>
       {children}

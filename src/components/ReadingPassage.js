@@ -2,16 +2,131 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import '../assets/styles/ReadingPassage.css';
 import CompactArticleBubble from './CompactArticleBubble';
 import api from '../api';
+import { 
+  Book, 
+  Plus, 
+  ChevronLeft, 
+  ChevronRight, 
+  BarChart3, 
+  Clock, 
+  Target, 
+  Sparkles,
+  CheckCircle,
+  AlertCircle,
+  X,
+  FileText,
+  User,
+  Settings,
+  RefreshCw
+} from 'lucide-react';
 
 // Constants
-const ageGroups = ['child', 'teen', 'adult', 'senior'];
-const difficultyLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
-const customizationOptions = ['vocabulary', 'grammar', 'pronunciation', 'culture'];
+const ageGroups = [
+  { value: 'child', label: 'Child (6-12)', icon: '🧒', description: 'Simple vocabulary and short sentences' },
+  { value: 'teen', label: 'Teen (13-17)', icon: '👦', description: 'Age-appropriate topics and moderate complexity' },
+  { value: 'adult', label: 'Adult (18-64)', icon: '👨', description: 'Professional and sophisticated content' },
+  { value: 'senior', label: 'Senior (65+)', icon: '👴', description: 'Experience-rich and thoughtful topics' }
+];
+
+const difficultyLevels = [
+  { value: 'easy', label: 'Easy', color: '#28a745', description: 'Simple vocabulary, short sentences' },
+  { value: 'medium', label: 'Medium', color: '#ffc107', description: 'Moderate complexity, varied sentence structure' },
+  { value: 'hard', label: 'Hard', color: '#dc3545', description: 'Advanced vocabulary, complex concepts' }
+];
+
+const categories = [
+  // Academic
+  { id: 'science', name: 'Science', icon: '🔬', color: '#007bff' },
+  { id: 'history', name: 'History', icon: '📚', color: '#6f42c1' },
+  { id: 'literature', name: 'Literature', icon: '📖', color: '#e83e8c' },
+  { id: 'technology', name: 'Technology', icon: '💻', color: '#20c997' },
+  { id: 'mathematics', name: 'Mathematics', icon: '🔢', color: '#0dcaf0' },
+  { id: 'geography', name: 'Geography', icon: '🌍', color: '#198754' },
+  { id: 'philosophy', name: 'Philosophy', icon: '🤔', color: '#6c757d' },
+  { id: 'languages', name: 'Languages', icon: '🗣️', color: '#0dcaf0' },
+  
+  // Law & Politics
+  { id: 'law', name: 'Law', icon: '⚖️', color: '#495057' },
+  { id: 'criminal_law', name: 'Criminal Law', icon: '👨‍⚖️', color: '#343a40' },
+  { id: 'constitutional_law', name: 'Constitutional Law', icon: '📜', color: '#6c757d' },
+  { id: 'business_law', name: 'Business Law', icon: '📋', color: '#495057' },
+  { id: 'international_law', name: 'International Law', icon: '🌐', color: '#343a40' },
+  { id: 'politics', name: 'Politics', icon: '🏛️', color: '#dc3545' },
+  { id: 'public_policy', name: 'Public Policy', icon: '📢', color: '#0dcaf0' },
+  
+  // Culture & Society
+  { id: 'arts', name: 'Arts', icon: '🎨', color: '#fd7e14' },
+  { id: 'music', name: 'Music', icon: '🎵', color: '#6610f2' },
+  { id: 'current_events', name: 'Current Events', icon: '📰', color: '#dc3545' },
+  { id: 'culture', name: 'Culture', icon: '🌏', color: '#d63384' },
+  { id: 'food', name: 'Food & Cuisine', icon: '🍳', color: '#fd7e14' },
+  { id: 'fashion', name: 'Fashion', icon: '👗', color: '#e83e8c' },
+  { id: 'sociology', name: 'Sociology', icon: '👥', color: '#6f42c1' },
+  { id: 'anthropology', name: 'Anthropology', icon: '🏺', color: '#fd7e14' },
+  
+  // Professional & Finance
+  { id: 'business', name: 'Business', icon: '💼', color: '#0d6efd' },
+  { id: 'economics', name: 'Economics', icon: '📊', color: '#198754' },
+  { id: 'leadership', name: 'Leadership', icon: '👥', color: '#6f42c1' },
+  { id: 'career', name: 'Career Development', icon: '🎯', color: '#0dcaf0' },
+  { id: 'finance', name: 'Personal Finance', icon: '💰', color: '#198754' },
+  { id: 'investing', name: 'Investing', icon: '📈', color: '#20c997' },
+  { id: 'entrepreneurship', name: 'Entrepreneurship', icon: '🚀', color: '#0d6efd' },
+  { id: 'marketing', name: 'Marketing', icon: '📢', color: '#fd7e14' },
+  
+  // Lifestyle & Health
+  { id: 'health', name: 'Health & Wellness', icon: '🏥', color: '#20c997' },
+  { id: 'sports', name: 'Sports', icon: '⚽', color: '#fd7e14' },
+  { id: 'psychology', name: 'Psychology', icon: '🧠', color: '#6f42c1' },
+  { id: 'self_improvement', name: 'Self Improvement', icon: '🌱', color: '#198754' },
+  { id: 'nutrition', name: 'Nutrition', icon: '🥗', color: '#198754' },
+  { id: 'fitness', name: 'Fitness', icon: '💪', color: '#fd7e14' },
+  { id: 'mental_health', name: 'Mental Health', icon: '🧘', color: '#6f42c1' },
+  { id: 'relationships', name: 'Relationships', icon: '❤️', color: '#dc3545' },
+  
+  // Entertainment & Media
+  { id: 'movies', name: 'Movies & TV', icon: '🎬', color: '#dc3545' },
+  { id: 'gaming', name: 'Gaming', icon: '🎮', color: '#6610f2' },
+  { id: 'travel', name: 'Travel', icon: '✈️', color: '#0dcaf0' },
+  { id: 'hobbies', name: 'Hobbies', icon: '🎨', color: '#fd7e14' },
+  { id: 'books', name: 'Book Reviews', icon: '📚', color: '#6f42c1' },
+  { id: 'podcasts', name: 'Podcasts', icon: '🎧', color: '#0dcaf0' },
+  { id: 'social_media', name: 'Social Media', icon: '📱', color: '#0d6efd' },
+  { id: 'photography', name: 'Photography', icon: '📸', color: '#6c757d' },
+  
+  // Science & Tech Specifics
+  { id: 'environment', name: 'Environment', icon: '🌿', color: '#198754' },
+  { id: 'space', name: 'Space & Astronomy', icon: '🚀', color: '#6f42c1' },
+  { id: 'ai', name: 'AI & Robotics', icon: '🤖', color: '#0dcaf0' },
+  { id: 'innovation', name: 'Innovation', icon: '💡', color: '#ffc107' },
+  { id: 'biotechnology', name: 'Biotechnology', icon: '🧬', color: '#20c997' },
+  { id: 'cybersecurity', name: 'Cybersecurity', icon: '🔒', color: '#495057' },
+  { id: 'quantum_computing', name: 'Quantum Computing', icon: '⚛️', color: '#6610f2' },
+  { id: 'renewable_energy', name: 'Renewable Energy', icon: '☀️', color: '#ffc107' },
+  
+  // Special Interest
+  { id: 'conspiracy', name: 'Conspiracy Theories', icon: '🔍', color: '#6c757d' },
+  { id: 'paranormal', name: 'Paranormal', icon: '👻', color: '#6610f2' },
+  { id: 'mythology', name: 'Mythology', icon: '🐉', color: '#d63384' },
+  { id: 'mysteries', name: 'Unsolved Mysteries', icon: '🔎', color: '#495057' },
+  { id: 'true_crime', name: 'True Crime', icon: '🔍', color: '#dc3545' },
+  { id: 'ancient_aliens', name: 'Ancient Aliens', icon: '👽', color: '#6610f2' },
+  { id: 'cryptozoology', name: 'Cryptozoology', icon: '🦕', color: '#198754' },
+  { id: 'urban_legends', name: 'Urban Legends', icon: '🌃', color: '#495057' }
+];
+
+const customizationOptions = [
+  { id: 'examples', label: 'Include real-world examples', icon: '🌍' },
+  { id: 'conversational', label: 'Use a conversational tone', icon: '💬' },
+  { id: 'statistics', label: 'Add statistics and data', icon: '📊' },
+  { id: 'recent', label: 'Focus on recent developments', icon: '🆕' },
+  { id: 'definitions', label: 'Define key terms', icon: '📝' }
+];
+
 const ARTICLE_LIMIT = 5;
 
-// SECURE: Get individual API endpoints from environment variables
+// Safe environment variable access
 const getApiEndpoints = () => {
-  // Safely access process.env with fallbacks
   const getEnvVar = (name, fallback) => {
     try {
       return (typeof process !== 'undefined' && process.env && process.env[name]) || fallback;
@@ -21,44 +136,85 @@ const getApiEndpoints = () => {
     }
   };
 
-  const endpoints = {
+  return {
     READING_TOPIC: getEnvVar('REACT_APP_READING_TOPIC_ENDPOINT', '/reading/generate'),
     USAGE_SUMMARY: getEnvVar('REACT_APP_USAGE_ENDPOINT', '/usage/summary')
   };
-
-  console.log('✅ [Reading Passage API Configuration] Endpoints configured:', endpoints);
-  return endpoints;
 };
 
-// Initialize endpoints with validation
-let API_ENDPOINTS;
-try {
-  API_ENDPOINTS = getApiEndpoints();
-} catch (error) {
-  console.error('❌ [API Configuration Error]:', error.message);
-  // Use fallback endpoints
-  API_ENDPOINTS = {
-    READING_TOPIC: '/reading/generate',
-    USAGE_SUMMARY: '/usage/summary'
-  };
-}
-
-const USAGE_ENDPOINT = API_ENDPOINTS.USAGE_SUMMARY;
-
-// Log successful configuration (development only)
-const isDevelopment = () => {
-  try {
-    return typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development';
-  } catch (error) {
-    return false;
-  }
-};
-
-if (isDevelopment()) {
-  console.log('✅ [Reading Passage API Configuration] All endpoints configured successfully');
-}
+const API_ENDPOINTS = getApiEndpoints();
 
 const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNewSession }) => {
+  // Refs
+  const containerRef = useRef(null);
+  const contentRef = useRef(null);
+  const wizardRef = useRef(null);
+  
+  // State management
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'reading' | 'creating'
+  const [selectedArticleId, setSelectedArticleId] = useState(null);
+  const [previousArticleId, setPreviousArticleId] = useState(null);
+  
+  // Article generation state
+  const [topic, setTopic] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  // Reading progress state
+  const [readWords, setReadWords] = useState(0);
+  const [readingProgress, setReadingProgress] = useState(0);
+  const [readingTime, setReadingTime] = useState(0);
+  
+  // Wizard state
+  const [wizardStep, setWizardStep] = useState(1);
+  const [wizardParams, setWizardParams] = useState({
+    category: '',
+    difficulty: 'medium',
+    ageGroup: 'adult',
+    customOptions: [],
+    additionalInstructions: ''
+  });
+  
+  // UI state
+  const [showLimitAlert, setShowLimitAlert] = useState(false);
+  const [usageSummary, setUsageSummary] = useState(null);
+  const [showUsageWarning, setShowUsageWarning] = useState(false);
+  const [dailyLimitStatus, setDailyLimitStatus] = useState(null);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+
+  // Article data state
+  const [articles, setArticles] = useState([]);
+  const [articlesLoading, setArticlesLoading] = useState(true);
+  const [articlesError, setArticlesError] = useState(null);
+
+  // Fetch articles from API
+  const fetchArticles = useCallback(async () => {
+    setArticlesLoading(true);
+    setArticlesError(null);
+    try {
+      const response = await api.fetchReadingSessions();
+      if (response?.data) {
+        setArticles(response.data.map(session => ({
+          id: session.id,
+          title: session.title || 'Untitled Article',
+          category: session.metadata?.articleMetadata?.category || 'general',
+          difficulty: session.metadata?.articleMetadata?.difficulty || 'medium',
+          createdAt: session.createdAt,
+          progress: session.progress || 0
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to fetch articles:', error);
+      setArticlesError(error.message || 'Failed to load articles');
+    } finally {
+      setArticlesLoading(false);
+    }
+  }, []);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchArticles();
+  }, [fetchArticles]);
 
   const customizationOptionsExtended = [
     "Include real-world examples",
@@ -81,17 +237,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     { value: "hard", label: "Hard", description: "Advanced vocabulary, complex concepts" }
   ];
 
-  // Refs
-  const containerRef = useRef(null);
-  const contentRef = useRef(null);
-  const wizardRef = useRef(null);
-  
   // Enhanced state management with improved interaction tracking
-  const [topic, setTopic] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [readWords, setReadWords] = useState(0);
-  const [readingProgress, setReadingProgress] = useState(0);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [customStep, setCustomStep] = useState(1);
@@ -106,12 +252,6 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   const [selectedOptions, setSelectedOptions] = useState([]);
 
   // ENHANCED: Article navigation and management state
-  const [viewMode, setViewMode] = useState('list'); // 'list' | 'reading' | 'creating'
-  const [selectedArticleId, setSelectedArticleId] = useState(null);
-  const [previousArticleId, setPreviousArticleId] = useState(null); // Track previous article
-  const [showLimitAlert, setShowLimitAlert] = useState(false);
-
-  // ENHANCED: Smart view mode determination - only show list when 2+ articles exist
   const [forceListView, setForceListView] = useState(false);
 
   // Enhanced session management with better unused instance detection
@@ -119,12 +259,6 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
 
   // ENHANCED: Better interaction tracking - tracks meaningful user actions
   const [sessionInteractionLevel, setSessionInteractionLevel] = useState('none'); // 'none', 'wizard_started', 'article_generated', 'fully_engaged'
-
-  // Daily limit and usage state
-  const [dailyLimitStatus, setDailyLimitStatus] = useState(null);
-  const [showLimitModal, setShowLimitModal] = useState(false);
-  const [usageSummary, setUsageSummary] = useState(null);
-  const [showUsageWarning, setShowUsageWarning] = useState(false);
 
   // Session state management
   const [sessionState, setSessionState] = useState({
@@ -178,6 +312,148 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     setViewMode('creating');
     setSelectedArticleId(null);
   }, [onNewSession, setViewMode, setSelectedArticleId]);
+
+  // Article List View Renderer
+  const renderArticleListView = useCallback(() => {
+    return (
+      <div className="article-list-container">
+        <div className="list-header">
+          <div className="header-content">
+            <div className="header-info">
+              <h2 className="list-title">
+                <Book size={24} />
+                Your Reading Articles
+              </h2>
+              <p className="list-subtitle">
+                {articlesLoading ? 'Loading articles...' :
+                 articles.length === 0 
+                  ? 'Create your first reading article to get started'
+                  : `You have ${articles.length} of ${ARTICLE_LIMIT} articles`
+                }
+              </p>
+            </div>
+            
+            <button 
+              className="btn btn-primary create-btn"
+              onClick={handleCreateNewArticle}
+              disabled={articlesLoading || articles.length >= ARTICLE_LIMIT}
+            >
+              {articlesLoading ? (
+                <>
+                  <Clock size={16} className="spin" />
+                  <span>Loading...</span>
+                </>
+              ) : (
+                <>
+                  <Plus size={16} />
+                  <span>Create Article</span>
+                </>
+              )}
+            </button>
+          </div>
+          
+          {usageSummary?.reading_article && (
+            <div className="usage-display">
+              <BarChart3 size={16} />
+              <span>
+                Daily Usage: {usageSummary.reading_article.used || 0}/{usageSummary.reading_article.daily_limit || 0}
+                {(usageSummary.reading_article.remaining || 0) > 0 && (
+                  <span className="remaining"> ({usageSummary.reading_article.remaining} remaining)</span>
+                )}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {articlesLoading ? (
+          <div className="loading-state">
+            <Clock size={48} className="spin" />
+            <h3>Loading Articles</h3>
+            <p>Please wait while we fetch your reading articles...</p>
+          </div>
+        ) : articlesError ? (
+          <div className="error-state">
+            <AlertCircle size={48} className="error-icon" />
+            <h3>Failed to Load Articles</h3>
+            <p>{articlesError}</p>
+            <button 
+              className="btn btn-secondary"
+              onClick={fetchArticles}
+            >
+              <RefreshCw size={16} />
+              Retry
+            </button>
+          </div>
+        ) : articles.length === 0 ? (
+          <div className="empty-articles">
+            <div className="empty-icon">
+              <FileText size={48} />
+            </div>
+            <h3>No Articles Yet</h3>
+            <p>Create your first personalized reading article to begin your reading journey.</p>
+            <button 
+              className="btn btn-primary btn-large"
+              onClick={handleCreateNewArticle}
+            >
+              <Sparkles size={16} />
+              Create Your First Article
+            </button>
+          </div>
+        ) : (
+          <div className="articles-grid">
+            {articles.map((article, index) => (
+              <div 
+                key={article.id} 
+                className="article-card"
+                onClick={() => handleOpenArticle(article.id)}
+              >
+                <div className="card-header">
+                  <div className="article-number">#{index + 1}</div>
+                  <div className="article-date">
+                    {new Date(article.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+                
+                <h3 className="article-title">{article.title}</h3>
+                
+                <div className="article-meta">
+                  <span className={`category-tag ${article.category}`}>
+                    {categories.find(c => c.id === article.category)?.icon} {categories.find(c => c.id === article.category)?.name}
+                  </span>
+                  <span className={`difficulty-tag ${article.difficulty}`}>
+                    {difficultyLevels.find(d => d.value === article.difficulty)?.label}
+                  </span>
+                </div>
+                
+                <div className="progress-info">
+                  <div className="progress-bar">
+                    <div 
+                      className="progress-fill" 
+                      style={{ width: `${article.progress}%` }}
+                    />
+                  </div>
+                  <span className="progress-text">{article.progress}% complete</span>
+                </div>
+              </div>
+            ))}
+            
+            {articles.length < ARTICLE_LIMIT && (
+              <div 
+                className="article-card create-card"
+                onClick={handleCreateNewArticle}
+              >
+                <div className="create-content">
+                  <Plus size={32} />
+                  <h3>Create New Article</h3>
+                  <p>Generate another personalized reading article</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }, [articles, articlesLoading, articlesError, categories, difficultyLevels, handleCreateNewArticle, handleOpenArticle, usageSummary]);
 
   // Article management functions are handled by the enhanced handleOpenArticle function below
 
@@ -276,7 +552,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   useEffect(() => {
     const fetchUsageSummary = async () => {
       try {
-        const response = await fetch(USAGE_ENDPOINT);
+        const response = await fetch(API_ENDPOINTS.USAGE_SUMMARY);
         if (response.ok) {
           const data = await response.json();
           setUsageSummary(data.usage_summary);
@@ -698,90 +974,8 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
     );
   };
 
-  // ENHANCED: Article List View Renderer
-  const renderArticleListView = () => {
-    const articleSessions = onNewSession?.getArticleSessions?.() || [];
-    
-    return (
-      <div className="article-list-container">
-        <header className="article-list-header">
-          <h2 className="article-list-title">📚 Your Reading Articles</h2>
-          <p className="article-list-subtitle">
-            {articleSessions.length === 0 
-              ? 'Create your first reading article to get started'
-              : `You have ${articleSessions.length} of ${ARTICLE_LIMIT} articles`
-            }
-          </p>
-        </header>
+  // Article List View Renderer
 
-        {articleSessions.length === 0 ? (
-          <div className="empty-articles-state">
-            <div className="empty-icon">📖</div>
-            <h3>No Articles Yet</h3>
-            <p>Create your first personalized reading article to begin your reading journey.</p>
-            <button 
-              onClick={handleCreateNewArticle}
-              className="btn btn-primary btn-large"
-            >
-              <span className="btn-icon">✨</span>
-              Create Your First Article
-            </button>
-          </div>
-        ) : (
-          <div className="articles-grid">
-            {articleSessions.map((session, index) => (
-              <div 
-                key={session.id} 
-                className="article-card"
-                onClick={() => handleOpenArticle(session.id)}
-              >
-                <div className="article-card-header">
-                  <div className="article-number">Article #{index + 1}</div>
-                  <div className="article-date">
-                    {new Date(session.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
-                <h3 className="article-title">
-                  {session.title || 'Untitled Article'}
-                </h3>
-                <div className="article-meta">
-                  {session.metadata?.articleMetadata && (
-                    <>
-                      <span className="article-category">
-                        {session.metadata.articleMetadata.category}
-                      </span>
-                      <span className="article-difficulty">
-                        {session.metadata.articleMetadata.difficulty}
-                      </span>
-                    </>
-                  )}
-                </div>
-                <div className="article-progress">
-                  <div className="progress-info">
-                    <span>Reading Progress</span>
-                    <span>Click to continue</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            {articleSessions.length < ARTICLE_LIMIT && (
-              <div 
-                className="article-card create-new-card"
-                onClick={handleCreateNewArticle}
-              >
-                <div className="create-new-content">
-                  <div className="create-icon">+</div>
-                  <h3>Create New Article</h3>
-                  <p>Generate another personalized reading article</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   // ENHANCED: Article Limit Alert Modal
   const renderArticleLimitAlert = () => {
@@ -1032,232 +1226,20 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
       {renderUsageWarning()}
       {renderArticleLimitAlert()}
       
-      {/* Conditional View Rendering Based on Article Count */}
-      
-      {/* Article List View - Only show when 2+ articles OR forced */}
-      {viewMode === 'list' && shouldShowArticleList() && renderArticleListView()}
-      
-      {/* Single Article Direct View - When only 1 article exists and not forced to list */}
-      {viewMode === 'list' && !shouldShowArticleList() && (
-        <div className="single-article-container">
-          <header className="single-article-header">
-            <h2 className="single-article-title">📖 Your Reading Article</h2>
-            <p className="single-article-subtitle">
-              Create more articles to see them organized in a list view
-            </p>
-            <button 
-              onClick={handleCreateNewArticle}
-              className="btn btn-primary"
-            >
-              <span className="btn-icon">✨</span>
-              Create Second Article
-            </button>
-          </header>
-        </div>
-      )}
-      
+      {/* Article List View */}
+      {viewMode === 'list' && renderArticleListView()}
+
       {/* Article Creation View */}
       {viewMode === 'creating' && (
-        <div className="rp-body">
-          {/* Header Section - Only subtitle for setup */}
-          <header className="integrated-header">
-            <div className="navigation-header">
-              {shouldShowArticleList() && (
-                <button 
-                  onClick={handleGoBackToList}
-                  className="back-button"
-                >
-                  <span className="back-icon">←</span>
-                  Back to Articles
-                </button>
-              )}
-              <h2 className="creation-title">Create New Article</h2>
-            </div>
-            <p className="rp-subtitle">
-              Customize and generate a reading article tailored to your interests and level.
-            </p>
-          </header>
-
-          {/* Usage info display */}
-          {usageSummary?.reading_article && (
-            <div className="usage-info-display">
-              <div className="usage-info-header">
-                <span className="usage-icon">📊</span>
-                <span className="usage-title">Daily Usage</span>
-              </div>
-              <div className="usage-info-content">
-                Reading Articles: {usageSummary.reading_article.used || 0}/{usageSummary.reading_article.daily_limit || 0} used today
-                {(usageSummary.reading_article.remaining || 0) > 0 && (
-                  <span className="usage-remaining">
-                    {' '}({usageSummary.reading_article.remaining || 0} remaining)
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Customization Wizard */}
-          <aside className="unified-container" ref={wizardRef}>
-            {!topic && !error && (
-              <div className="wizard-container">
-                <div className="wizard-header">
-                  <div className="wizard-progress">
-                    {Array.from({ length: 6 }, (_, i) => (
-                      <div
-                        key={i + 1}
-                        className={`progress-step ${customStep >= i + 1 ? 'active' : ''} ${customStep > i + 1 ? 'completed' : ''}`}
-                      >
-                        {customStep > i + 1 ? '✓' : i + 1}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="wizard-info">
-                    <span className="step-indicator">Step {customStep} of 6</span>
-                    <span className="step-subtitle">Article Generation Wizard</span>
-                  </div>
-                </div>
-                <div className="wizard-content">
-                  {renderWizardStep()}
-                </div>
-              </div>
-            )}
-
-            {/* Error state with modern design */}
-            {error && (
-              <div className="error-state">
-                <div className="error-icon">⚠️</div>
-                <h3 className="error-title">Oops! Something went wrong</h3>
-                <p className="error-message">{error}</p>
-                <div className="error-actions">
-                  <button onClick={resetToWizard} className="btn btn-primary">
-                    <span className="btn-icon">🔄</span>
-                    Try Again
-                  </button>
-                  {shouldShowArticleList() && (
-                    <button onClick={handleGoBackToList} className="btn btn-secondary">
-                      <span className="btn-icon">←</span>
-                      Back to Articles
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </aside>
+        <div className="creation-container">
+          {/* Creation view implementation coming next */}
         </div>
       )}
 
       {/* Article Reading View */}
-      {viewMode === 'reading' && (
-        <div className="rp-body">
-          {/* Article Bubbles Container - Show when multiple articles exist */}
-          {(() => {
-            const articleSessions = onNewSession?.getArticleSessions?.() || [];
-            const otherArticles = articleSessions.filter(session => session.id !== selectedArticleId);
-            
-            return otherArticles.length > 0 && (
-              <div className="article-bubbles-container">
-                <div className="bubbles-header">
-                  <h4 className="bubbles-title">📚 Other Articles</h4>
-                  <span className="bubble-count">
-                    {otherArticles.length} article{otherArticles.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                <div className="article-bubbles-grid">
-                  {otherArticles.map((article) => (
-                    <CompactArticleBubble
-                      key={article.id}
-                      article={article}
-                      onClick={() => handleOpenArticle(article.id)}
-                      isActive={false}
-                      className="reading-bubble"
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Reading Article Content - Full Width */}
-          {topic && (
-            <main className="article-content">
-              <div className="article-navigation">
-                <div className="nav-left">
-                  {shouldShowArticleList() ? (
-                    <button 
-                      onClick={handleGoBackToList}
-                      className="back-button"
-                    >
-                      <span className="back-icon">←</span>
-                      Back to Articles
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={handleCreateNewArticle}
-                      className="back-button"
-                    >
-                      <span className="back-icon">+</span>
-                      Create Another Article
-                    </button>
-                  )}
-                  
-                  {/* Previous Article Button */}
-                  {previousArticleId && (
-                    <button 
-                      onClick={() => handleOpenArticle(previousArticleId)}
-                      className="back-button previous-article-btn"
-                      title="Go back to previous article"
-                    >
-                      <span className="back-icon">↶</span>
-                      Previous Article
-                    </button>
-                  )}
-                </div>
-                
-                <div className="nav-right">
-                  {renderNewSessionButton()}
-                </div>
-              </div>
-              
-              {/* Article Header with Title */}
-              <header className="article-header">
-                <h1 className="article-title">{topic.title}</h1>
-              </header>
-              
-              <div
-                className="topic-content"
-                ref={contentRef}
-                onScroll={handleScroll}
-              >
-                {/* Reading Progress */}
-                <div className="reading-progress">
-                  <div className="progress-stats">
-                    <span className="progress-text">
-                      Words read: <strong>{readWords}</strong>
-                    </span>
-                    <span className="progress-percentage">
-                      {Math.round(readingProgress * 100)}% complete
-                    </span>
-                  </div>
-                  <div className="progress-bar">
-                    <div 
-                      className="progress-fill" 
-                      style={{ width: `${readingProgress * 100}%` }}
-                      aria-label={`Reading progress: ${Math.round(readingProgress * 100)}%`}
-                    />
-                  </div>
-                </div>
-                
-                {/* Article Paragraphs with Better Spacing */}
-                <div className="article-body">
-                  {paragraphs.map((paragraph, index) => (
-                    <p key={index} className="article-paragraph">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </main>
-          )}
+      {viewMode === 'reading' && topic && (
+        <div className="reading-container">
+          {/* Reading view implementation coming after creation view */}
         </div>
       )}
     </div>

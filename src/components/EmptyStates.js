@@ -1,8 +1,5 @@
 import React from 'react';
 import { Search, MessageCircle, FileText, Users, Settings, Plus } from 'lucide-react';
-import { Button } from './ui';
-import Lottie from 'lottie-react';
-import loadingAnimation from '../assets/animations/loading.json';
 import '../assets/styles/LoadingStates.css';
 
 // Generic empty state component
