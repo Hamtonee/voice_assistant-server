@@ -27,7 +27,7 @@ const SemaNamiLayout = ({
   const isDesktop = useMediaQuery('(min-width: 1025px)');
   
   // Layout state
-  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // Always start open, then adjust based on screen size
   const [sidebarMode, setSidebarMode] = useState('normal'); // 'normal', 'collapsed', 'overlay'
   
   // Feature detection from current route
@@ -51,10 +51,8 @@ const SemaNamiLayout = ({
     if (isMobile) {
       setSidebarMode('overlay');
       setSidebarOpen(false);
-    } else if (isTablet) {
-      setSidebarMode('normal');
-      setSidebarOpen(true);
-    } else if (isDesktop) {
+    } else {
+      // Desktop and tablet should always have sidebar open by default
       setSidebarMode('normal');
       setSidebarOpen(true);
     }

@@ -21,66 +21,14 @@ import {
   ScenarioPicker
 } from './';
 
+// Import the proper layout component
+import SemaNamiLayout from './layout/SemaNamiLayout';
+
 // Data imports - using proper ES6 imports
 import { availableScenarios } from '../data/rolePlayScenarios';
 
 // Styles
 import '../assets/styles/ChatWindow.css';
-
-// Fallback hooks in case of import failure
-const fallbackSessionManagement = () => ({
-  getSessionsByFeature: () => [],
-  getCurrentActiveId: () => null,
-  createNewSession: async () => {},
-  selectSession: () => {},
-  deleteSession: async () => {},
-  renameSession: async () => {},
-  fetchSessions: async () => {}
-});
-
-const fallbackResponsiveLayout = () => ({
-  viewport: { isMobile: false, isTablet: false },
-  sidebarOpen: false,
-  toggleSidebar: () => {},
-  closeSidebarOnMobile: () => {}
-});
-
-// Create a fallback with basic state management
-let fallbackState = {
-  selectedFeature: 'chat',
-  scenario: null,
-  selectedVoice: null
-};
-
-const fallbackFeatureNavigation = () => ({
-  selectedFeature: fallbackState.selectedFeature,
-  scenario: fallbackState.scenario,
-  selectedVoice: fallbackState.selectedVoice,
-  features: ['chat', 'sema', 'tusome'],
-  handleFeatureSelect: (featureId) => {
-    console.log(`🔧 [FALLBACK] handleFeatureSelect called with: "${featureId}"`);
-    console.log(`🔄 [Feature Selection] Switching from ${fallbackState.selectedFeature} to ${featureId}`);
-    fallbackState.selectedFeature = featureId;
-    if (featureId !== 'chat') {
-      fallbackState.scenario = null;
-    }
-    // Force re-render by triggering a window update
-    window.dispatchEvent(new CustomEvent('fallback-feature-change'));
-  },
-  handleSelectScenario: (scenarioData) => {
-    console.log(`🔧 [FALLBACK] handleSelectScenario called with:`, scenarioData);
-    fallbackState.scenario = scenarioData;
-    window.dispatchEvent(new CustomEvent('fallback-feature-change'));
-  },
-  handleVoiceSelect: () => {},
-  clearScenario: () => {
-    console.log(`🔧 [FALLBACK] clearScenario called`);
-    fallbackState.scenario = null;
-    window.dispatchEvent(new CustomEvent('fallback-feature-change'));
-  },
-  needsScenarioSelection: () => fallbackState.selectedFeature === 'chat' && !fallbackState.scenario,
-  isFeatureReady: () => fallbackState.selectedFeature !== 'chat' || !!fallbackState.scenario
-});
 
 // Error Boundary Component
 class ChatWindowErrorBoundary extends React.Component {
@@ -129,52 +77,40 @@ const ChatWindow = React.memo(() => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // CRITICAL FIX: Always call hooks unconditionally (React Hooks rule)
-  const sessionHookResult = useSessionManagementHook();
-  const layoutHookResult = useResponsiveLayoutHook();
-  const navigationHookResult = useFeatureNavigationHook();
-  
-  // Use results or fallbacks
-  const sessionResult = sessionHookResult || fallbackSessionManagement();
-  const layoutResult = layoutHookResult || fallbackResponsiveLayout();
-  const navigationResult = navigationHookResult || fallbackFeatureNavigation();
-
-  // Destructure with fallbacks
+  // FIXED: Use the actual hooks directly instead of fallbacks
   const {
-    getSessionsByFeature = () => [],
-    getCurrentActiveId = () => null,
-    createNewSession = async () => {},
-    selectSession = () => {},
-    deleteSession = async () => {},
-    renameSession = async () => {},
-    fetchSessions = async () => {}
-  } = sessionResult;
+    getSessionsByFeature,
+    getCurrentActiveId,
+    createNewSession,
+    selectSession,
+    deleteSession,
+    renameSession,
+    fetchSessions
+  } = useSessionManagementHook();
 
   const {
-    viewport = { isMobile: false, isTablet: false },
-    sidebarOpen = false,
-    toggleSidebar = () => {},
-    closeSidebarOnMobile = () => {}
-  } = layoutResult;
+    viewport,
+    sidebarOpen,
+    toggleSidebar,
+    closeSidebarOnMobile
+  } = useResponsiveLayoutHook();
 
   const {
-    selectedFeature = 'chat',
-    scenario = null,
-    selectedVoice = null,
-    features = ['chat', 'sema', 'tusome'],
-    handleFeatureSelect = () => {
-      console.error('⚠️ Using fallback handleFeatureSelect - this indicates hook import failed');
-    },
-    handleSelectScenario = () => {},
-    clearScenario = () => {},
-    needsScenarioSelection = () => false,
-    isFeatureReady = () => true
-  } = navigationResult;
+    selectedFeature,
+    scenario,
+    selectedVoice,
+    features,
+    handleFeatureSelect,
+    handleSelectScenario,
+    clearScenario,
+    needsScenarioSelection,
+    isFeatureReady
+  } = useFeatureNavigationHook();
 
-  // Debug logging for feature navigation
-  console.log('🔍 ChatWindow: Navigation result type:', typeof navigationResult);
-  console.log('🔍 ChatWindow: handleFeatureSelect type:', typeof handleFeatureSelect);
-  console.log('🔍 ChatWindow: Is fallback being used?', handleFeatureSelect.toString().includes('fallback'));
+  // Debug logging for session management
+  console.log('🔍 ChatWindow: selectedFeature:', selectedFeature);
+  console.log('🔍 ChatWindow: scenario:', scenario);
+  console.log('🔍 ChatWindow: sessions count:', getSessionsByFeature(selectedFeature).length);
 
   // Initialize sessions on component mount with error handling
   useEffect(() => {
@@ -465,30 +401,19 @@ const ChatWindow = React.memo(() => {
 
   return (
     <ChatWindowErrorBoundary>
-      <div className={`app-container ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-        {/* Feature Header */}
-        <div style={{ gridArea: 'header' }}>
-          <FeatureHeader {...headerProps} />
-        </div>
-        
-        {/* Sidebar */}
-        <div className="sidebar">
-          <ChatSidebar {...sidebarProps} />
-        </div>
-        
-        {/* Mobile Sidebar Backdrop */}
-        {viewport.isMobile && sidebarOpen && (
-          <div 
-            className="mobile-backdrop"
-            onClick={toggleSidebar}
-          />
-        )}
-        
-        {/* Main Content Area */}
-        <div className="chat-content">
-          {renderMainContent()}
-        </div>
-      </div>
+      <SemaNamiLayout
+        sessions={getSessionsByFeature(selectedFeature)}
+        activeChatId={getCurrentActiveId(selectedFeature)}
+        onSelectChat={handleSelectSession}
+        onNewChat={handleNewSession}
+        onRenameChat={handleRenameSession}
+        onDeleteChat={handleDeleteSession}
+        currentScenarioKey={scenario?.key}
+        hasCurrentChatContent={false}
+        platformName="Voice Assistant"
+      >
+        {renderMainContent()}
+      </SemaNamiLayout>
     </ChatWindowErrorBoundary>
   );
 });

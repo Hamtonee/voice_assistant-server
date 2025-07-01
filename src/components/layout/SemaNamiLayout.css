@@ -85,6 +85,15 @@
   grid-template-columns: var(--layout-sidebar-width-desktop) 1fr;
 }
 
+/* Force sidebar to be visible on desktop by default */
+.semanami-layout--desktop {
+  grid-template-columns: var(--layout-sidebar-width-desktop) 1fr !important;
+}
+
+.semanami-layout--desktop.semanami-layout--sidebar-closed {
+  grid-template-columns: 0 1fr;
+}
+
 /* ====================================================================
    SIDEBAR AREA
    Navigation, branding, chat history, new session
