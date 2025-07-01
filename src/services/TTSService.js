@@ -24,11 +24,11 @@ class TTSService {
         this.isBrowserTTS = false;
         this.browserSynth = null;
         this.isInitialized = false;
+        this.initPromise = null;
         
         // Initialize asynchronously to avoid constructor issues
         if (typeof window !== 'undefined') {
-            // Delay initialization to ensure proper binding
-            setTimeout(() => this.initializeTTS(), 100);
+            this.initPromise = this.initializeTTS();
         }
     }
 
@@ -37,12 +37,29 @@ class TTSService {
         
         try {
             // Initialize browser TTS first
-            if (typeof window !== 'undefined') {
+            if (typeof window !== 'undefined' && window.speechSynthesis) {
                 try {
                     this.browserSynth = window.speechSynthesis;
-                    if (this.browserSynth) {
-                        // Pre-load voices safely
-                        this.browserSynth.getVoices();
+                    
+                    // Wait for voices to load
+                    await new Promise((resolve) => {
+                        let voices = this.browserSynth.getVoices();
+                        if (voices.length > 0) {
+                            resolve(voices);
+                        } else {
+                            this.browserSynth.onvoiceschanged = () => {
+                                voices = this.browserSynth.getVoices();
+                                resolve(voices);
+                            };
+                        }
+                    });
+                    
+                    // Ensure speak method is properly bound
+                    if (typeof this.browserSynth.speak === 'function') {
+                        const originalSpeak = this.browserSynth.speak;
+                        this.browserSynth.speak = function(...args) {
+                            return originalSpeak.apply(this.browserSynth, args);
+                        }.bind(this);
                     }
                 } catch (voiceError) {
                     console.warn('⚠️ Failed to initialize browser TTS:', voiceError.message);
@@ -69,6 +86,11 @@ class TTSService {
     }
 
     async speak(text, options = {}) {
+        // Ensure initialization is complete
+        if (this.initPromise) {
+            await this.initPromise;
+        }
+        
         if (!text?.trim()) return;
         
         try {
@@ -136,18 +158,14 @@ class TTSService {
                 utterance.pitch = options.pitch || 1;
                 utterance.volume = options.volume || 1;
                 
-                // Try to match requested voice - with safety checks
+                // Try to match requested voice
                 if (options.voice && this.browserSynth) {
-                    try {
-                        const voices = this.browserSynth.getVoices();
-                        if (voices && voices.length > 0) {
-                            const voice = voices.find(v => 
-                                v.name.toLowerCase().includes(options.voice.toLowerCase())
-                            );
-                            if (voice) utterance.voice = voice;
-                        }
-                    } catch (voiceError) {
-                        console.warn('Failed to set voice:', voiceError.message);
+                    const voices = this.browserSynth.getVoices();
+                    if (voices && voices.length > 0) {
+                        const voice = voices.find(v => 
+                            v.name.toLowerCase().includes(options.voice.toLowerCase())
+                        );
+                        if (voice) utterance.voice = voice;
                     }
                 }
 
@@ -156,18 +174,12 @@ class TTSService {
                     console.error('Browser TTS error:', event);
                     reject(new Error('Speech synthesis failed'));
                 };
-                
-                // Use a safer way to call speak
-                if (typeof this.browserSynth.speak === 'function') {
-                    try {
-                        const boundSpeak = this.browserSynth.speak.bind(this.browserSynth);
-                        boundSpeak(utterance);
-                    } catch (error) {
-                        console.error('Failed to speak:', error);
-                        reject(error);
-                    }
+
+                // Use Function.prototype.call to ensure proper this binding
+                if (this.browserSynth && typeof this.browserSynth.speak === 'function') {
+                    Function.prototype.call.call(this.browserSynth.speak, this.browserSynth, utterance);
                 } else {
-                    reject(new Error('Speech synthesis speak method not available'));
+                    reject(new Error('Speech synthesis not available'));
                 }
             } catch (error) {
                 console.error('Failed to initialize speech:', error);
