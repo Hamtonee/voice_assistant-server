@@ -8,6 +8,13 @@ const ENDPOINTS = {
     HEALTH: '/health'
 };
 
+// Default voice configuration
+const defaultVoiceConfig = {
+    voiceName: 'en-US-Standard-A',
+    languageCode: 'en-US',
+    speakingRate: 1.0
+};
+
 class TTSService {
     constructor() {
         this.audioCache = new Map();
