@@ -28,7 +28,40 @@
   padding: 16px;
 }
 
-/* Collapsed state handled by grid layout in ChatWindow.css */
+.chat-sidebar.dark {
+  --sidebar-bg: #1a1a1a;
+  --text-color: #ffffff;
+  --border-color: #2d2d2d;
+  --hover-bg: #2d2d2d;
+  --active-bg: #363636;
+  color: var(--text-color);
+}
+
+.chat-sidebar__toggle {
+  position: absolute;
+  right: -40px;
+  top: 10px;
+  width: 32px;
+  height: 32px;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  color: var(--text-color);
+}
+
+.chat-sidebar__toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.chat-sidebar.collapsed {
+  transform: translateX(-280px);
+}
 
 /*-------------------------------------------------------
   Platform header with logo (Left-aligned)

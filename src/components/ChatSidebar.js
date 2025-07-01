@@ -23,6 +23,7 @@ export default function ChatSidebar({
   // Prevent keyboard popup and handle mobile interactions
   useEffect(() => {
     const handleTouchStart = (e) => {
+      // Prevent focus on input elements when not intended
       if (e.target.tagName === 'INPUT' && e.target.classList.contains('chat-sidebar__search-input')) {
         e.preventDefault();
         e.target.blur();
@@ -41,67 +42,30 @@ export default function ChatSidebar({
 
   return (
     <div className={`chat-sidebar ${isDark ? 'dark' : ''}`} ref={sidebarRef}>
-      {/* Header */}
       <div className="chat-sidebar__header">
         <img src={logo} alt={platformName} className="chat-sidebar__logo" />
         <h1 className="chat-sidebar__title">{platformName}</h1>
       </div>
 
-      {/* Navigation Buttons - Vertical */}
-      <div className="chat-sidebar__nav">
-        <button
-          className={`chat-sidebar__nav-btn ${selectedFeature === 'chat' ? 'active' : ''}`}
-          onClick={() => onSelectFeature('chat')}
-        >
-          <span role="img" aria-label="chat">💬</span>
-          Chat Roleplay
-        </button>
-        <button
-          className={`chat-sidebar__nav-btn ${selectedFeature === 'sema' ? 'active' : ''}`}
-          onClick={() => onSelectFeature('sema')}
-        >
-          <span role="img" aria-label="microphone">🎤</span>
-          Speech Coach
-        </button>
-        <button
-          className={`chat-sidebar__nav-btn ${selectedFeature === 'tusome' ? 'active' : ''}`}
-          onClick={() => onSelectFeature('tusome')}
-        >
-          <span role="img" aria-label="book">📚</span>
-          Reading Practice
-        </button>
+      <div className="chat-sidebar__content">
+        <ChatList
+          sessions={chatInstances}
+          activeChatId={activeChatId}
+          onSelectChat={onSelectChat}
+          onRenameChat={onRenameChat}
+          onDeleteChat={onDeleteChat}
+          selectedFeature={selectedFeature}
+          scenarioKey={currentScenarioKey}
+        />
+      </div>
 
-        {/* New Chat Button */}
+      <div className="chat-sidebar__footer">
         <button
           className="chat-sidebar__new-chat-btn"
           onClick={onNewChat}
         >
-          <span>+</span>
-          New {selectedFeature === 'sema' ? 'Speech' : selectedFeature === 'tusome' ? 'Reading' : 'Chat'} Session
+          + New {selectedFeature === 'sema' ? 'Speech' : selectedFeature === 'tusome' ? 'Reading' : 'Chat'} Session
         </button>
-      </div>
-
-      {/* Chat List */}
-      <div className="chat-sidebar__content">
-        {chatInstances.length > 0 ? (
-          <ChatList
-            sessions={chatInstances}
-            activeChatId={activeChatId}
-            onSelectChat={onSelectChat}
-            onRenameChat={onRenameChat}
-            onDeleteChat={onDeleteChat}
-            selectedFeature={selectedFeature}
-            scenarioKey={currentScenarioKey}
-          />
-        ) : (
-          <div className="chat-list-empty">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M8 12h8m-4-4v8m8 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p>No {selectedFeature === 'sema' ? 'speech' : selectedFeature === 'tusome' ? 'reading' : 'chat'} sessions yet</p>
-            <span>Click the button above to start a new session</span>
-          </div>
-        )}
       </div>
     </div>
   );
