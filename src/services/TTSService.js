@@ -4,7 +4,8 @@ import { handleApiError, logError, createError } from '../utils/errorHandler';
 // Constants
 const ENDPOINTS = {
     TTS: '/tts',  // Updated endpoint
-    VOICES: '/voices'
+    VOICES: '/voices',
+    HEALTH: '/health'  // Added health endpoint
 };
 
 const defaultVoiceConfig = {
@@ -22,18 +23,22 @@ class TTSService {
         this.pendingRequests = new Map();
         this.isBrowserTTS = false;
         this.browserSynth = null;
+        this.isInitialized = false;
         
         // Initialize asynchronously to avoid constructor issues
         if (typeof window !== 'undefined') {
-            setTimeout(() => this.initializeTTS(), 0);
+            // Delay initialization to ensure proper binding
+            setTimeout(() => this.initializeTTS(), 100);
         }
     }
 
     async initializeTTS() {
+        if (this.isInitialized) return;
+        
         try {
             // Try server TTS first - make health check optional
             try {
-                const response = await api.get('/health', { timeout: 5000 });
+                const response = await api.get(ENDPOINTS.HEALTH, { timeout: 5000 });
                 this.isBrowserTTS = !response.data?.tts_available;
                 console.log('✅ TTS health check successful');
             } catch (healthError) {
@@ -52,15 +57,24 @@ class TTSService {
                 // Ensure browserSynth is properly initialized
                 this.browserSynth = window.speechSynthesis;
                 if (this.browserSynth) {
-                    // Bind speak method
-                    this.browserSynth.speak = this.browserSynth.speak.bind(this.browserSynth);
                     // Pre-load voices safely
                     this.browserSynth.getVoices();
+                    
+                    // Bind speak method - critical for proper operation
+                    if (typeof this.browserSynth.speak === 'function') {
+                        this.browserSynth.speak = this.browserSynth.speak.bind(this.browserSynth);
+                    } else {
+                        console.warn('⚠️ Speech synthesis speak method not available');
+                        this.browserSynth = null;
+                    }
                 }
             } catch (voiceError) {
                 console.warn('⚠️ Failed to initialize browser TTS:', voiceError.message);
+                this.browserSynth = null;
             }
         }
+        
+        this.isInitialized = true;
     }
 
     async speak(text, options = {}) {

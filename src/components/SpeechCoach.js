@@ -34,7 +34,6 @@ export default function SpeechCoach({
   const [isRecording, setIsRecording] = useState(alwaysListen);
   const [inputText, setInputText] = useState('');
   const [error, setError] = useState(null);
-  // const [ttsAvailable, setTTSAvailable] = useState(false);
   const [isSpeechSupported, setIsSpeechSupported] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -58,26 +57,38 @@ export default function SpeechCoach({
   const ttsServiceRef = useRef(null);
   const isUnmountingRef = useRef(false);
   const messagesRef = useRef(null);
-  const audioRef = useRef(null); // Ref for the audio element
+  const audioRef = useRef(null);
 
   // Initialize speech services
   useEffect(() => {
     isUnmountingRef.current = false;
-    ttsServiceRef.current = new TTSService();
     
     const initializeApp = async () => {
       try {
-        // Check TTS availability
-        // const ttsAvailable = await ttsServiceRef.current.checkStatus();
-        // setTTSAvailable(ttsAvailable);
+        // Initialize TTS service first
+        if (!ttsServiceRef.current) {
+          ttsServiceRef.current = new TTSService();
+          // Wait for TTS to initialize
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
         
         // Initialize speech recognition
         if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
           const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
           recognitionRef.current = new SpeechRecognition();
-          recognitionRef.current.continuous = true;
-          recognitionRef.current.interimResults = true;
-          setIsSpeechSupported(true);
+          
+          // Bind recognition methods
+          if (recognitionRef.current) {
+            recognitionRef.current.continuous = true;
+            recognitionRef.current.interimResults = true;
+            
+            // Bind event handlers
+            recognitionRef.current.onresult = handleRecognitionResult;
+            recognitionRef.current.onerror = handleRecognitionError;
+            recognitionRef.current.onend = handleRecognitionEnd;
+            
+            setIsSpeechSupported(true);
+          }
         } else {
           setIsSpeechSupported(false);
           setBrowserWarning('Speech recognition is not supported in this browser. Please use Chrome or Edge for the best experience.');
@@ -92,15 +103,55 @@ export default function SpeechCoach({
 
     return () => {
       isUnmountingRef.current = true;
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (ttsRef.current) {
-        ttsRef.current.pause();
-        ttsRef.current = null;
-      }
+      cleanup();
     };
   }, []);
+
+  // Cleanup function
+  const cleanup = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.warn('Error stopping recognition:', e);
+      }
+    }
+    if (ttsRef.current) {
+      try {
+        ttsRef.current.pause();
+        ttsRef.current = null;
+      } catch (e) {
+        console.warn('Error cleaning up TTS:', e);
+      }
+    }
+  }, []);
+
+  // Recognition event handlers
+  const handleRecognitionResult = useCallback((event) => {
+    let finalTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript;
+      }
+    }
+    setInputText(prev => prev + finalTranscript);
+  }, []);
+
+  const handleRecognitionError = useCallback((event) => {
+    console.error('Speech Recognition Error:', event);
+    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      setBrowserWarning('Microphone access denied. Please enable it in your browser settings.');
+    } else {
+      setError('An error occurred during speech recognition.');
+    }
+    setIsRecording(false);
+  }, []);
+
+  const handleRecognitionEnd = useCallback(() => {
+    if (!isUnmountingRef.current && !alwaysListen) {
+      setIsRecording(false);
+    }
+  }, [alwaysListen]);
 
   // Handle scroll detection
   useEffect(() => {
@@ -140,35 +191,6 @@ export default function SpeechCoach({
       setIsRecording(true);
       setError(null);
 
-      recognitionRef.current.onresult = (event) => {
-        // let interimTranscript = '';
-        let finalTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          } else {
-            // interimTranscript += event.results[i][0].transcript;
-          }
-        }
-        setInputText(prev => prev + finalTranscript);
-      };
-
-      recognitionRef.current.onerror = (event) => {
-        console.error('Speech Recognition Error:', event);
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          setBrowserWarning('Microphone access denied. Please enable it in your browser settings.');
-        } else {
-          setError('An error occurred during speech recognition.');
-        }
-        setIsRecording(false);
-      };
-
-      recognitionRef.current.onend = () => {
-        if (!isUnmountingRef.current && !alwaysListen) {
-          setIsRecording(false);
-        }
-      };
-
       recognitionRef.current.start();
     } catch (err) {
       if (err.name === 'InvalidStateError') {
@@ -179,7 +201,7 @@ export default function SpeechCoach({
         setIsRecording(false);
       }
     }
-  }, [isRecording, alwaysListen]);
+  }, [isRecording]);
 
   // Stop recording
   const handleStopRecording = useCallback(() => {
