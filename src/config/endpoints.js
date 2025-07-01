@@ -46,7 +46,7 @@ export const endpoints = {
   SPEECH_COACH: '/speech-coach',
   CHAT_ROLEPLAY: '/chat-roleplay',
   READING_TOPIC: '/reading-topic',
-  HEALTH: '/health',
+  HEALTH: '/api/health',
   USAGE: '/api/usage-summary',
   LEARNING_PROGRESS: '/learning-progress',
   CHATS: '/chats',
