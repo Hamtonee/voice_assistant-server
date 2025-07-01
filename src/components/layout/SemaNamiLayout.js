@@ -16,7 +16,7 @@ const SemaNamiLayout = ({
   onDeleteChat,
   currentScenarioKey,
   hasCurrentChatContent,
-  platformName = "SemaNami"
+  platformName = "Voice Assistant"
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,15 +27,28 @@ const SemaNamiLayout = ({
   const isDesktop = useMediaQuery('(min-width: 1025px)');
   
   // Layout state
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Always start open, then adjust based on screen size
-  const [sidebarMode, setSidebarMode] = useState('normal'); // 'normal', 'collapsed', 'overlay'
+  const [sidebarOpen, setSidebarOpen] = useState(isDesktop); // Start open only on desktop
+  const [sidebarMode, setSidebarMode] = useState('normal');
   
+  // Handle responsive sidebar behavior
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarMode('overlay');
+      setSidebarOpen(false);
+    } else if (isTablet) {
+      setSidebarMode('normal');
+      setSidebarOpen(false);
+    } else {
+      setSidebarMode('normal');
+      setSidebarOpen(true);
+    }
+  }, [isMobile, isTablet, isDesktop]);
+
   // Feature detection from current route
   const getSelectedFeature = useCallback(() => {
     const path = location.pathname;
     if (path.includes('/sema')) return 'sema';
     if (path.includes('/tusome')) return 'tusome';
-    if (path.includes('/chat')) return 'chat';
     return 'chat'; // default
   }, [location.pathname]);
   
@@ -46,31 +59,14 @@ const SemaNamiLayout = ({
     setSelectedFeature(getSelectedFeature());
   }, [getSelectedFeature]);
   
-  // Handle responsive sidebar behavior
-  useEffect(() => {
-    if (isMobile) {
-      setSidebarMode('overlay');
-      setSidebarOpen(false);
-    } else if (isTablet) {
-      setSidebarMode('normal');
-      setSidebarOpen(true);
-    } else {
-      // Desktop should always have sidebar open
-      setSidebarMode('normal');
-      setSidebarOpen(true);
-    }
-  }, [isMobile, isTablet, isDesktop]);
-  
   // Sidebar actions
   const toggleSidebar = useCallback(() => {
     setSidebarOpen(prev => !prev);
   }, []);
   
   const closeSidebar = useCallback(() => {
-    if (isMobile) {
-      setSidebarOpen(false);
-    }
-  }, [isMobile]);
+    setSidebarOpen(false);
+  }, []);
 
   // Close sidebar on route change in mobile
   useEffect(() => {
@@ -82,15 +78,15 @@ const SemaNamiLayout = ({
   // Close sidebar on escape key
   useEffect(() => {
     const handleEscKey = (e) => {
-      if (e.key === 'Escape' && isMobile && sidebarOpen) {
+      if (e.key === 'Escape' && (isMobile || isTablet) && sidebarOpen) {
         closeSidebar();
       }
     };
 
     window.addEventListener('keydown', handleEscKey);
     return () => window.removeEventListener('keydown', handleEscKey);
-  }, [isMobile, sidebarOpen, closeSidebar]);
-  
+  }, [isMobile, isTablet, sidebarOpen, closeSidebar]);
+
   // Feature navigation
   const handleFeatureSelect = useCallback((feature) => {
     let path = '/chats';
@@ -177,6 +173,19 @@ const SemaNamiLayout = ({
   
   return (
     <div className={layoutClasses}>
+      {/* Hamburger Menu Button - Always visible on mobile/tablet */}
+      {(isMobile || isTablet) && (
+        <button 
+          className={`semanami-layout__menu-btn ${sidebarOpen ? 'active' : ''}`}
+          onClick={toggleSidebar}
+          aria-label="Toggle menu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      )}
+
       {/* Sidebar */}
       <aside className={`semanami-layout__sidebar ${sidebarOpen ? 'open' : ''}`}>
         <ChatSidebar
@@ -195,7 +204,7 @@ const SemaNamiLayout = ({
       </aside>
       
       {/* Mobile sidebar backdrop */}
-      {isMobile && sidebarOpen && (
+      {(isMobile || isTablet) && sidebarOpen && (
         <div 
           className="semanami-layout__backdrop"
           onClick={closeSidebar}
@@ -212,7 +221,7 @@ const SemaNamiLayout = ({
             subtitle={featureInfo.subtitle}
             icon={featureInfo.icon}
             selectedFeature={selectedFeature}
-            showMenuButton={isMobile}
+            showMenuButton={isMobile || isTablet}
             onMenuClick={toggleSidebar}
             sidebarOpen={sidebarOpen}
           />

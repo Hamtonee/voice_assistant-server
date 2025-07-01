@@ -15,7 +15,7 @@ export default function ChatSidebar({
   onDeleteChat,
   currentScenarioKey,
   hasCurrentChatContent,
-  platformName = "SemaNami"
+  platformName = "Voice Assistant"
 }) {
   const { isDark } = useTheme();
   const sidebarRef = useRef(null);
@@ -47,36 +47,37 @@ export default function ChatSidebar({
         <h1 className="chat-sidebar__title">{platformName}</h1>
       </div>
 
-      {/* Navigation Section */}
-      <div className="chat-sidebar__nav-section">
-        {/* Navigation Buttons - Horizontal */}
-        <div className="chat-sidebar__nav">
-          <button
-            className={`chat-sidebar__nav-btn ${selectedFeature === 'chat' ? 'active' : ''}`}
-            onClick={() => onSelectFeature('chat')}
-          >
-            💬 Chat
-          </button>
-          <button
-            className={`chat-sidebar__nav-btn ${selectedFeature === 'sema' ? 'active' : ''}`}
-            onClick={() => onSelectFeature('sema')}
-          >
-            🎤 Sema
-          </button>
-          <button
-            className={`chat-sidebar__nav-btn ${selectedFeature === 'tusome' ? 'active' : ''}`}
-            onClick={() => onSelectFeature('tusome')}
-          >
-            📚 Tusome
-          </button>
-        </div>
+      {/* Navigation Buttons - Vertical */}
+      <div className="chat-sidebar__nav">
+        <button
+          className={`chat-sidebar__nav-btn ${selectedFeature === 'chat' ? 'active' : ''}`}
+          onClick={() => onSelectFeature('chat')}
+        >
+          <span role="img" aria-label="chat">💬</span>
+          Chat Roleplay
+        </button>
+        <button
+          className={`chat-sidebar__nav-btn ${selectedFeature === 'sema' ? 'active' : ''}`}
+          onClick={() => onSelectFeature('sema')}
+        >
+          <span role="img" aria-label="microphone">🎤</span>
+          Speech Coach
+        </button>
+        <button
+          className={`chat-sidebar__nav-btn ${selectedFeature === 'tusome' ? 'active' : ''}`}
+          onClick={() => onSelectFeature('tusome')}
+        >
+          <span role="img" aria-label="book">📚</span>
+          Reading Practice
+        </button>
 
-        {/* New Chat Button - Right below navigation */}
+        {/* New Chat Button */}
         <button
           className="chat-sidebar__new-chat-btn"
           onClick={onNewChat}
         >
-          + New {selectedFeature === 'sema' ? 'Speech' : selectedFeature === 'tusome' ? 'Reading' : 'Chat'} Session
+          <span>+</span>
+          New {selectedFeature === 'sema' ? 'Speech' : selectedFeature === 'tusome' ? 'Reading' : 'Chat'} Session
         </button>
       </div>
 
