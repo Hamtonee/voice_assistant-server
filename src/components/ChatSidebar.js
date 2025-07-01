@@ -11,8 +11,7 @@ const ChatSidebar = ({
   selectedFeature,
   onSelectFeature,
   currentScenarioKey,
-  hasCurrentChatContent,
-  isMobile = window.innerWidth <= 768
+  hasCurrentChatContent
 }) => {
   const { isDark } = useTheme();
   const sidebarRef = useRef(null);
@@ -23,11 +22,10 @@ const ChatSidebar = ({
     setIsCollapsed(!isCollapsed);
   };
 
-  // Handle window resize for mobile detection
+  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      const isMobileView = window.innerWidth <= 768;
-      if (isMobileView && isCollapsed) {
+      if (window.innerWidth > 768 && isCollapsed) {
         setIsCollapsed(false);
       }
     };
@@ -36,55 +34,25 @@ const ChatSidebar = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [isCollapsed]);
 
-  // Prevent keyboard popup and handle mobile interactions
-  useEffect(() => {
-    const handleTouchStart = (e) => {
-      if (e.target.tagName === 'INPUT') {
-        e.preventDefault();
-      }
-    };
-
-    const sidebarElement = sidebarRef.current;
-    if (sidebarElement) {
-      sidebarElement.addEventListener('touchstart', handleTouchStart);
-    }
-
-    return () => {
-      if (sidebarElement) {
-        sidebarElement.removeEventListener('touchstart', handleTouchStart);
-      }
-    };
-  }, []);
-
   return (
     <div 
-      className={`chat-sidebar ${isDark ? 'dark' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMobile ? 'mobile' : ''}`} 
+      className={`chat-sidebar ${isDark ? 'dark' : ''} ${isCollapsed ? 'collapsed' : ''}`} 
       ref={sidebarRef}
       data-theme={isDark ? 'dark' : 'light'}
     >
-      {/* Toggle Button - Only show on desktop */}
-      {!isMobile && (
+      {/* Header with Hamburger Menu */}
+      <div className="chat-sidebar__header">
+        <img src={logo} alt="SemaNami" className="chat-sidebar__logo" />
+        <h1 className="chat-sidebar__title">SemaNami</h1>
         <button 
-          className="chat-sidebar__toggle" 
+          className="chat-sidebar__hamburger"
           onClick={toggleSidebar}
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {isCollapsed ? (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 5l7 7-7 7"/>
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 19l-7-7 7-7"/>
-            </svg>
-          )}
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 12h18M3 6h18M3 18h18" />
+          </svg>
         </button>
-      )}
-
-      {/* Header */}
-      <div className="chat-sidebar__header">
-        <img src={logo} alt="SemaNami" className="chat-sidebar__logo" />
-        {!isCollapsed && <h1 className="chat-sidebar__title">SemaNami</h1>}
       </div>
 
       {/* Navigation Buttons - Vertical */}
@@ -115,18 +83,18 @@ const ChatSidebar = ({
         </button>
 
         {/* New Chat Button */}
-        <button
-          className="chat-sidebar__new-chat-btn"
-          onClick={onNewChat}
-          title={`New ${selectedFeature === 'sema' ? 'Speech' : selectedFeature === 'tusome' ? 'Reading' : 'Chat'} Session`}
-        >
-          <span>+</span>
-          {!isCollapsed && (
+        {!isCollapsed && (
+          <button
+            className="chat-sidebar__new-chat-btn"
+            onClick={onNewChat}
+            title={`New ${selectedFeature === 'sema' ? 'Speech' : selectedFeature === 'tusome' ? 'Reading' : 'Chat'} Session`}
+          >
+            <span>+</span>
             <span className="new-chat-btn-text">
               New {selectedFeature === 'sema' ? 'Speech' : selectedFeature === 'tusome' ? 'Reading' : 'Chat'} Session
             </span>
-          )}
-        </button>
+          </button>
+        )}
       </div>
 
       {/* Chat List - Only show when not collapsed */}
