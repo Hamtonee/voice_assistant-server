@@ -63,16 +63,11 @@
 
 .semanami-layout {
   display: grid;
-  grid-template-areas: 
-    "sidebar main";
-  grid-template-columns: var(--layout-sidebar-width-desktop) 1fr;
+  grid-template-columns: auto 1fr;
   grid-template-rows: 1fr;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: var(--bg-primary);
-  font-family: var(--font-family);
-  transition: grid-template-columns var(--layout-transition-normal);
   position: relative;
 }
 
@@ -100,15 +95,12 @@
    ==================================================================== */
 
 .semanami-layout__sidebar {
-  grid-area: sidebar;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-primary);
-  overflow: hidden;
-  transition: transform var(--layout-transition-normal), width var(--layout-transition-normal);
-  z-index: var(--layout-z-sidebar);
+  width: 300px;
+  height: 100%;
   position: relative;
+  transition: transform 0.3s ease;
+  background: var(--bg-secondary);
+  z-index: 1000;
 }
 
 /* Sidebar Content Structure */
@@ -130,10 +122,9 @@
    ==================================================================== */
 
 .semanami-layout__main {
-  grid-area: main;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  height: 100%;
   overflow: hidden;
   position: relative;
 }
@@ -144,19 +135,10 @@
    ==================================================================== */
 
 .semanami-layout__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: var(--layout-header-height-desktop);
-  padding: 0 var(--layout-content-padding-desktop);
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
-  position: sticky;
-  top: 0;
-  z-index: var(--layout-z-header);
   flex-shrink: 0;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  z-index: 10;
 }
 
 /* ====================================================================
@@ -166,8 +148,7 @@
 
 .semanami-layout__content {
   flex: 1;
-  overflow: auto;
-  padding: var(--layout-content-padding-desktop);
+  overflow-y: auto;
   position: relative;
   /* Custom scrollbar styling */
   scrollbar-width: thin;
@@ -203,17 +184,10 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  z-index: var(--layout-z-backdrop);
+  z-index: 999;
   opacity: 0;
-  animation: fadeIn var(--layout-transition-fast) forwards;
-  cursor: pointer;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 /* ====================================================================
@@ -248,56 +222,33 @@
    ==================================================================== */
 
 /* Tablet Layout (768px - 1024px) */
-@media (max-width: 1024px) and (min-width: 769px) {
-  :root {
-    --layout-sidebar-width-desktop: var(--layout-sidebar-width-tablet);
-    --layout-header-height-desktop: var(--layout-header-height-tablet);
-    --layout-content-padding-desktop: var(--layout-content-padding-tablet);
-  }
-  
-  .semanami-layout--sidebar-open {
-    grid-template-columns: var(--layout-sidebar-width-tablet) 1fr;
-  }
-  
-  .semanami-layout__sidebar .chat-sidebar {
-    padding: 20px;
-  }
-  
-  .semanami-layout__header {
-    padding: 0 var(--layout-content-padding-tablet);
-  }
-  
-  .semanami-layout__content {
-    padding: var(--layout-content-padding-tablet);
-  }
-  
-  /* Tusome tablet adjustments */
-  .semanami-layout--tusome .semanami-layout__content {
-    max-width: 900px;
-    padding-top: 20px;
+@media (min-width: 769px) and (max-width: 1024px) {
+  .semanami-layout__sidebar {
+    width: 280px;
   }
 }
 
 /* Mobile Layout (≤768px) */
 @media (max-width: 768px) {
   .semanami-layout {
-    grid-template-areas: "main";
-    grid-template-columns: 1fr !important;
-    grid-template-rows: 1fr;
+    grid-template-columns: 1fr;
   }
   
   .semanami-layout__sidebar {
-    position: fixed !important;
+    position: fixed;
     top: 0;
     left: 0;
-    width: var(--layout-sidebar-width-mobile);
-    height: 100vh;
+    bottom: 0;
     transform: translateX(-100%);
-    box-shadow: var(--shadow-lg);
   }
   
   .semanami-layout--sidebar-open .semanami-layout__sidebar {
     transform: translateX(0);
+  }
+  
+  .semanami-layout--sidebar-open .semanami-layout__backdrop {
+    opacity: 1;
+    visibility: visible;
   }
   
   .semanami-layout__sidebar .chat-sidebar {
@@ -357,6 +308,13 @@
   
   .semanami-layout--tusome .semanami-layout__content {
     padding-top: 12px;
+  }
+}
+
+/* Desktop Layout */
+@media (min-width: 1025px) {
+  .semanami-layout__sidebar {
+    width: 300px;
   }
 }
 

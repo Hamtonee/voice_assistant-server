@@ -51,8 +51,11 @@ const SemaNamiLayout = ({
     if (isMobile) {
       setSidebarMode('overlay');
       setSidebarOpen(false);
+    } else if (isTablet) {
+      setSidebarMode('normal');
+      setSidebarOpen(true);
     } else {
-      // Desktop and tablet should always have sidebar open by default
+      // Desktop should always have sidebar open
       setSidebarMode('normal');
       setSidebarOpen(true);
     }
@@ -64,8 +67,29 @@ const SemaNamiLayout = ({
   }, []);
   
   const closeSidebar = useCallback(() => {
-    setSidebarOpen(false);
-  }, []);
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [isMobile]);
+
+  // Close sidebar on route change in mobile
+  useEffect(() => {
+    if (isMobile) {
+      closeSidebar();
+    }
+  }, [location.pathname, isMobile, closeSidebar]);
+
+  // Close sidebar on escape key
+  useEffect(() => {
+    const handleEscKey = (e) => {
+      if (e.key === 'Escape' && isMobile && sidebarOpen) {
+        closeSidebar();
+      }
+    };
+
+    window.addEventListener('keydown', handleEscKey);
+    return () => window.removeEventListener('keydown', handleEscKey);
+  }, [isMobile, sidebarOpen, closeSidebar]);
   
   // Feature navigation
   const handleFeatureSelect = useCallback((feature) => {
@@ -154,7 +178,7 @@ const SemaNamiLayout = ({
   return (
     <div className={layoutClasses}>
       {/* Sidebar */}
-      <aside className="semanami-layout__sidebar">
+      <aside className={`semanami-layout__sidebar ${sidebarOpen ? 'open' : ''}`}>
         <ChatSidebar
           selectedFeature={selectedFeature}
           onSelectFeature={handleFeatureSelect}
@@ -175,7 +199,7 @@ const SemaNamiLayout = ({
         <div 
           className="semanami-layout__backdrop"
           onClick={closeSidebar}
-          aria-hidden="true"
+          role="presentation"
         />
       )}
       
