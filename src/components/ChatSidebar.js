@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import ChatList from './ChatList';
-import logo from '../assets/icons/logo.svg';
+import logo from '../assets/images/logo.png';
 import '../assets/styles/ChatSidebar.css';
 
 const ChatSidebar = ({
