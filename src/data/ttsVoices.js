@@ -368,8 +368,11 @@ export class TTSManager {
         this.lastStatusCheck = now;
 
         try {
-            const response = await fetch(`${this.baseUrl}/health`, {
-                method: 'GET'
+            const response = await fetch(`${this.baseUrl}/api/health`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
             return response.ok;
         } catch (error) {

@@ -23,8 +23,15 @@ class TTSService {
         this.isBrowserTTS = false;
         
         // Safely check for browser TTS availability
-        this.browserSynth = typeof window !== 'undefined' && window.speechSynthesis ? 
-            window.speechSynthesis : null;
+        if (typeof window !== 'undefined') {
+            this.browserSynth = window.speechSynthesis;
+            // Bind the speak method to ensure correct 'this' context
+            if (this.browserSynth) {
+                this.browserSynth.speak = this.browserSynth.speak.bind(this.browserSynth);
+            }
+        } else {
+            this.browserSynth = null;
+        }
             
         // Initialize asynchronously to avoid constructor issues
         setTimeout(() => this.initializeTTS(), 0);
@@ -34,7 +41,7 @@ class TTSService {
         try {
             // Try server TTS first - make health check optional
             try {
-                const response = await api.get('/health', { timeout: 5000 });
+                const response = await api.get('/api/health', { timeout: 5000 });
                 this.isBrowserTTS = !response.data?.tts_available;
                 console.log('✅ TTS health check successful');
             } catch (healthError) {
@@ -107,8 +114,7 @@ class TTSService {
 
     async speakWithBrowser(text, options = {}) {
         if (!this.browserSynth) {
-            console.error('Browser TTS not available');
-            return;
+            throw new Error('Browser TTS not available');
         }
 
         // Safely cancel any ongoing speech
@@ -143,15 +149,15 @@ class TTSService {
                 }
 
                 utterance.onend = resolve;
-                utterance.onerror = reject;
+                utterance.onerror = (event) => {
+                    console.error('Browser TTS error:', event);
+                    reject(new Error('Speech synthesis failed'));
+                };
                 
-                // Safe speak with direct method call (no binding)
-                if (this.browserSynth) {
-                    this.browserSynth.speak(utterance);
-                } else {
-                    reject(new Error('Speech synthesis not available'));
-                }
+                // Use the bound speak method
+                this.browserSynth.speak(utterance);
             } catch (error) {
+                console.error('Failed to initialize speech:', error);
                 reject(error);
             }
         });
@@ -297,8 +303,8 @@ class TTSService {
         try {
             // Make health check optional
             try {
-                const testResponse = await api.get('/health', { timeout: 5000 });
-                return testResponse.status === 200;
+                const testResponse = await api.get('/api/health', { timeout: 5000 });
+                return testResponse.data;
             } catch (healthError) {
                 console.warn('⚠️ TTS health check failed, checking browser fallback:', healthError.message);
             }
