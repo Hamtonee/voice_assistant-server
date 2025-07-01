@@ -11,7 +11,8 @@ const ChatSidebar = ({
   selectedFeature,
   onSelectFeature,
   currentScenarioKey,
-  hasCurrentChatContent
+  hasCurrentChatContent,
+  isMobile = window.innerWidth <= 768
 }) => {
   const { isDark } = useTheme();
   const sidebarRef = useRef(null);
@@ -21,6 +22,19 @@ const ChatSidebar = ({
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
   };
+
+  // Handle window resize for mobile detection
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobileView = window.innerWidth <= 768;
+      if (isMobileView && isCollapsed) {
+        setIsCollapsed(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isCollapsed]);
 
   // Prevent keyboard popup and handle mobile interactions
   useEffect(() => {
@@ -44,31 +58,33 @@ const ChatSidebar = ({
 
   return (
     <div 
-      className={`chat-sidebar ${isDark ? 'dark' : ''} ${isCollapsed ? 'collapsed' : ''}`} 
+      className={`chat-sidebar ${isDark ? 'dark' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMobile ? 'mobile' : ''}`} 
       ref={sidebarRef}
       data-theme={isDark ? 'dark' : 'light'}
     >
-      {/* Toggle Button */}
-      <button 
-        className="chat-sidebar__toggle" 
-        onClick={toggleSidebar}
-        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        {isCollapsed ? (
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M9 5l7 7-7 7"/>
-          </svg>
-        ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M15 19l-7-7 7-7"/>
-          </svg>
-        )}
-      </button>
+      {/* Toggle Button - Only show on desktop */}
+      {!isMobile && (
+        <button 
+          className="chat-sidebar__toggle" 
+          onClick={toggleSidebar}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isCollapsed ? (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 5l7 7-7 7"/>
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M15 19l-7-7 7-7"/>
+            </svg>
+          )}
+        </button>
+      )}
 
       {/* Header */}
       <div className="chat-sidebar__header">
         <img src={logo} alt="SemaNami" className="chat-sidebar__logo" />
-        <h1 className="chat-sidebar__title">SemaNami</h1>
+        {!isCollapsed && <h1 className="chat-sidebar__title">SemaNami</h1>}
       </div>
 
       {/* Navigation Buttons - Vertical */}
@@ -79,7 +95,7 @@ const ChatSidebar = ({
           title="Chat"
         >
           <span role="img" aria-label="chat">💬</span>
-          <span className="nav-btn-text">Chat</span>
+          {!isCollapsed && <span className="nav-btn-text">Chat</span>}
         </button>
         <button
           className={`chat-sidebar__nav-btn ${selectedFeature === 'sema' ? 'active' : ''}`}
@@ -87,7 +103,7 @@ const ChatSidebar = ({
           title="Sema"
         >
           <span role="img" aria-label="microphone">🎤</span>
-          <span className="nav-btn-text">Sema</span>
+          {!isCollapsed && <span className="nav-btn-text">Sema</span>}
         </button>
         <button
           className={`chat-sidebar__nav-btn ${selectedFeature === 'tusome' ? 'active' : ''}`}
@@ -95,7 +111,7 @@ const ChatSidebar = ({
           title="Tusome"
         >
           <span role="img" aria-label="book">📚</span>
-          <span className="nav-btn-text">Tusome</span>
+          {!isCollapsed && <span className="nav-btn-text">Tusome</span>}
         </button>
 
         {/* New Chat Button */}
@@ -105,11 +121,15 @@ const ChatSidebar = ({
           title={`New ${selectedFeature === 'sema' ? 'Speech' : selectedFeature === 'tusome' ? 'Reading' : 'Chat'} Session`}
         >
           <span>+</span>
-          <span className="new-chat-btn-text">New {selectedFeature === 'sema' ? 'Speech' : selectedFeature === 'tusome' ? 'Reading' : 'Chat'} Session</span>
+          {!isCollapsed && (
+            <span className="new-chat-btn-text">
+              New {selectedFeature === 'sema' ? 'Speech' : selectedFeature === 'tusome' ? 'Reading' : 'Chat'} Session
+            </span>
+          )}
         </button>
       </div>
 
-      {/* Chat List */}
+      {/* Chat List - Only show when not collapsed */}
       {!isCollapsed && (
         <div className="chat-sidebar__content">
           {chatInstances.length > 0 ? (
