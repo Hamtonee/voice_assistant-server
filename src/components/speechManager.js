@@ -3,26 +3,37 @@ import React from 'react';
 
 class SpeechManager {
   constructor() {
-    this.currentUtterance = null;
-    this.isPlaying = false;
-    this.listeners = new Set();
-    this.cleanupTimeout = null;
-    this.speechQueue = [];
-    this.isProcessing = false;
-    
-    // Bind methods to preserve context
-    this.handleStart = this.handleStart.bind(this);
-    this.handleEnd = this.handleEnd.bind(this);
-    this.handleError = this.handleError.bind(this);
-    
-    // Global cleanup on page unload
     if (typeof window !== 'undefined') {
+      // Initialize properties
+      this.currentUtterance = null;
+      this.isPlaying = false;
+      this.listeners = new Set();
+      this.cleanupTimeout = null;
+      this.speechQueue = [];
+      this.isProcessing = false;
+      
+      // Bind all methods that need 'this' context
+      this.speak = this.speak.bind(this);
+      this.stop = this.stop.bind(this);
+      this.forceStop = this.forceStop.bind(this);
+      this.handleStart = this.handleStart.bind(this);
+      this.handleEnd = this.handleEnd.bind(this);
+      this.handleError = this.handleError.bind(this);
+      this.addListener = this.addListener.bind(this);
+      this.removeListener = this.removeListener.bind(this);
+      this.notifyListeners = this.notifyListeners.bind(this);
+      this.processQueue = this.processQueue.bind(this);
+      this.aggressiveCleanup = this.aggressiveCleanup.bind(this);
+      
+      // Global cleanup on page unload
       window.addEventListener('beforeunload', () => {
         this.forceStop();
       });
+      
+      console.log('🎙️ SpeechManager initialized');
+    } else {
+      console.warn('⚠️ SpeechManager initialized in non-browser environment');
     }
-    
-    console.log('🎙️ SpeechManager initialized');
   }
   
   // Add a component as listener
@@ -82,6 +93,11 @@ class SpeechManager {
   
   // Safe speech synthesis with retry logic
   async speak(text, config = {}) {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      console.warn('⚠️ Speech synthesis not available');
+      return Promise.reject(new Error('Speech synthesis not available'));
+    }
+
     console.log('🎯 Speech request:', { text: text.substring(0, 50), config });
     
     // Prevent multiple simultaneous requests
@@ -102,8 +118,7 @@ class SpeechManager {
       await this.delay(400);
       
       // Step 3: Check if still busy
-      if (typeof window !== 'undefined' && window.speechSynthesis && 
-          (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
         console.log('🔄 Speech still busy after cleanup, forcing cancel');
         window.speechSynthesis.cancel();
         await this.delay(500);
@@ -113,16 +128,25 @@ class SpeechManager {
       const utterance = new SpeechSynthesisUtterance(text);
       
       // Apply voice configuration
-      if (config.voice && typeof window !== 'undefined' && window.speechSynthesis) {
-        const voices = window.speechSynthesis.getVoices();
-        // Defensive check: ensure voices is an array before calling find
-        const selectedVoice = Array.isArray(voices) ? voices.find(v => 
-          v.name === config.voice || 
-          v.name.includes(config.voice) ||
-          v.lang === config.voice
-        ) : null;
-        if (selectedVoice) {
-          utterance.voice = selectedVoice;
+      if (config.voice) {
+        try {
+          const voices = window.speechSynthesis.getVoices();
+          if (Array.isArray(voices) && voices.length > 0) {
+            const selectedVoice = voices.find(v => 
+              v.name === config.voice || 
+              v.name.includes(config.voice) ||
+              v.lang === config.voice
+            );
+            if (selectedVoice) {
+              utterance.voice = selectedVoice;
+            } else {
+              console.warn(`⚠️ Voice "${config.voice}" not found, using default`);
+            }
+          } else {
+            console.warn('⚠️ No voices available, using default');
+          }
+        } catch (voiceError) {
+          console.warn('⚠️ Error setting voice:', voiceError);
         }
       }
       
@@ -148,28 +172,55 @@ class SpeechManager {
   
   // Execute speech with timeout and proper event handling
   executeWithTimeout(utterance, timeout = 30000) {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      return Promise.reject(new Error('Speech synthesis not available'));
+    }
+
     return new Promise((resolve, reject) => {
       let completed = false;
       let startFired = false;
+      let timeoutId = null;
       
-      // Timeout handler
-      const timeoutId = setTimeout(() => {
+      // Safety timeout to prevent hanging
+      const safetyTimeout = setTimeout(() => {
+        if (!startFired) {
+          console.warn('⚠️ Speech synthesis never started, cleaning up');
+          cleanup();
+          reject(new Error('Speech synthesis failed to start'));
+        }
+      }, 5000);
+
+      // Main timeout handler
+      timeoutId = setTimeout(() => {
         if (!completed) {
-          completed = true;
           console.log('⏰ Speech timeout, cleaning up');
-          this.forceStop();
+          cleanup();
           reject(new Error('Speech synthesis timeout'));
         }
       }, timeout);
       
-      // Success handler
-      const complete = (success = true) => {
+      // Cleanup function
+      const cleanup = () => {
         if (!completed) {
           completed = true;
           clearTimeout(timeoutId);
+          clearTimeout(safetyTimeout);
+          
+          try {
+            window.speechSynthesis.cancel();
+          } catch (error) {
+            console.warn('⚠️ Error during cleanup:', error);
+          }
+          
           this.currentUtterance = null;
           this.isPlaying = false;
-          
+        }
+      };
+      
+      // Success handler
+      const complete = (success = true) => {
+        if (!completed) {
+          cleanup();
           if (success) {
             resolve(true);
           } else {
@@ -178,55 +229,46 @@ class SpeechManager {
         }
       };
       
-      // Event handlers
-      utterance.onstart = () => {
-        console.log('🎤 Speech started');
-        startFired = true;
-        this.isPlaying = true;
-        this.currentUtterance = utterance;
-        this.notifyListeners('started');
-      };
-      
-      utterance.onend = () => {
-        console.log('✅ Speech ended normally');
-        this.notifyListeners('ended');
-        complete(true);
-      };
-      
-      utterance.onerror = (event) => {
-        console.log('❌ Speech error:', event.error);
+      // Event handlers with error protection
+      try {
+        utterance.onstart = () => {
+          console.log('🎤 Speech started');
+          startFired = true;
+          clearTimeout(safetyTimeout);
+          this.isPlaying = true;
+          this.currentUtterance = utterance;
+          this.notifyListeners('started');
+        };
         
-        // Handle different error types
-        if (event.error === 'interrupted' || event.error === 'canceled') {
-          console.log('🤝 Speech was interrupted (likely user action)');
-          this.notifyListeners('interrupted');
-          complete(true); // Don't treat as error
-        } else {
-          console.error('💀 Fatal speech error:', event.error);
+        utterance.onend = () => {
+          console.log('✅ Speech ended normally');
+          this.notifyListeners('ended');
+          complete(true);
+        };
+        
+        utterance.onerror = (event) => {
+          console.log('❌ Speech error:', event.error);
           this.notifyListeners('error', { error: event.error });
           complete(false);
-        }
-      };
-      
-      // Safety check: if it doesn't start within 2 seconds, something's wrong
-      setTimeout(() => {
-        if (!startFired && !completed) {
-          console.log('🚨 Speech failed to start, retrying...');
-          this.forceStop();
-          reject(new Error('Speech failed to start'));
-        }
-      }, 2000);
-      
-      // Start speech
-      try {
-        console.log('🚀 Starting speech synthesis');
-        if (typeof window !== 'undefined' && window.speechSynthesis) {
-          window.speechSynthesis.speak(utterance);
-        } else {
-          throw new Error('Speech synthesis not available');
-        }
+        };
+        
+        // Start speech synthesis with retry
+        const startSpeech = () => {
+          try {
+            window.speechSynthesis.speak(utterance);
+          } catch (error) {
+            console.error('Failed to start speech:', error);
+            cleanup();
+            reject(error);
+          }
+        };
+        
+        startSpeech();
+        
       } catch (error) {
-        complete(false);
+        console.error('Error setting up speech:', error);
+        cleanup();
+        reject(error);
       }
     });
   }

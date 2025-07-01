@@ -11,15 +11,8 @@ const getApiBaseUrl = () => {
   const apiUrl = typeof process !== 'undefined' && process.env ? process.env.REACT_APP_API_URL : null;
   
   if (apiUrl) {
-    // Remove trailing slashes
-    let baseUrl = apiUrl.replace(/\/+$/, '');
-    // Ensure it ends with /api
-    if (!baseUrl.endsWith('/api')) {
-      baseUrl += '/api';
-    }
-    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production' && !baseUrl.startsWith('https://')) {
-      console.warn('⚠️ Insecure API URL in production! Use HTTPS.');
-    }
+    // Remove trailing slashes and /api suffix
+    let baseUrl = apiUrl.replace(/\/+$/, '').replace(/\/api$/, '');
     console.log('🌐 Using API Base URL from env:', baseUrl);
     return baseUrl;
   }
@@ -31,12 +24,12 @@ const getApiBaseUrl = () => {
      window.location.protocol === 'https:');
   
   if (isProduction) {
-    const prodUrl = 'https://api.semanami-ai.com/api';
+    const prodUrl = 'https://api.semanami-ai.com';
     console.log('🚀 Production mode - using:', prodUrl);
     return prodUrl;
   }
   
-  const fallbackUrl = 'http://localhost:8000/api';
+  const fallbackUrl = 'http://localhost:8000';
   console.log('⚠️ Using fallback URL:', fallbackUrl);
   return fallbackUrl;
 };
@@ -56,7 +49,7 @@ const getApiTimeout = () => {
 };
 
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: `${BASE_URL}/api`,
   timeout: getApiTimeout(),
   headers: {
     'Content-Type': 'application/json'

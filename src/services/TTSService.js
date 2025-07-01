@@ -21,27 +21,19 @@ class TTSService {
         this.audioCache = new Map();
         this.pendingRequests = new Map();
         this.isBrowserTTS = false;
+        this.browserSynth = null;
         
-        // Safely check for browser TTS availability
-        if (typeof window !== 'undefined') {
-            this.browserSynth = window.speechSynthesis;
-            // Bind the speak method to ensure correct 'this' context
-            if (this.browserSynth) {
-                this.browserSynth.speak = this.browserSynth.speak.bind(this.browserSynth);
-            }
-        } else {
-            this.browserSynth = null;
-        }
-            
         // Initialize asynchronously to avoid constructor issues
-        setTimeout(() => this.initializeTTS(), 0);
+        if (typeof window !== 'undefined') {
+            setTimeout(() => this.initializeTTS(), 0);
+        }
     }
 
     async initializeTTS() {
         try {
             // Try server TTS first - make health check optional
             try {
-                const response = await api.get('/api/health', { timeout: 5000 });
+                const response = await api.get('/health', { timeout: 5000 });
                 this.isBrowserTTS = !response.data?.tts_available;
                 console.log('✅ TTS health check successful');
             } catch (healthError) {
@@ -55,12 +47,18 @@ class TTSService {
         }
 
         // Initialize browser TTS as fallback - with safety checks
-        if (this.isBrowserTTS && this.browserSynth) {
+        if (this.isBrowserTTS && typeof window !== 'undefined') {
             try {
-                // Pre-load voices safely
-                this.browserSynth.getVoices();
+                // Ensure browserSynth is properly initialized
+                this.browserSynth = window.speechSynthesis;
+                if (this.browserSynth) {
+                    // Bind speak method
+                    this.browserSynth.speak = this.browserSynth.speak.bind(this.browserSynth);
+                    // Pre-load voices safely
+                    this.browserSynth.getVoices();
+                }
             } catch (voiceError) {
-                console.warn('⚠️ Failed to get browser voices:', voiceError.message);
+                console.warn('⚠️ Failed to initialize browser TTS:', voiceError.message);
             }
         }
     }
