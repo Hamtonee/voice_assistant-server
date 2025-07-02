@@ -16,18 +16,38 @@ function stringToColor(str) {
   return `hsl(${h}, 70%, 60%)`;
 }
 
-export default function Avatar({ userName, src, size, onClick }) {
-  // Split the name into words for initials
-  const parts = (userName || '').trim().split(/\s+/).filter(Boolean);
-  let initials = '';
-  if (parts.length === 1) {
-    initials = parts[0].substring(0, 2).toUpperCase();
-  } else if (parts.length > 1) {
-    initials =
-      parts[0].charAt(0).toUpperCase() +
-      parts[1].charAt(0).toUpperCase();
+/**
+ * Generates initials from a user object or name string
+ */
+function getInitials(user) {
+  // If user is an object with name property
+  if (user && typeof user === 'object' && user.name) {
+    const nameParts = user.name.trim().split(/\s+/).filter(Boolean);
+    if (nameParts.length === 0) return '';
+    if (nameParts.length === 1) {
+      return nameParts[0].substring(0, 2).toUpperCase();
+    }
+    return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+  }
+  
+  // If user is a string (backward compatibility)
+  if (typeof user === 'string') {
+    const parts = user.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) {
+      return parts[0].substring(0, 2).toUpperCase();
+    }
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
+  return '';
+}
+
+export default function Avatar({ user, size = 40, onClick }) {
+  const initials = getInitials(user);
+  const userName = user?.name || (typeof user === 'string' ? user : '');
+  const avatarUrl = user?.avatar || (typeof user === 'string' ? '' : '');
+  
   // Determine dimensions
   const dim = typeof size === 'number' ? `${size}px` : size;
   const bgColor = stringToColor(userName);
@@ -35,13 +55,14 @@ export default function Avatar({ userName, src, size, onClick }) {
   const commonStyle = {
     width: dim,
     height: dim,
-    fontSize: `calc(${dim} / 2)`,
+    fontSize: `calc(${dim} / 2.5)`, // Slightly smaller font for better fit
+    lineHeight: dim, // Center vertically
   };
 
-  const content = src ? (
+  const content = avatarUrl ? (
     <img
       className="avatar avatar--img"
-      src={src}
+      src={avatarUrl}
       alt={userName}
       style={commonStyle}
     />
@@ -75,14 +96,18 @@ export default function Avatar({ userName, src, size, onClick }) {
 }
 
 Avatar.propTypes = {
-  userName: PropTypes.string.isRequired,
-  src:      PropTypes.string,
-  size:     PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  onClick:  PropTypes.func,
+  user: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.shape({
+      name: PropTypes.string,
+      avatar: PropTypes.string,
+    })
+  ]).isRequired,
+  size: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  onClick: PropTypes.func,
 };
 
 Avatar.defaultProps = {
-  src:    '',
-  size:   40,
+  size: 40,
   onClick: null,
 };

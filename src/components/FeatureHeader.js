@@ -102,10 +102,8 @@ const FeatureHeader = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [closeAllDropdowns]);
 
-  // Show hamburger in header ONLY when:
-  // 1. On mobile AND sidebar is closed
-  // 2. On desktop/tablet AND sidebar is closed
-  const showHamburgerInHeader = (isMobile && !isSidebarOpen) || (!isMobile && !isSidebarOpen);
+  // Show hamburger in header ONLY on mobile when sidebar is closed
+  const showHamburgerInHeader = isMobile && !isSidebarOpen;
 
   return (
     <header 
