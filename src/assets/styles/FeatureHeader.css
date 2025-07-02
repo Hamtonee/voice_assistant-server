@@ -18,10 +18,16 @@
   background-color: var(--sidebar-bg);
   border-bottom: 1px solid var(--border-color);
   transition: margin var(--transition-duration) cubic-bezier(0.4, 0, 0.2, 1);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
 }
 
 .feature-header__content {
   flex: 1;
+  min-width: 0;
 }
 
 .feature-header__title {
@@ -29,6 +35,9 @@
   font-weight: 600;
   margin: 0;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .feature-header__subtitle {
@@ -59,6 +68,13 @@
 .feature-header__hamburger svg {
   width: 24px;
   height: 24px;
+}
+
+.feature-header__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
 }
 
 /* Dark mode support */

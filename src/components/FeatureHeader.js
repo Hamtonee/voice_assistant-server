@@ -4,6 +4,7 @@ import { FiMenu, FiX, FiMoreVertical, FiVolume2, FiMoon, FiSun } from 'react-ico
 import Avatar from './Avatar';
 import VoiceSelector from './VoiceSelector';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import '../assets/styles/FeatureHeader.css';
 
 // Custom hook for dropdown management
@@ -59,8 +60,8 @@ export default function FeatureHeader({
   isMobile,
   isSidebarOpen
 }) {
-  // FIXED: Use theme context properly
   const { toggleTheme, isDark } = useTheme();
+  const { user } = useAuth();
   
   const { 
     openDropdowns, 
@@ -78,23 +79,20 @@ export default function FeatureHeader({
   const getFeatureInfo = () => {
     const featureMap = {
       chat: { 
-        title: scenario ? scenario.label : 'Chat', 
-        subtitle: scenario ? 'Role-play Conversation' : 'Select a Scenario',
-        showBackButton: !!scenario
+        title: 'Select Roleplay',
+        subtitle: null
       },
       sema: { 
-        title: 'Sema', 
-        subtitle: 'Speech Coaching',
-        showBackButton: false
+        title: 'Select Speech Practice',
+        subtitle: null
       },
       tusome: { 
-        title: 'Tusome', 
-        subtitle: 'Reading Practice',
-        showBackButton: false
+        title: 'Select Reading',
+        subtitle: null
       }
     };
     
-    return featureMap[selectedFeature] || { title: 'Voice Assistant', subtitle: '', showBackButton: false };
+    return featureMap[selectedFeature] || { title: 'Select Feature', subtitle: null };
   };
 
   const featureInfo = getFeatureInfo();
@@ -163,8 +161,10 @@ export default function FeatureHeader({
       )}
       
       <div className="feature-header__content">
-        <h1 className="feature-header__title">{title || featureInfo.title}</h1>
-        {subtitle || featureInfo.subtitle && <p className="feature-header__subtitle">{subtitle || featureInfo.subtitle}</p>}
+        <h1 className="feature-header__title">{featureInfo.title}</h1>
+        {featureInfo.subtitle && (
+          <p className="feature-header__subtitle">{featureInfo.subtitle}</p>
+        )}
       </div>
 
       {/* Right Section */}
