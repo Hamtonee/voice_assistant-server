@@ -92,7 +92,7 @@ const ChatSidebar = ({
           )}
           
           {/* Hamburger Menu - Show in desktop/tablet when sidebar is open */}
-          {!isMobile && isOpen && (
+          {!isMobile && (isOpen || isMiniSidebar) && (
             <button 
               className="chat-sidebar__hamburger"
               onClick={handleToggle}

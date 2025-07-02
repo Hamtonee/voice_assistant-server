@@ -58,12 +58,14 @@
   text-align: left;
   padding-left: 8px;
   transition: all var(--transition-duration) cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
 }
 
-.feature-header__content.with-hamburger {
-  margin-left: 48px;
-  margin-right: 48px;
-  max-width: calc(100% - 96px);
+.feature-header.sidebar-open .feature-header__content {
+  padding-left: 16px;
 }
 
 .feature-header__title {
@@ -75,6 +77,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  text-align: left;
 }
 
 .feature-header__subtitle {
