@@ -102,8 +102,10 @@ const FeatureHeader = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [closeAllDropdowns]);
 
-  // Only render hamburger in header for mobile or when sidebar is open
-  const showHamburgerInHeader = isMobile || isSidebarOpen;
+  // Show hamburger in header only when:
+  // 1. On desktop/tablet AND sidebar is open
+  // 2. On mobile AND sidebar is closed
+  const showHamburgerInHeader = (!isMobile && isSidebarOpen) || (isMobile && !isSidebarOpen);
 
   return (
     <header 
@@ -121,7 +123,7 @@ const FeatureHeader = ({
         </button>
       )}
       
-      <div className={`feature-header__content ${showHamburgerInHeader ? 'with-hamburger' : ''}`}>
+      <div className="feature-header__content">
         <h1 className="feature-header__title">{featureInfo.title}</h1>
         {featureInfo.subtitle && (
           <p className="feature-header__subtitle">{featureInfo.subtitle}</p>

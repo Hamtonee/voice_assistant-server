@@ -12,7 +12,7 @@
 .feature-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 16px;
   padding: 0 16px;
   height: var(--header-height);
@@ -55,7 +55,8 @@
 .feature-header__content {
   flex: 1;
   min-width: 0;
-  text-align: center;
+  text-align: left;
+  padding-left: 8px;
   transition: all var(--transition-duration) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -73,6 +74,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .feature-header__subtitle {
@@ -169,10 +171,19 @@
     padding: 0 12px;
   }
 
+  .feature-header.sidebar-open {
+    left: 0;
+    width: 100%;
+  }
+
   .feature-header__hamburger {
     width: 36px;
     height: 36px;
     padding: 6px;
+  }
+
+  .feature-header__content {
+    padding-left: 4px;
   }
 
   .feature-header__title {
@@ -199,7 +210,7 @@
 
 @media (min-width: 769px) {
   .feature-header:not(.sidebar-open) .feature-header__hamburger {
-    display: none; /* Hide hamburger in header when sidebar is closed on desktop/tablet */
+    display: none;
   }
 }
 
