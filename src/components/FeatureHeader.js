@@ -102,15 +102,15 @@ const FeatureHeader = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [closeAllDropdowns]);
 
-  // Show hamburger in header only when:
-  // 1. On desktop/tablet AND sidebar is open
-  // 2. On mobile AND sidebar is closed
-  const showHamburgerInHeader = (!isMobile && isSidebarOpen) || (isMobile && !isSidebarOpen);
+  // Show hamburger in header ONLY when:
+  // 1. On mobile AND sidebar is closed
+  // 2. On desktop/tablet AND sidebar is open
+  const showHamburgerInHeader = (isMobile && !isSidebarOpen) || (!isMobile && isSidebarOpen);
 
   return (
     <header 
       ref={headerRef}
-      className={`feature-header ${isDark ? 'dark' : ''} ${isSidebarOpen ? 'sidebar-open' : ''}`}
+      className={`feature-header ${isDark ? 'dark' : ''} ${isSidebarOpen ? 'sidebar-open' : ''} ${isMobile ? 'mobile' : ''}`}
       data-theme={isDark ? 'dark' : 'light'}
     >
       {showHamburgerInHeader && (

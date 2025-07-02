@@ -184,25 +184,20 @@
 
 /* Header - Exactly matching YouTube's layout */
 .chat-sidebar__header {
-  height: var(--header-height);
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--border-color);
   justify-content: space-between;
-}
-
-.chat-sidebar__header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
+  padding: 0 16px;
+  height: var(--header-height);
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--sidebar-bg);
 }
 
 .chat-sidebar__logo-container {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
 }
 
 .chat-sidebar__logo {
@@ -214,25 +209,22 @@
   font-size: 16px;
   font-weight: 500;
   margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   color: var(--text-primary);
-  line-height: 24px;
 }
 
 .chat-sidebar__hamburger {
-  width: 40px;
-  height: 40px;
-  padding: 8px;
+  width: 36px;
+  height: 36px;
+  padding: 6px;
   border: none;
   border-radius: 50%;
   background: none;
+  color: var(--text-primary);
   cursor: pointer;
+  transition: background-color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 8px;
 }
 
 .chat-sidebar__hamburger:hover {
@@ -434,14 +426,28 @@
 @media (max-width: 768px) {
   /* Mobile: Full overlay or completely hidden */
   .chat-sidebar.mobile {
-    transform: translateX(-100%);
-    visibility: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 320px;
+    z-index: 1000;
+    transform: translateX(0);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .chat-sidebar.mobile:not(.collapsed) {
-    transform: translateX(0);
-    visibility: visible;
-    width: var(--sidebar-width-full);
+  .chat-sidebar.mobile.collapsed {
+    transform: translateX(-100%);
+  }
+
+  .chat-sidebar__logo-container {
+    justify-content: space-between;
+    padding-right: 8px;
+  }
+
+  .chat-sidebar__hamburger {
+    margin-left: auto;
   }
 
   /* Hide mini sidebar on mobile */
