@@ -40,6 +40,7 @@ const FeatureHeader = ({
   isSidebarOpen = false,
   onToggleSidebar = () => {},
   isMobile = false,
+  articleTitle = '',
 }) => {
   const { toggleTheme, isDark } = useTheme();
   const { user, logout } = useAuth();
@@ -65,17 +66,24 @@ const FeatureHeader = ({
 
   // Get feature display information
   const getFeatureInfo = () => {
+    if (selectedFeature === 'tusome' && articleTitle) {
+      return {
+        title: articleTitle,
+        subtitle: null
+      };
+    }
+
     const featureMap = {
       chat: { 
         title: 'Select Roleplay',
         subtitle: null
       },
       sema: { 
-        title: 'Select Speech Practice',
+        title: 'Speech Coach',
         subtitle: null
       },
       tusome: { 
-        title: 'Select Reading',
+        title: 'Reading Article',
         subtitle: null
       }
     };
