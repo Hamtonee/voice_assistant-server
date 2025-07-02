@@ -27,17 +27,17 @@ const ChatSidebar = ({
       const width = window.innerWidth;
       
       if (width <= 768) {
-        // Mobile: overlay when open, mini when closed (like YouTube)
-        setIsMiniSidebar(!isOpen);
-        setIsCollapsed(!isOpen);
+        // Mobile: full overlay when open, mini when closed
+        setIsMiniSidebar(!isOpen);  // Mini when closed
+        setIsCollapsed(!isOpen);    // Hide overlay when closed
       } else if (width <= 1312) {
-        // Tablet: always mini sidebar (like YouTube)
-        setIsMiniSidebar(true);
-        setIsCollapsed(!isOpen);
+        // Tablet: always mini sidebar (never full width)
+        setIsMiniSidebar(true);     // Always mini
+        setIsCollapsed(false);      // Always visible
       } else {
-        // Desktop: full sidebar when open, mini when closed (like YouTube)
-        setIsMiniSidebar(!isOpen);
-        setIsCollapsed(!isOpen);
+        // Desktop: full when open, mini when closed
+        setIsMiniSidebar(!isOpen);  // Mini when closed
+        setIsCollapsed(false);      // Always visible
       }
     };
 

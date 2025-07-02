@@ -26,13 +26,19 @@ const SemaNamiLayout = ({
       const mobile = width <= 768;
       setIsMobile(mobile);
       
-      // YouTube behavior: sidebar defaults to closed on mobile, open on desktop
-      if (mobile && sidebarOpen) {
-        // Keep current state but ensure mobile overlay behavior
-      } else if (width > 1312 && !sidebarOpen) {
-        // Auto-open on large desktop if closed
-        setSidebarOpen(true);
+      // Initialize sidebar state based on screen size
+      if (mobile) {
+        // Mobile: start closed to show mini sidebar
+        if (sidebarOpen) {
+          // Keep overlay open if user opened it
+        }
+      } else if (width > 1312) {
+        // Desktop: auto-open for better UX
+        if (!sidebarOpen) {
+          setSidebarOpen(true);
+        }
       }
+      // Tablet (769-1312): keep current state, always shows mini
     };
 
     window.addEventListener('resize', handleResize);

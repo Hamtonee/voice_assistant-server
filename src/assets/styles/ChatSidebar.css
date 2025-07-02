@@ -14,7 +14,8 @@
 :root {
   /* Dimensions */
   --sidebar-width-full: 240px;
-  --sidebar-width-mini: 72px;
+  --sidebar-width-mini: 56px;  /* Reduced from 72px for better mobile experience */
+  --sidebar-width-mini-desktop: 72px;  /* Larger on desktop where space is available */
   --header-height: 56px;
   --nav-btn-height: 40px;
   --nav-btn-height-mobile: 48px;
@@ -65,6 +66,13 @@
 /* Mini sidebar mode - like YouTube's collapsed state */
 .chat-sidebar.mini {
   width: var(--sidebar-width-mini);
+}
+
+/* Desktop mini sidebar - wider for better usability */
+@media (min-width: 1313px) {
+  .chat-sidebar.mini {
+    width: var(--sidebar-width-mini-desktop);
+  }
 }
 
 /* Mobile overlay mode - YouTube style */
@@ -335,20 +343,20 @@
 -------------------------------------------------------*/
 @media (min-width: 1313px) {
   /* Desktop: Full sidebar when open, mini when closed */
-  .chat-sidebar.collapsed {
-    width: var(--sidebar-width-mini);
+  .chat-sidebar.mini {
+    width: var(--sidebar-width-mini-desktop);
   }
 }
 
 @media (max-width: 1312px) and (min-width: 769px) {
   /* Tablet: Always mini sidebar (like YouTube) */
   .chat-sidebar:not(.mobile) {
-    width: var(--sidebar-width-mini);
+    width: var(--sidebar-width-mini-desktop);
   }
   
-  /* Show mini sidebar even when "collapsed" on tablet */
+  /* Always show mini sidebar on tablet */
   .chat-sidebar:not(.mobile).collapsed {
-    width: var(--sidebar-width-mini);
+    width: var(--sidebar-width-mini-desktop);
     transform: translateX(0);
   }
 
