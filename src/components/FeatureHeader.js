@@ -1,78 +1,67 @@
-// src/components/FeatureHeader.js - FIXED to use existing CSS classes
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { FiMenu, FiX, FiMoreVertical, FiVolume2, FiMoon, FiSun } from 'react-icons/fi';
+// src/components/FeatureHeader.js
+import React, { useRef, useState } from 'react';
+import { FiMoreVertical, FiVolume2, FiMoon, FiSun, FiMenu } from 'react-icons/fi';
 import Avatar from './Avatar';
-import VoiceSelector from './VoiceSelector';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import '../assets/styles/FeatureHeader.css';
 
-// Custom hook for dropdown management
 const useDropdownManager = () => {
-  const [openDropdowns, setOpenDropdowns] = useState({
-    avatar: false,
-    overflow: false,
-    voiceSelector: false
-  });
+  const [openDropdowns, setOpenDropdowns] = useState({});
 
-  const toggleDropdown = useCallback((name) => {
+  const toggleDropdown = (id) => {
     setOpenDropdowns(prev => ({
       ...prev,
-      [name]: !prev[name]
+      [id]: !prev[id]
     }));
-  }, []);
+  };
 
-  const closeAllDropdowns = useCallback(() => {
-    setOpenDropdowns({
-      avatar: false,
-      overflow: false,
-      voiceSelector: false
-    });
-  }, []);
-
-  const closeDropdown = useCallback((name) => {
+  const closeDropdown = (id) => {
     setOpenDropdowns(prev => ({
       ...prev,
-      [name]: false
+      [id]: false
     }));
-  }, []);
+  };
+
+  const closeAllDropdowns = () => {
+    setOpenDropdowns({});
+  };
 
   return {
     openDropdowns,
     toggleDropdown,
-    closeAllDropdowns,
-    closeDropdown
+    closeDropdown,
+    closeAllDropdowns
   };
 };
 
-// Main FeatureHeader component
-export default function FeatureHeader({
-  sidebarOpen = false,
-  onToggleSidebar = () => {},
+const FeatureHeader = ({
   selectedFeature = 'chat',
-  scenario = null,
-  onClearScenario = () => {},
-  selectedVoice = null,
-  onVoiceSelect = () => {},
-  title,
-  subtitle,
-  isMobile,
-  isSidebarOpen
-}) {
+  isSidebarOpen = false,
+  onToggleSidebar = () => {},
+  isMobile = false,
+}) => {
   const { toggleTheme, isDark } = useTheme();
-  const { user } = useAuth();
-  
+  const { user, logout } = useAuth();
   const { 
     openDropdowns, 
     toggleDropdown, 
-    closeAllDropdowns, 
-    closeDropdown 
+    closeAllDropdowns 
   } = useDropdownManager();
   
   const headerRef = useRef(null);
   const avatarRef = useRef(null);
   const overflowRef = useRef(null);
-  const voiceSelectorRef = useRef(null);
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await logout();
+      closeAllDropdowns();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   // Get feature display information
   const getFeatureInfo = () => {
@@ -96,69 +85,43 @@ export default function FeatureHeader({
 
   const featureInfo = getFeatureInfo();
 
-  // Handle click outside dropdowns
-  useEffect(() => {
+  // Close dropdowns when clicking outside
+  React.useEffect(() => {
     const handleClickOutside = (event) => {
-      const refs = [
-        { ref: avatarRef, dropdown: 'avatar' },
-        { ref: overflowRef, dropdown: 'overflow' },
-        { ref: voiceSelectorRef, dropdown: 'voiceSelector' }
-      ];
-
-      refs.forEach(({ ref, dropdown }) => {
-        if (openDropdowns[dropdown] && ref.current && !ref.current.contains(event.target)) {
-          closeDropdown(dropdown);
-        }
-      });
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openDropdowns, closeDropdown]);
-
-  // Handle escape key
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
+      if (
+        overflowRef.current && 
+        !overflowRef.current.contains(event.target) &&
+        avatarRef.current && 
+        !avatarRef.current.contains(event.target)
+      ) {
         closeAllDropdowns();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [closeAllDropdowns]);
 
-  // Handle voice selection
-  const handleVoiceSelect = (voice) => {
-    onVoiceSelect?.(voice);
-    closeDropdown('voiceSelector');
-  };
-
-  // Handle logout
-  const handleLogout = () => {
-    // Implementation depends on your auth system
-    closeDropdown('avatar');
-  };
+  // Only render hamburger in header for mobile or when sidebar is open
+  const showHamburgerInHeader = isMobile || isSidebarOpen;
 
   return (
     <header 
       ref={headerRef}
-      className={`feature-header ${isDark ? 'dark' : ''}`}
+      className={`feature-header ${isDark ? 'dark' : ''} ${isSidebarOpen ? 'sidebar-open' : ''}`}
       data-theme={isDark ? 'dark' : 'light'}
     >
-      {isMobile && !isSidebarOpen && (
+      {showHamburgerInHeader && (
         <button 
           className="feature-header__hamburger"
           onClick={onToggleSidebar}
-          aria-label="Toggle sidebar"
+          aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 12h18M3 6h18M3 18h18" />
-          </svg>
+          <FiMenu size={24} />
         </button>
       )}
       
-      <div className="feature-header__content">
+      <div className={`feature-header__content ${showHamburgerInHeader ? 'with-hamburger' : ''}`}>
         <h1 className="feature-header__title">{featureInfo.title}</h1>
         {featureInfo.subtitle && (
           <p className="feature-header__subtitle">{featureInfo.subtitle}</p>
@@ -167,35 +130,35 @@ export default function FeatureHeader({
 
       {/* Right Section */}
       <div className="header-right">
-        {/* Voice Selector */}
-        <div className="voice-selector-container" ref={voiceSelectorRef}>
+        {/* Overflow Menu (Three Dots) */}
+        <div className="overflow-menu" ref={overflowRef}>
           <button
-            className="voice-button"
-            onClick={() => toggleDropdown('voiceSelector')}
-            aria-label="Select voice"
+            className="overflow-toggle"
+            onClick={() => toggleDropdown('overflow')}
+            aria-label="More options"
           >
-            <FiVolume2 size={18} />
-            {selectedVoice && <span className="voice-name">{selectedVoice.name}</span>}
+            <FiMoreVertical size={18} />
           </button>
           
-          {openDropdowns.voiceSelector && (
-            <div className="voice-selector-dropdown">
-              <VoiceSelector
-                selectedVoice={selectedVoice}
-                onVoiceSelect={handleVoiceSelect}
-              />
+          {openDropdowns.overflow && (
+            <div className="overflow-dropdown">
+              <button 
+                className="dropdown-item"
+                onClick={() => toggleDropdown('voiceSelector')}
+              >
+                <FiVolume2 size={16} />
+                Voice Settings
+              </button>
+              <button 
+                className="dropdown-item"
+                onClick={toggleTheme}
+              >
+                {isDark ? <FiSun size={16} /> : <FiMoon size={16} />}
+                {isDark ? 'Light Mode' : 'Dark Mode'}
+              </button>
             </div>
           )}
         </div>
-
-        {/* Theme Toggle */}
-        <button
-          className="theme-toggle"
-          onClick={toggleTheme}
-          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
-        </button>
 
         {/* User Avatar */}
         {user && (
@@ -225,37 +188,9 @@ export default function FeatureHeader({
             )}
           </div>
         )}
-
-        {/* Overflow Menu (Mobile) */}
-        <div className="overflow-menu" ref={overflowRef}>
-          <button
-            className="overflow-toggle"
-            onClick={() => toggleDropdown('overflow')}
-            aria-label="More options"
-          >
-            <FiMoreVertical size={18} />
-          </button>
-          
-          {openDropdowns.overflow && (
-            <div className="overflow-dropdown">
-              <button 
-                className="dropdown-item"
-                onClick={() => toggleDropdown('voiceSelector')}
-              >
-                <FiVolume2 size={16} />
-                Voice Settings
-              </button>
-              <button 
-                className="dropdown-item"
-                onClick={toggleTheme}
-              >
-                {isDark ? <FiSun size={16} /> : <FiMoon size={16} />}
-                {isDark ? 'Light Mode' : 'Dark Mode'}
-              </button>
-            </div>
-          )}
-        </div>
       </div>
     </header>
   );
-} 
+};
+
+export default FeatureHeader;
