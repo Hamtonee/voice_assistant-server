@@ -52,7 +52,6 @@ export default function FeatureHeader({
   selectedFeature = 'chat',
   scenario = null,
   onClearScenario = () => {},
-  user = null,
   selectedVoice = null,
   onVoiceSelect = () => {},
   title,
@@ -138,7 +137,6 @@ export default function FeatureHeader({
   // Handle logout
   const handleLogout = () => {
     // Implementation depends on your auth system
-    console.log('Logout clicked');
     closeDropdown('avatar');
   };
 
@@ -169,7 +167,6 @@ export default function FeatureHeader({
 
       {/* Right Section */}
       <div className="header-right">
-        
         {/* Voice Selector */}
         <div className="voice-selector-container" ref={voiceSelectorRef}>
           <button
