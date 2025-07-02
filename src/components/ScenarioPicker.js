@@ -1,16 +1,173 @@
-// src/components/ScenarioPicker.js - FIXED VERSION WITH WORKING SELECTION
+// src/components/ScenarioPicker.js - MODERN IMAGE LOADING WITHOUT BLINK EFFECT
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search } from 'lucide-react';
 import '../assets/styles/ScenarioPicker.css';
 import LottieLoader from './LottieLoader';
 
+// WebP Support Detection Utility
+const detectWebPSupport = () => {
+  return new Promise((resolve) => {
+    const webP = new Image();
+    webP.onload = webP.onerror = () => {
+      resolve(webP.height === 2);
+    };
+    webP.src = 'data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAACyAgCdASoCAAIALmk0mk0iIiIiIgBoSygABc6WWgAA/veff/0PP8bA//LwYAAA';
+  });
+};
+
+// Add WebP support class to document
+const initializeWebPSupport = async () => {
+  const supportsWebP = await detectWebPSupport();
+  if (supportsWebP) {
+    document.documentElement.classList.add('webp-supported');
+  }
+};
+
+// Modern Image Component with Intersection Observer and Progressive Loading
+const ModernScenarioImage = React.memo(({ scenario, index }) => {
+  const [imageState, setImageState] = useState('loading'); // loading, loaded, error
+  const [isVisible, setIsVisible] = useState(false);
+  const imageRef = useRef(null);
+  const observerRef = useRef(null);
+
+  // Intersection Observer for lazy loading
+  useEffect(() => {
+    const imageElement = imageRef.current;
+    if (!imageElement) return;
+
+    // Create Intersection Observer
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observerRef.current?.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: '50px', // Start loading 50px before image comes into view
+        threshold: 0.1
+      }
+    );
+
+    observerRef.current.observe(imageElement);
+
+    return () => {
+      if (observerRef.current && imageElement) {
+        observerRef.current.unobserve(imageElement);
+      }
+    };
+  }, []);
+
+  // Modern image loading with WebP support and fallback
+  const handleImageLoad = useCallback(() => {
+    setImageState('loaded');
+  }, []);
+
+  const handleImageError = useCallback(() => {
+    setImageState('error');
+  }, []);
+
+  // Get optimized image URL with format detection
+  const getOptimizedImageUrl = useCallback((originalUrl) => {
+    if (!originalUrl) return null;
+    
+    // Check if WebP is supported (from document class)
+    const supportsWebP = document.documentElement.classList.contains('webp-supported');
+
+    // If the original URL already has format parameters, use it as-is
+    if (originalUrl.includes('?') || originalUrl.includes('format=')) {
+      return originalUrl;
+    }
+
+    // Add optimization parameters based on screen size
+    const devicePixelRatio = window.devicePixelRatio || 1;
+    const screenWidth = window.innerWidth * devicePixelRatio;
+    
+    let targetWidth;
+    if (screenWidth <= 768) {
+      targetWidth = 400; // Mobile
+    } else if (screenWidth <= 1024) {
+      targetWidth = 500; // Tablet
+    } else {
+      targetWidth = 600; // Desktop
+    }
+
+    // Try to add optimization parameters (works with many CDNs)
+    const separator = originalUrl.includes('?') ? '&' : '?';
+    const format = supportsWebP ? 'webp' : 'jpg';
+    
+    return `${originalUrl}${separator}w=${targetWidth}&f=${format}&q=85`;
+  }, []);
+
+  const optimizedImageUrl = getOptimizedImageUrl(scenario.image);
+
+  return (
+    <div 
+      ref={imageRef}
+      className={`card-image-wrapper modern-loading ${imageState}`}
+    >
+      {imageState === 'error' ? (
+        <div className="image-error-modern">
+          <div className="error-icon">🖼️</div>
+          <span>Image unavailable</span>
+        </div>
+      ) : (
+        <>
+          {/* Skeleton loader */}
+          {imageState === 'loading' && (
+            <div className="image-skeleton">
+              <div className="skeleton-shimmer"></div>
+            </div>
+          )}
+          
+          {/* Modern progressive image loading */}
+          {isVisible && optimizedImageUrl && (
+            <picture>
+              {/* WebP version for modern browsers */}
+              <source 
+                srcSet={getOptimizedImageUrl(scenario.image)}
+                type="image/webp"
+              />
+              {/* Fallback for older browsers */}
+              <img
+                src={optimizedImageUrl}
+                alt={scenario.label}
+                className={`card-image modern-image ${imageState}`}
+                onLoad={handleImageLoad}
+                onError={handleImageError}
+                loading="lazy"
+                decoding="async"
+                fetchPriority={index < 4 ? "high" : "low"}
+                style={{
+                  opacity: imageState === 'loaded' ? 1 : 0,
+                  transform: imageState === 'loaded' ? 'scale(1)' : 'scale(1.05)',
+                  transition: 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              />
+            </picture>
+          )}
+          
+          {/* Gradient overlay */}
+          <div className="card-image-overlay modern-overlay"></div>
+        </>
+      )}
+    </div>
+  );
+});
+
+ModernScenarioImage.displayName = 'ModernScenarioImage';
+
 export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
   const [search, setSearch] = useState('');
   const [loadingScenario, setLoadingScenario] = useState(null);
-  const [imageLoadingStates, setImageLoadingStates] = useState({});
-  const [imageErrors, setImageErrors] = useState({});
-  const [preloadedImages, setPreloadedImages] = useState(new Set());
-  const imageCache = useRef(new Map());
+
+  // Initialize WebP support detection
+  useEffect(() => {
+    initializeWebPSupport();
+  }, []);
 
   // Debug logging
   useEffect(() => {
@@ -21,139 +178,6 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
       isEmbedded: !onClose
     });
   }, [scenarios, onSelect, onClose]);
-
-  // Preload images for better performance
-  const preloadImage = useCallback((src, key) => {
-    if (preloadedImages.has(src) || imageCache.current.has(src)) {
-      return Promise.resolve();
-    }
-
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      
-      img.loading = 'eager';
-      img.decoding = 'async';
-      
-      img.onload = () => {
-        setPreloadedImages(prev => new Set([...prev, src]));
-        imageCache.current.set(src, img);
-        setImageLoadingStates(prev => ({
-          ...prev,
-          [key]: false
-        }));
-        resolve();
-      };
-      img.onerror = () => {
-        setImageErrors(prev => ({
-          ...prev,
-          [key]: true
-        }));
-        setImageLoadingStates(prev => ({
-          ...prev,
-          [key]: false
-        }));
-        reject();
-      };
-      img.src = src;
-    });
-  }, [preloadedImages]);
-
-  // Preload images efficiently
-  useEffect(() => {
-    if (!scenarios || scenarios.length === 0) return;
-
-    const imagesToPreload = scenarios
-      .filter(s => s.image)
-      .slice(0, 6)
-      .map(s => ({ src: s.image, key: s.key }));
-
-    const preloadPromises = imagesToPreload.map(({ src, key }) => {
-      setImageLoadingStates(prev => ({
-        ...prev,
-        [key]: true
-      }));
-      return preloadImage(src, key).catch(() => {
-        // Image preload failed - continue without blocking
-      });
-    });
-
-    Promise.allSettled(preloadPromises);
-
-    if (scenarios.length > 6) {
-      setTimeout(() => {
-        const remainingImages = scenarios
-          .filter(s => s.image)
-          .slice(6)
-          .map(s => ({ src: s.image, key: s.key }));
-
-        remainingImages.forEach(({ src, key }) => {
-          setImageLoadingStates(prev => ({
-            ...prev,
-            [key]: true
-          }));
-          preloadImage(src, key).catch(() => {
-            // Image preload failed - continue without blocking
-          });
-        });
-      }, 1000);
-    }
-  }, [scenarios, preloadImage]);
-
-  // Image loading handlers
-  const handleImageLoad = useCallback((scenarioKey) => {
-    setImageLoadingStates(prev => ({
-      ...prev,
-      [scenarioKey]: false
-    }));
-  }, []);
-
-  const handleImageError = useCallback((scenarioKey) => {
-    setImageErrors(prev => ({
-      ...prev,
-      [scenarioKey]: true
-    }));
-    setImageLoadingStates(prev => ({
-      ...prev,
-      [scenarioKey]: false
-    }));
-  }, []);
-
-  // Simplified image component
-  const ScenarioImage = ({ scenario, index }) => {
-    const isPreloaded = preloadedImages.has(scenario.image);
-    const isCached = imageCache.current.has(scenario.image);
-
-    return (
-      <div 
-        className={`card-image-wrapper auto-height ${imageLoadingStates[scenario.key] ? 'loading' : ''} gradient-bg`}
-      >
-        {imageErrors[scenario.key] ? (
-          <div className="image-error">
-            <span>Image unavailable</span>
-          </div>
-        ) : (
-          <>
-            <img
-              src={scenario.image}
-              alt={scenario.label}
-              className={`card-image high-visibility ${
-                imageLoadingStates[scenario.key] ? 'loading' : 'loaded'
-              }`}
-              onLoad={() => handleImageLoad(scenario.key)}
-              onError={() => handleImageError(scenario.key)}
-              loading="eager"
-              decoding="async"
-              style={{
-                opacity: isPreloaded || isCached ? 1 : 0.7,
-                transition: 'opacity 0.3s ease'
-              }}
-            />
-            <div className="card-image-overlay"></div>
-          </>
-        )}
-      </div>
-    );
-  };
 
   if (!scenarios || scenarios.length === 0) {
     return (
@@ -281,10 +305,10 @@ export default function ScenarioPicker({ scenarios, onSelect, onClose }) {
                   {items.map((s, index) => (
                     <div 
                       key={s.key} 
-                      className={`scenario-card ${loadingScenario === s.key ? 'loading-active' : ''}`}
+                      className={`scenario-card modern-card ${loadingScenario === s.key ? 'loading-active' : ''}`}
                       onClick={() => handleScenarioSelect(s)}
                     >
-                      <ScenarioImage scenario={s} index={index} />
+                      <ModernScenarioImage scenario={s} index={index} />
                       <div className="card-content">
                         <h3 className="card-title">{s.label}</h3>
                         <p className="card-subtitle">{s.subtitle}</p>
