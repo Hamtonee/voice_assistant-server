@@ -72,17 +72,6 @@ const ChatSidebar = ({
         {/* Header */}
         <div className="chat-sidebar__header">
           <div className="chat-sidebar__header-left">
-            {/* Hamburger Menu */}
-            <button 
-              className="chat-sidebar__hamburger"
-              onClick={handleToggle}
-              aria-label={isOpen ? 'Close sidebar' : 'Open sidebar'}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 12h18M3 6h18M3 18h18" />
-              </svg>
-            </button>
-            
             {/* Logo Container */}
             {!isMiniSidebar && !isCollapsed && (
               <div className="chat-sidebar__logo-container">
@@ -91,6 +80,17 @@ const ChatSidebar = ({
               </div>
             )}
           </div>
+          
+          {/* Hamburger Menu */}
+          <button 
+            className="chat-sidebar__hamburger"
+            onClick={handleToggle}
+            aria-label={isOpen ? 'Close sidebar' : 'Open sidebar'}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+          </button>
         </div>
 
         {/* Navigation */}
@@ -158,10 +158,10 @@ const ChatSidebar = ({
         )}
       </div>
 
-      {/* Floating Hamburger for Mobile */}
-      {showFloatingHamburger && (
+      {/* Mobile Header Hamburger */}
+      {isMobile && isCollapsed && (
         <button 
-          className="floating-hamburger"
+          className="mobile-header__hamburger standalone"
           onClick={handleToggle}
           aria-label="Open sidebar"
         >

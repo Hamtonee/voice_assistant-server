@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import './ResponsiveContainer.css';
 
@@ -12,10 +12,37 @@ const ResponsiveContainer = ({
   padding = 'default',
   className = '',
   as = 'div',
-  ...props
+  sidebarOpen,
+  isMobile
 }) => {
   const Component = as;
-  
+  const [contentClass, setContentClass] = useState('');
+
+  useEffect(() => {
+    const updateContentClass = () => {
+      let classes = ['sema-layout__main'];
+      
+      if (isMobile) {
+        classes.push('mobile');
+        if (!sidebarOpen) {
+          classes.push('sidebar-closed');
+        }
+      } else if (window.innerWidth <= 1312) {
+        // Tablet: Always mini sidebar
+        classes.push('with-mini-sidebar');
+      } else {
+        // Desktop: Full or mini sidebar
+        classes.push(sidebarOpen ? 'with-full-sidebar' : 'with-mini-sidebar');
+      }
+      
+      setContentClass(classes.join(' '));
+    };
+
+    updateContentClass();
+    window.addEventListener('resize', updateContentClass);
+    return () => window.removeEventListener('resize', updateContentClass);
+  }, [sidebarOpen, isMobile]);
+
   const classNames = [
     'responsive-container',
     `responsive-container--${variant}`,
@@ -25,9 +52,13 @@ const ResponsiveContainer = ({
   ].filter(Boolean).join(' ');
 
   return (
-    <Component className={classNames} {...props}>
-      {children}
-    </Component>
+    <div className="sema-layout">
+      <main className={contentClass}>
+        <Component className={classNames}>
+          {children}
+        </Component>
+      </main>
+    </div>
   );
 };
 
@@ -37,7 +68,9 @@ ResponsiveContainer.propTypes = {
   maxWidth: PropTypes.oneOf(['sm', 'md', 'lg', 'xl', '2xl', 'full']),
   padding: PropTypes.oneOf(['none', 'sm', 'default', 'lg', 'xl']),
   className: PropTypes.string,
-  as: PropTypes.string
+  as: PropTypes.string,
+  sidebarOpen: PropTypes.bool,
+  isMobile: PropTypes.bool
 };
 
 /**

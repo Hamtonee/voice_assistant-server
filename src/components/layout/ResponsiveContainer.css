@@ -299,4 +299,40 @@
   .responsive-flex {
     gap: 0.5rem;
   }
+}
+
+.sema-layout {
+  min-height: 100vh;
+  display: flex;
+}
+
+.sema-layout__main {
+  flex: 1;
+  min-width: 0;
+  transition: margin var(--transition-duration) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Desktop: Full sidebar */
+.sema-layout__main.with-full-sidebar {
+  margin-left: var(--sidebar-width-full);
+}
+
+/* Desktop/Tablet: Mini sidebar */
+.sema-layout__main.with-mini-sidebar {
+  margin-left: var(--sidebar-width-mini);
+}
+
+/* Mobile: No sidebar margin when closed */
+.sema-layout__main.mobile {
+  margin-left: 0;
+}
+
+/* Mobile: Add top margin for header when sidebar is closed */
+.sema-layout__main.mobile.sidebar-closed {
+  margin-top: var(--header-height);
+}
+
+/* Mobile: Full sidebar when open */
+.sema-layout__main.mobile:not(.sidebar-closed) {
+  margin-left: 0;
 } 
