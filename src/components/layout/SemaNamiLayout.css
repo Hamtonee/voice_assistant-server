@@ -27,15 +27,15 @@
   margin-left: 0;
 }
 
-/* Mobile behavior - YouTube style */
+/* Mobile behavior - NO mini sidebar, full overlay or completely hidden */
 .sema-layout.mobile.sidebar-open .sema-layout__main {
   margin-left: 0; /* Full overlay */
   width: 100%;
 }
 
 .sema-layout.mobile.sidebar-closed .sema-layout__main {
-  margin-left: 56px; /* Mini sidebar pushes content (reduced from 72px) */
-  width: calc(100% - 56px);
+  margin-left: 0; /* NO mini sidebar on mobile - completely hidden */
+  width: 100%;
 }
 
 /* Mobile overlay */
@@ -67,17 +67,19 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  /* Mobile: Full overlay when open, mini sidebar when closed */
+  /* Mobile: Full overlay when open, COMPLETELY HIDDEN when closed */
   .sema-layout.mobile.sidebar-open .sema-layout__main {
     margin-left: 0 !important; /* Full overlay */
   }
   
   .sema-layout.mobile.sidebar-closed .sema-layout__main {
-    margin-left: 56px !important; /* Mini sidebar pushes content (reduced width) */
+    margin-left: 0 !important; /* NO mini sidebar - completely hidden */
+    width: 100% !important;
   }
 }
 
 @media (min-width: 769px) and (max-width: 1312px) {
+  /* Tablet: Always show mini sidebar */
   .sema-layout.sidebar-open .sema-layout__main,
   .sema-layout.sidebar-closed .sema-layout__main {
     margin-left: 72px; /* Always mini sidebar on tablet */
@@ -85,6 +87,7 @@
 }
 
 @media (min-width: 1313px) {
+  /* Desktop: Full sidebar when open, mini when closed */
   .sema-layout.sidebar-open .sema-layout__main {
     margin-left: 240px; /* Full sidebar width */
   }

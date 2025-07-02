@@ -21,23 +21,23 @@ const ChatSidebar = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMiniSidebar, setIsMiniSidebar] = useState(false);
 
-  // Handle responsive behavior - YouTube style
+  // Handle responsive behavior - Updated for better mobile experience
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
       
       if (width <= 768) {
-        // Mobile: full overlay when open, mini when closed
-        setIsMiniSidebar(!isOpen);  // Mini when closed
-        setIsCollapsed(!isOpen);    // Hide overlay when closed
+        // Mobile: COMPLETELY hidden when closed, full overlay when open
+        setIsMiniSidebar(false);        // Never mini on mobile
+        setIsCollapsed(!isOpen);        // Hide completely when closed
       } else if (width <= 1312) {
         // Tablet: always mini sidebar (never full width)
-        setIsMiniSidebar(true);     // Always mini
-        setIsCollapsed(false);      // Always visible
+        setIsMiniSidebar(true);         // Always mini
+        setIsCollapsed(false);          // Always visible
       } else {
         // Desktop: full when open, mini when closed
-        setIsMiniSidebar(!isOpen);  // Mini when closed
-        setIsCollapsed(false);      // Always visible
+        setIsMiniSidebar(!isOpen);      // Mini when closed
+        setIsCollapsed(false);          // Always visible
       }
     };
 
@@ -60,7 +60,20 @@ const ChatSidebar = ({
 
   return (
     <>
-      {/* Mobile Overlay handled by parent */}
+      {/* Floating Hamburger Menu for Mobile when sidebar is closed */}
+      {isMobile && isCollapsed && (
+        <button 
+          className="floating-hamburger"
+          onClick={handleToggle}
+          aria-label="Open sidebar"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 12h18M3 6h18M3 18h18" />
+          </svg>
+        </button>
+      )}
+
+      {/* Main Sidebar */}
       <div 
         className={sidebarClass}
         ref={sidebarRef}

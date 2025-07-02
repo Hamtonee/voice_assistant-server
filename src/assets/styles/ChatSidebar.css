@@ -35,6 +35,49 @@
   --radius-lg: 10px;
 }
 
+/* ====================================================================
+   FLOATING HAMBURGER MENU (Mobile Only)
+   ==================================================================== */
+.floating-hamburger {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  width: 40px;
+  height: 40px;
+  background: var(--sidebar-bg, #ffffff);
+  border: 1px solid var(--border-color, #e1e5e9);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  color: var(--text-primary, #1c1e21);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  z-index: 1002;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.floating-hamburger:hover {
+  background-color: var(--hover-bg, #f0f2f5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.floating-hamburger svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Dark mode for floating hamburger */
+[data-theme="dark"] .floating-hamburger {
+  background: var(--dark-bg, #242526);
+  border-color: var(--dark-border, #3e4042);
+  color: var(--dark-text, #e4e6ea);
+}
+
+[data-theme="dark"] .floating-hamburger:hover {
+  background-color: var(--dark-hover, #3a3b3c);
+}
+
 /*-------------------------------------------------------
   Sidebar container
 -------------------------------------------------------*/
@@ -88,11 +131,12 @@
 
 .chat-sidebar.mobile.collapsed {
   transform: translateX(-100%);
+  visibility: hidden; /* Ensure it's completely hidden */
 }
 
 /* Ensure mobile sidebar slides in smoothly */
 .chat-sidebar.mobile {
-  transition: transform var(--transition-fast);
+  transition: transform var(--transition-fast), visibility var(--transition-fast);
 }
 
 /* Overlay background for mobile */
@@ -371,18 +415,35 @@
 }
 
 @media (max-width: 768px) {
-  /* Mobile: Full overlay when open, mini when closed (like YouTube) */
+  /* Mobile: Full overlay when open, completely hidden with floating hamburger when closed */
   .chat-sidebar.mobile:not(.collapsed) {
     width: var(--sidebar-width-full);
     position: fixed;
     z-index: 1001;
+    transform: translateX(0);
   }
   
   .chat-sidebar.mobile.collapsed {
-    width: var(--sidebar-width-mini);
+    width: 0;
     position: fixed;
-    transform: translateX(0);
+    transform: translateX(-100%);
     z-index: 1000;
+    overflow: hidden;
+  }
+
+  /* Floating hamburger menu for mobile when sidebar is collapsed */
+  .chat-sidebar.mobile.collapsed .chat-sidebar__hamburger {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    width: 44px;
+    height: 44px;
+    z-index: 1002;
+    background-color: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-full);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: translateX(0);
   }
 
   .chat-sidebar.mobile:not(.collapsed) .chat-sidebar__header-left {
@@ -391,7 +452,7 @@
   }
   
   .chat-sidebar.mobile.collapsed .chat-sidebar__header-left {
-    padding: 0 var(--spacing-md);
+    padding: 0;
     justify-content: center;
   }
 
@@ -400,7 +461,7 @@
   }
   
   .chat-sidebar.mobile.collapsed .chat-sidebar__nav {
-    padding: var(--spacing-md);
+    display: none;
   }
 
   .chat-sidebar.mobile:not(.collapsed) .chat-sidebar__nav-btn,
@@ -414,10 +475,27 @@
     display: flex !important;
   }
   
-  /* Hide logo on mobile when mini */
+  /* Hide logo on mobile when collapsed */
   .chat-sidebar.mobile.collapsed .chat-sidebar__logo-container {
     display: none !important;
   }
+
+  /* Hide all sidebar content except hamburger when collapsed */
+  .chat-sidebar.mobile.collapsed .chat-sidebar__content {
+    display: none;
+  }
+
+  .chat-sidebar.mobile.collapsed .chat-sidebar__header {
+    background: transparent;
+    border: none;
+  }
+}
+
+/* Dark mode support for floating hamburger */
+.chat-sidebar.mobile.collapsed.dark .chat-sidebar__hamburger {
+  background-color: var(--dark-bg);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
 }
 
 /* Accessibility */
