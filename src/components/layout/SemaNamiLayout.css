@@ -1,10 +1,8 @@
 /* SemaNamiLayout.css - YouTube-style responsive layout */
 
 .sema-layout {
+  min-height: 100vh;
   display: flex;
-  height: 100vh;
-  width: 100%;
-  overflow: hidden;
   position: relative;
   background-color: var(--main-bg, #f8f9fa);
 }
@@ -12,30 +10,24 @@
 /* Main content area */
 .sema-layout__main {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  width: 100%;
-  overflow: hidden;
-  transition: margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
+  min-width: 0;
+  padding-top: var(--header-height);
+  transition: margin var(--transition-duration) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Desktop behavior - sidebar pushes content */
-.sema-layout.sidebar-open .sema-layout__main {
-  margin-left: 240px; /* Full sidebar width */
-  width: calc(100% - 240px);
+/* Desktop: Full sidebar */
+.sema-layout.sidebar-open:not(.mobile) .sema-layout__main {
+  margin-left: var(--sidebar-width-full);
 }
 
-.sema-layout.sidebar-closed .sema-layout__main {
-  margin-left: 72px; /* Mini sidebar width */
-  width: calc(100% - 72px);
+/* Desktop/Tablet: Mini sidebar */
+.sema-layout.sidebar-closed:not(.mobile) .sema-layout__main {
+  margin-left: var(--sidebar-width-mini);
 }
 
-/* Mobile behavior - NO mini sidebar, full overlay or completely hidden */
+/* Mobile: No sidebar margin */
 .sema-layout.mobile .sema-layout__main {
-  margin-left: 0 !important; /* No margin on mobile */
-  width: 100% !important;
+  margin-left: 0;
 }
 
 /* Mobile overlay */
@@ -47,12 +39,11 @@
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 999;
-  animation: fadeIn 0.2s ease-out;
+  display: none;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.sema-layout.mobile.sidebar-open .sema-layout__overlay {
+  display: block;
 }
 
 /* Ensure proper stacking context */

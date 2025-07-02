@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ChatSidebar from '../ChatSidebar';
+import FeatureHeader from '../FeatureHeader';
 import './SemaNamiLayout.css';
 
 const SemaNamiLayout = ({
@@ -65,6 +66,14 @@ const SemaNamiLayout = ({
         isOpen={sidebarOpen}
         onToggle={toggleSidebar}
         isMobile={isMobile}
+      />
+
+      {/* Feature Header */}
+      <FeatureHeader
+        selectedFeature={selectedFeature}
+        isMobile={isMobile}
+        isSidebarOpen={sidebarOpen}
+        onToggleSidebar={toggleSidebar}
       />
 
       {/* Main Content Area */}

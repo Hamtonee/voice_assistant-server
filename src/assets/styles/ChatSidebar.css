@@ -115,14 +115,29 @@
   width: var(--sidebar-width-mini);
 }
 
+.chat-sidebar.mini .chat-sidebar__header {
+  justify-content: center;
+  padding: 0;
+  height: 48px;
+  margin-bottom: 4px;
+}
+
+.chat-sidebar.mini .chat-sidebar__hamburger {
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  margin: 0;
+}
+
 .chat-sidebar.mini .chat-sidebar__nav {
   align-items: center;
+  padding: 0;
 }
 
 .chat-sidebar.mini .chat-sidebar__nav-btn {
   width: 48px;
   height: 48px;
-  padding: 0;
+  padding: 12px;
   justify-content: center;
   margin: 4px auto;
 }
