@@ -44,7 +44,7 @@
   left: 12px;
   width: 44px;
   height: 44px;
-  background: var(--sidebar-bg, #ffffff);
+  background: #ffffff;
   border: 1px solid var(--border-color, #e1e5e9);
   border-radius: var(--radius-full);
   cursor: pointer;
@@ -69,13 +69,13 @@
 
 /* Dark mode for floating hamburger */
 [data-theme="dark"] .floating-hamburger {
-  background: var(--dark-bg, #242526);
-  border-color: var(--dark-border, #3e4042);
-  color: var(--dark-text, #e4e6ea);
+  background: #1a1a2e;
+  border-color: #374151;
+  color: #ffffff;
 }
 
 [data-theme="dark"] .floating-hamburger:hover {
-  background-color: var(--dark-hover, #3a3b3c);
+  background-color: #1a1d29;
 }
 
 /*-------------------------------------------------------
@@ -98,16 +98,25 @@
   z-index: 1000;
   font-family: 'Poppins', sans-serif;
   font-size: var(--font-size-sm);
+  
+  /* Light mode - Default theme variables */
+  --sidebar-bg: #ffffff;
+  --text-primary: #1a202c;
+  --border-color: #e2e8f0;
+  --hover-bg: #f8fafc;
+  --active-bg: #f1f5f9;
+  --active-text: #1a202c;
 }
 
 /* Dark mode */
-.chat-sidebar.dark {
-  --sidebar-bg: var(--dark-bg);
-  --text-primary: var(--dark-text);
-  --border-color: var(--dark-border);
-  --hover-bg: var(--dark-hover);
-  --active-bg: var(--dark-active);
-  --active-text: var(--dark-active-text);
+.chat-sidebar.dark,
+[data-theme="dark"] .chat-sidebar {
+  --sidebar-bg: #1a1a2e;
+  --text-primary: #ffffff;
+  --border-color: #374151;
+  --hover-bg: #1a1d29;
+  --active-bg: #242837;
+  --active-text: #ffffff;
 }
 
 /* Mini sidebar mode - like YouTube's collapsed state */
