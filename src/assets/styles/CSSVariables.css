@@ -16,7 +16,7 @@
   /* Layout dimensions - Pixel Perfect */
   --header-height: 64px;                    /* Consistent 64px header */
   --header-height-mobile: 56px;             /* Smaller on mobile */
-  --sidebar-width: 320px;                   /* Optimal sidebar width */
+  --sidebar-width: 240px;                   /* YouTube-style sidebar width */
   --sidebar-width-mobile: 280px;            /* Narrower on mobile */
   --content-max-width: 1200px;              /* Max content width */
   --content-padding: 24px;                  /* Content padding */
@@ -115,7 +115,7 @@
   --light-active: #f1f5f9;
   
   /* Sidebar specific variables */
-  --sidebar-width-expanded: 280px;
+  --sidebar-width-expanded: 240px;
   --sidebar-width-collapsed: 72px;
   --sidebar-transition: all 0.3s ease;
   --sidebar-icon-size: 24px;

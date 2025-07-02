@@ -1,252 +1,81 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import PropTypes from 'prop-types';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useMediaQuery } from '../../hooks';
+import React, { useState, useEffect } from 'react';
 import ChatSidebar from '../ChatSidebar';
-import FeatureHeader from '../FeatureHeader';
 import './SemaNamiLayout.css';
 
-const SemaNamiLayout = ({ 
-  children, 
-  sessions = [], 
-  activeChatId = null,
+const SemaNamiLayout = ({
+  sessions = [],
+  activeChatId,
   onSelectChat,
   onNewChat,
   onRenameChat,
   onDeleteChat,
   currentScenarioKey,
   hasCurrentChatContent,
-  platformName = "Voice Assistant"
+  platformName = "SemaNami",
+  selectedFeature = 'chat',
+  onSelectFeature,
+  children
 }) => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  
-  // Responsive breakpoints
-  const isMobile = useMediaQuery('(max-width: 768px)');
-  const isTablet = useMediaQuery('(max-width: 1024px) and (min-width: 769px)');
-  const isDesktop = useMediaQuery('(min-width: 1025px)');
-  
-  // Layout state
-  const [sidebarOpen, setSidebarOpen] = useState(isDesktop); // Start open only on desktop
-  const [sidebarMode, setSidebarMode] = useState('normal');
-  
-  // Handle responsive sidebar behavior
-  useEffect(() => {
-    if (isMobile) {
-      setSidebarMode('overlay');
-      setSidebarOpen(false);
-    } else if (isTablet) {
-      setSidebarMode('normal');
-      setSidebarOpen(false);
-    } else {
-      setSidebarMode('normal');
-      setSidebarOpen(true);
-    }
-  }, [isMobile, isTablet, isDesktop]);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-  // Feature detection from current route
-  const getSelectedFeature = useCallback(() => {
-    const path = location.pathname;
-    if (path.includes('/sema')) return 'sema';
-    if (path.includes('/tusome')) return 'tusome';
-    return 'chat'; // default
-  }, [location.pathname]);
-  
-  const [selectedFeature, setSelectedFeature] = useState(getSelectedFeature());
-  
-  // Update feature when route changes
+  // Handle window resize - YouTube behavior
   useEffect(() => {
-    setSelectedFeature(getSelectedFeature());
-  }, [getSelectedFeature]);
-  
-  // Sidebar actions
-  const toggleSidebar = useCallback(() => {
-    setSidebarOpen(prev => !prev);
-  }, []);
-  
-  const closeSidebar = useCallback(() => {
-    setSidebarOpen(false);
-  }, []);
-
-  // Close sidebar on route change in mobile
-  useEffect(() => {
-    if (isMobile) {
-      closeSidebar();
-    }
-  }, [location.pathname, isMobile, closeSidebar]);
-
-  // Close sidebar on escape key
-  useEffect(() => {
-    const handleEscKey = (e) => {
-      if (e.key === 'Escape' && (isMobile || isTablet) && sidebarOpen) {
-        closeSidebar();
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const mobile = width <= 768;
+      setIsMobile(mobile);
+      
+      // YouTube behavior: sidebar defaults to closed on mobile, open on desktop
+      if (mobile && sidebarOpen) {
+        // Keep current state but ensure mobile overlay behavior
+      } else if (width > 1312 && !sidebarOpen) {
+        // Auto-open on large desktop if closed
+        setSidebarOpen(true);
       }
     };
 
-    window.addEventListener('keydown', handleEscKey);
-    return () => window.removeEventListener('keydown', handleEscKey);
-  }, [isMobile, isTablet, sidebarOpen, closeSidebar]);
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial check
+    return () => window.removeEventListener('resize', handleResize);
+  }, [sidebarOpen]);
 
-  // Feature navigation
-  const handleFeatureSelect = useCallback((feature) => {
-    let path = '/chats';
-    switch (feature) {
-      case 'sema':
-        path = '/chats/sema';
-        break;
-      case 'tusome':
-        path = '/chats/tusome';
-        break;
-      case 'chat':
-      default:
-        path = '/chats';
-        break;
-    }
-    navigate(path);
-    
-    // Close sidebar on mobile after navigation
-    if (isMobile) {
-      setSidebarOpen(false);
-    }
-  }, [navigate, isMobile]);
-  
-  // Chat session management
-  const handleNewChat = useCallback(() => {
-    if (onNewChat) {
-      onNewChat();
-    }
-    
-    // Close sidebar on mobile after action
-    if (isMobile) {
-      setSidebarOpen(false);
-    }
-  }, [onNewChat, isMobile]);
-  
-  const handleSelectChat = useCallback((chatId) => {
-    if (onSelectChat) {
-      onSelectChat(chatId);
-    }
-    
-    // Close sidebar on mobile after selection
-    if (isMobile) {
-      setSidebarOpen(false);
-    }
-  }, [onSelectChat, isMobile]);
-  
-  // Get feature title and subtitle
-  const getFeatureInfo = useCallback(() => {
-    switch (selectedFeature) {
-      case 'sema':
-        return {
-          title: 'Sema Speech Coach',
-          subtitle: 'AI-powered speech analysis and coaching',
-          icon: '🎤'
-        };
-      case 'tusome':
-        return {
-          title: 'Tusome Reading',
-          subtitle: 'Interactive reading comprehension practice',
-          icon: '📚'
-        };
-      case 'chat':
-      default:
-        return {
-          title: 'Chat Roleplay',
-          subtitle: currentScenarioKey ? 'Practice conversations with AI scenarios' : 'Select a scenario to start',
-          icon: '💬'
-        };
-    }
-  }, [selectedFeature, currentScenarioKey]);
-  
-  const featureInfo = getFeatureInfo();
-  
-  // Layout classes
-  const layoutClasses = [
-    'semanami-layout',
-    `semanami-layout--${sidebarMode}`,
-    sidebarOpen ? 'semanami-layout--sidebar-open' : 'semanami-layout--sidebar-closed',
-    `semanami-layout--${selectedFeature}`,
-    isMobile ? 'semanami-layout--mobile' : '',
-    isTablet ? 'semanami-layout--tablet' : '',
-    isDesktop ? 'semanami-layout--desktop' : ''
-  ].filter(Boolean).join(' ');
-  
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
   return (
-    <div className={layoutClasses}>
-      {/* Hamburger Menu Button - Always visible on mobile/tablet */}
-      {(isMobile || isTablet) && (
-        <button 
-          className={`semanami-layout__menu-btn ${sidebarOpen ? 'active' : ''}`}
-          onClick={toggleSidebar}
-          aria-label="Toggle menu"
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-      )}
-
+    <div className={`sema-layout ${isMobile ? 'mobile' : ''} ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       {/* Sidebar */}
-      <aside className={`semanami-layout__sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <ChatSidebar
-          selectedFeature={selectedFeature}
-          onSelectFeature={handleFeatureSelect}
-          onNewChat={handleNewChat}
-          chatInstances={sessions}
-          activeChatId={activeChatId}
-          onSelectChat={handleSelectChat}
-          onRenameChat={onRenameChat}
-          onDeleteChat={onDeleteChat}
-          currentScenarioKey={currentScenarioKey}
-          hasCurrentChatContent={hasCurrentChatContent}
-          platformName={platformName}
-        />
-      </aside>
-      
-      {/* Mobile sidebar backdrop */}
-      {(isMobile || isTablet) && sidebarOpen && (
+      <ChatSidebar
+        chatInstances={sessions}
+        onSelectChat={onSelectChat}
+        onNewChat={onNewChat}
+        onRenameChat={onRenameChat}
+        onDeleteChat={onDeleteChat}
+        selectedFeature={selectedFeature}
+        onSelectFeature={onSelectFeature}
+        currentScenarioKey={currentScenarioKey}
+        hasCurrentChatContent={hasCurrentChatContent}
+        isOpen={sidebarOpen}
+        onToggle={toggleSidebar}
+        isMobile={isMobile}
+      />
+
+      {/* Main Content Area */}
+      <main className="sema-layout__main">
+        {children}
+      </main>
+
+      {/* Mobile Overlay */}
+      {isMobile && sidebarOpen && (
         <div 
-          className="semanami-layout__backdrop"
-          onClick={closeSidebar}
-          role="presentation"
+          className="sema-layout__overlay" 
+          onClick={() => setSidebarOpen(false)}
         />
       )}
-      
-      {/* Main content area */}
-      <main className="semanami-layout__main">
-        {/* Feature header */}
-        <header className="semanami-layout__header">
-          <FeatureHeader
-            title={featureInfo.title}
-            subtitle={featureInfo.subtitle}
-            icon={featureInfo.icon}
-            selectedFeature={selectedFeature}
-            showMenuButton={isMobile || isTablet}
-            onMenuClick={toggleSidebar}
-            sidebarOpen={sidebarOpen}
-          />
-        </header>
-        
-        {/* Feature content */}
-        <div className="semanami-layout__content">
-          {children}
-        </div>
-      </main>
     </div>
   );
-};
-
-SemaNamiLayout.propTypes = {
-  children: PropTypes.node.isRequired,
-  sessions: PropTypes.array,
-  activeChatId: PropTypes.string,
-  onSelectChat: PropTypes.func,
-  onNewChat: PropTypes.func,
-  onRenameChat: PropTypes.func,
-  onDeleteChat: PropTypes.func,
-  currentScenarioKey: PropTypes.string,
-  hasCurrentChatContent: PropTypes.bool,
-  platformName: PropTypes.string
 };
 
 export default SemaNamiLayout; 

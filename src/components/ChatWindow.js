@@ -408,9 +408,11 @@ const ChatWindow = React.memo(() => {
         onNewChat={handleNewSession}
         onRenameChat={handleRenameSession}
         onDeleteChat={handleDeleteSession}
+        selectedFeature={selectedFeature}
+        onSelectFeature={handleFeatureSelect}
         currentScenarioKey={scenario?.key}
         hasCurrentChatContent={false}
-        platformName="Voice Assistant"
+        platformName="SemaNami"
       >
         {renderMainContent()}
       </SemaNamiLayout>
