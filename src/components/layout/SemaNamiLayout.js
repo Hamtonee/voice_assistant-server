@@ -16,42 +16,41 @@ const SemaNamiLayout = ({
   onSelectFeature,
   children
 }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-  // Handle window resize - YouTube behavior
+  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
       const mobile = width <= 768;
       setIsMobile(mobile);
       
-      // Initialize sidebar state based on screen size
+      // Auto-manage sidebar state
       if (mobile) {
-        // Mobile: start closed to show mini sidebar
-        if (sidebarOpen) {
-          // Keep overlay open if user opened it
-        }
+        // Mobile: start closed
+        setSidebarOpen(false);
       } else if (width > 1312) {
         // Desktop: auto-open for better UX
-        if (!sidebarOpen) {
-          setSidebarOpen(true);
-        }
+        setSidebarOpen(true);
       }
-      // Tablet (769-1312): keep current state, always shows mini
+      // Tablet (769-1312): keep current state
     };
 
     window.addEventListener('resize', handleResize);
     handleResize(); // Initial check
     return () => window.removeEventListener('resize', handleResize);
-  }, [sidebarOpen]);
+  }, []);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
   return (
-    <div className={`sema-layout ${isMobile ? 'mobile' : ''} ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+    <div 
+      className={`sema-layout ${isMobile ? 'mobile' : ''} ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}
+      data-theme={document.documentElement.getAttribute('data-theme')}
+    >
       {/* Sidebar */}
       <ChatSidebar
         chatInstances={sessions}

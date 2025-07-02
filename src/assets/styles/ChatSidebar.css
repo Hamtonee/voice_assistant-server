@@ -14,7 +14,7 @@
 :root {
   /* Dimensions */
   --sidebar-width-full: 240px;
-  --sidebar-width-mini: 56px;  /* Reduced from 72px for better mobile experience */
+  --sidebar-width-mini: 72px;
   --sidebar-width-mini-desktop: 72px;  /* Larger on desktop where space is available */
   --header-height: 56px;
   --nav-btn-height: 40px;
@@ -28,7 +28,7 @@
   --spacing-xl: 24px;
   
   /* Transitions */
-  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-duration: 0.2s;
   
   /* Border Radius */
   --radius-full: 50%;
@@ -40,10 +40,10 @@
    ==================================================================== */
 .floating-hamburger {
   position: fixed;
-  top: 8px;
-  left: 8px;
-  width: 40px;
-  height: 40px;
+  top: 12px;
+  left: 12px;
+  width: 44px;
+  height: 44px;
   background: var(--sidebar-bg, #ffffff);
   border: 1px solid var(--border-color, #e1e5e9);
   border-radius: var(--radius-full);
@@ -52,7 +52,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
+  transition: background-color 0.2s;
   z-index: 1002;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
@@ -63,8 +63,8 @@
 }
 
 .floating-hamburger svg {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
 }
 
 /* Dark mode for floating hamburger */
@@ -82,16 +82,20 @@
   Sidebar container
 -------------------------------------------------------*/
 .chat-sidebar {
-  display: flex;
-  flex-direction: column;
-  width: var(--sidebar-width-full);
+  position: fixed;
+  top: 0;
+  left: 0;
   height: 100vh;
+  width: var(--sidebar-width-full);
   background-color: var(--sidebar-bg);
   color: var(--text-primary);
-  transition: width var(--transition-fast), transform var(--transition-fast);
-  position: relative;
-  z-index: 1000;
   border-right: 1px solid var(--border-color);
+  transition: width var(--transition-duration) cubic-bezier(0.4, 0, 0.2, 1),
+              transform var(--transition-duration) cubic-bezier(0.4, 0, 0.2, 1),
+              visibility var(--transition-duration) cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
   font-family: 'Poppins', sans-serif;
   font-size: var(--font-size-sm);
 }
@@ -120,23 +124,14 @@
 
 /* Mobile overlay mode - YouTube style */
 .chat-sidebar.mobile {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: var(--sidebar-width-full);
-  transform: translateX(0);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.25);
-  z-index: 1001;
-}
-
-.chat-sidebar.mobile.collapsed {
   transform: translateX(-100%);
-  visibility: hidden; /* Ensure it's completely hidden */
+  visibility: hidden;
 }
 
-/* Ensure mobile sidebar slides in smoothly */
-.chat-sidebar.mobile {
-  transition: transform var(--transition-fast), visibility var(--transition-fast);
+.chat-sidebar.mobile:not(.collapsed) {
+  transform: translateX(0);
+  visibility: visible;
+  width: var(--sidebar-width-full);
 }
 
 /* Overlay background for mobile */
@@ -148,7 +143,7 @@
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 999;
-  animation: fadeIn var(--transition-fast) ease-out;
+  animation: fadeIn var(--transition-duration) ease-out;
 }
 
 @keyframes fadeIn {
@@ -158,34 +153,29 @@
 
 /* Header - Exactly matching YouTube's layout */
 .chat-sidebar__header {
+  height: var(--header-height);
   display: flex;
   align-items: center;
-  height: var(--header-height);
-  padding: 0;
-  position: relative;
-  flex-shrink: 0;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .chat-sidebar__header-left {
   display: flex;
   align-items: center;
-  padding: 0 var(--spacing-lg);
-  gap: var(--spacing-lg);
-  height: 100%;
+  gap: 16px;
   flex: 1;
 }
 
 .chat-sidebar__logo-container {
   display: flex;
   align-items: center;
-  gap: var(--spacing-lg);
-  height: 100%;
+  gap: 12px;
 }
 
 .chat-sidebar__logo {
   width: 24px;
   height: 24px;
-  flex-shrink: 0;
 }
 
 .chat-sidebar__title {
@@ -202,18 +192,15 @@
 .chat-sidebar__hamburger {
   width: 40px;
   height: 40px;
-  padding: var(--spacing-sm);
+  padding: 8px;
   background: none;
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: 50%;
   cursor: pointer;
   color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color var(--transition-fast);
-  margin: 0;
-  flex-shrink: 0;
 }
 
 .chat-sidebar__hamburger:hover {
@@ -221,8 +208,8 @@
 }
 
 .chat-sidebar__hamburger svg {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
 }
 
 /* Collapsed/Mini header state - YouTube style */
@@ -252,29 +239,27 @@
   Navigation
 -------------------------------------------------------*/
 .chat-sidebar__nav {
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  padding: var(--spacing-md);
-  gap: 2px;
+  gap: 4px;
 }
 
 .chat-sidebar__nav-btn {
   display: flex;
   align-items: center;
-  height: var(--nav-btn-height);
-  padding: 0 var(--spacing-md);
-  gap: var(--spacing-xl);
+  height: 40px;
+  padding: 0 12px;
+  gap: 24px;
   border: none;
   background: none;
-  color: var(--text-primary);
-  border-radius: var(--radius-lg);
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color var(--transition-fast);
-  width: 100%;
-  text-align: left;
+  color: var(--text-primary);
+  transition: background-color 0.2s;
 }
 
-.mini .chat-sidebar__nav-btn {
+.chat-sidebar.mini .chat-sidebar__nav-btn {
   justify-content: center;
   padding: 0;
   gap: 0;
@@ -323,7 +308,7 @@
   border: none;
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: background-color var(--transition-fast), transform 0.1s;
+  transition: background-color var(--transition-duration), transform 0.1s;
   width: 100%;
 }
 
@@ -349,7 +334,7 @@
 .chat-sidebar__content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: 12px;
 }
 
 /* Empty state */
@@ -415,20 +400,21 @@
 }
 
 @media (max-width: 768px) {
-  /* Mobile: Full overlay when open, completely hidden with floating hamburger when closed */
-  .chat-sidebar.mobile:not(.collapsed) {
-    width: var(--sidebar-width-full);
-    position: fixed;
-    z-index: 1001;
-    transform: translateX(0);
-  }
-  
-  .chat-sidebar.mobile.collapsed {
-    width: 0;
-    position: fixed;
+  /* Mobile: Full overlay or completely hidden */
+  .chat-sidebar.mobile {
     transform: translateX(-100%);
-    z-index: 1000;
-    overflow: hidden;
+    visibility: hidden;
+  }
+
+  .chat-sidebar.mobile:not(.collapsed) {
+    transform: translateX(0);
+    visibility: visible;
+    width: var(--sidebar-width-full);
+  }
+
+  /* Hide mini sidebar on mobile */
+  .chat-sidebar.mobile.mini {
+    display: none;
   }
 
   /* Floating hamburger menu for mobile when sidebar is collapsed */

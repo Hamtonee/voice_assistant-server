@@ -3,6 +3,7 @@
 .sema-layout {
   display: flex;
   height: 100vh;
+  width: 100%;
   overflow: hidden;
   position: relative;
   background-color: var(--main-bg, #f8f9fa);
@@ -14,28 +15,27 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  width: 100%;
   overflow: hidden;
   transition: margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
 
 /* Desktop behavior - sidebar pushes content */
 .sema-layout.sidebar-open .sema-layout__main {
-  margin-left: 0;
+  margin-left: 240px; /* Full sidebar width */
+  width: calc(100% - 240px);
 }
 
 .sema-layout.sidebar-closed .sema-layout__main {
-  margin-left: 0;
+  margin-left: 72px; /* Mini sidebar width */
+  width: calc(100% - 72px);
 }
 
 /* Mobile behavior - NO mini sidebar, full overlay or completely hidden */
-.sema-layout.mobile.sidebar-open .sema-layout__main {
-  margin-left: 0; /* Full overlay */
-  width: 100%;
-}
-
-.sema-layout.mobile.sidebar-closed .sema-layout__main {
-  margin-left: 0; /* NO mini sidebar on mobile - completely hidden */
-  width: 100%;
+.sema-layout.mobile .sema-layout__main {
+  margin-left: 0 !important; /* No margin on mobile */
+  width: 100% !important;
 }
 
 /* Mobile overlay */
@@ -57,6 +57,10 @@
 
 /* Ensure proper stacking context */
 .sema-layout .chat-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
   z-index: 1000;
 }
 
@@ -68,31 +72,36 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
   /* Mobile: Full overlay when open, COMPLETELY HIDDEN when closed */
-  .sema-layout.mobile.sidebar-open .sema-layout__main {
-    margin-left: 0 !important; /* Full overlay */
+  .sema-layout.mobile .chat-sidebar {
+    transform: translateX(-100%);
+    visibility: hidden;
   }
   
-  .sema-layout.mobile.sidebar-closed .sema-layout__main {
-    margin-left: 0 !important; /* NO mini sidebar - completely hidden */
-    width: 100% !important;
+  .sema-layout.mobile.sidebar-open .chat-sidebar {
+    transform: translateX(0);
+    visibility: visible;
   }
 }
 
 @media (min-width: 769px) and (max-width: 1312px) {
   /* Tablet: Always show mini sidebar */
-  .sema-layout.sidebar-open .sema-layout__main,
-  .sema-layout.sidebar-closed .sema-layout__main {
-    margin-left: 72px; /* Always mini sidebar on tablet */
+  .sema-layout .chat-sidebar {
+    width: 72px;
+  }
+  
+  .sema-layout .sema-layout__main {
+    margin-left: 72px !important;
+    width: calc(100% - 72px) !important;
   }
 }
 
 @media (min-width: 1313px) {
   /* Desktop: Full sidebar when open, mini when closed */
-  .sema-layout.sidebar-open .sema-layout__main {
-    margin-left: 240px; /* Full sidebar width */
+  .sema-layout.sidebar-open .chat-sidebar {
+    width: 240px;
   }
   
-  .sema-layout.sidebar-closed .sema-layout__main {
-    margin-left: 72px; /* Mini sidebar width */
+  .sema-layout.sidebar-closed .chat-sidebar {
+    width: 72px;
   }
 } 

@@ -21,23 +21,23 @@ const ChatSidebar = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMiniSidebar, setIsMiniSidebar] = useState(false);
 
-  // Handle responsive behavior - Updated for better mobile experience
+  // Handle responsive behavior
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
       
       if (width <= 768) {
-        // Mobile: COMPLETELY hidden when closed, full overlay when open
-        setIsMiniSidebar(false);        // Never mini on mobile
-        setIsCollapsed(!isOpen);        // Hide completely when closed
+        // Mobile: No mini sidebar, just show/hide
+        setIsMiniSidebar(false);
+        setIsCollapsed(!isOpen);
       } else if (width <= 1312) {
-        // Tablet: always mini sidebar (never full width)
-        setIsMiniSidebar(true);         // Always mini
-        setIsCollapsed(false);          // Always visible
+        // Tablet: Always mini sidebar
+        setIsMiniSidebar(true);
+        setIsCollapsed(false);
       } else {
-        // Desktop: full when open, mini when closed
-        setIsMiniSidebar(!isOpen);      // Mini when closed
-        setIsCollapsed(false);          // Always visible
+        // Desktop: Full or mini based on isOpen
+        setIsMiniSidebar(!isOpen);
+        setIsCollapsed(false);
       }
     };
 
@@ -46,7 +46,7 @@ const ChatSidebar = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [isOpen]);
 
-  // Toggle sidebar - delegate to parent
+  // Toggle sidebar
   const handleToggle = () => {
     if (onToggle) {
       onToggle();
@@ -58,31 +58,21 @@ const ChatSidebar = ({
     ${isMobile ? 'mobile' : ''} 
     ${isMiniSidebar ? 'mini' : ''}`.trim();
 
+  // Only show floating hamburger on mobile when collapsed
+  const showFloatingHamburger = isMobile && isCollapsed;
+
   return (
     <>
-      {/* Floating Hamburger Menu for Mobile when sidebar is closed */}
-      {isMobile && isCollapsed && (
-        <button 
-          className="floating-hamburger"
-          onClick={handleToggle}
-          aria-label="Open sidebar"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 12h18M3 6h18M3 18h18" />
-          </svg>
-        </button>
-      )}
-
-      {/* Main Sidebar */}
+      {/* Sidebar */}
       <div 
         className={sidebarClass}
         ref={sidebarRef}
         data-theme={isDark ? 'dark' : 'light'}
       >
-        {/* Header - YouTube style with proper logo hiding */}
+        {/* Header */}
         <div className="chat-sidebar__header">
           <div className="chat-sidebar__header-left">
-            {/* Hamburger Menu - Always visible and functional */}
+            {/* Hamburger Menu */}
             <button 
               className="chat-sidebar__hamburger"
               onClick={handleToggle}
@@ -93,7 +83,7 @@ const ChatSidebar = ({
               </svg>
             </button>
             
-            {/* Logo Container - Hidden in mini/collapsed state */}
+            {/* Logo Container */}
             {!isMiniSidebar && !isCollapsed && (
               <div className="chat-sidebar__logo-container">
                 <img src={logo} alt="SemaNami" className="chat-sidebar__logo" />
@@ -103,7 +93,7 @@ const ChatSidebar = ({
           </div>
         </div>
 
-        {/* Navigation Buttons - Vertical */}
+        {/* Navigation */}
         <div className="chat-sidebar__nav">
           <button
             className={`chat-sidebar__nav-btn ${selectedFeature === 'chat' ? 'active' : ''}`}
@@ -145,7 +135,7 @@ const ChatSidebar = ({
           </button>
         </div>
 
-        {/* Chat List - Only show when not in mini mode */}
+        {/* Chat List */}
         {!isMiniSidebar && !isCollapsed && (
           <div className="chat-sidebar__content">
             {chatInstances.length > 0 ? (
@@ -167,6 +157,19 @@ const ChatSidebar = ({
           </div>
         )}
       </div>
+
+      {/* Floating Hamburger for Mobile */}
+      {showFloatingHamburger && (
+        <button 
+          className="floating-hamburger"
+          onClick={handleToggle}
+          aria-label="Open sidebar"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 12h18M3 6h18M3 18h18" />
+          </svg>
+        </button>
+      )}
     </>
   );
 };
