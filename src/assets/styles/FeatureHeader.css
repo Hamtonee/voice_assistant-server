@@ -1,1 +1,215 @@
- 
+/* src/assets/styles/FeatureHeader.css */
+/* PIXEL PERFECT Header with Unified Theme System */
+
+/* Import master variables */
+@import './CSSVariables.css';
+
+.feature-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: var(--header-height);
+  background-color: var(--sidebar-bg);
+  border-bottom: 1px solid var(--border-color);
+  transition: all var(--transition-duration) cubic-bezier(0.4, 0, 0.2, 1);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  padding: 0 16px;
+}
+
+.feature-header.sidebar-open {
+  padding-left: calc(var(--sidebar-width-full) + 24px);
+}
+
+.feature-header.sidebar-open.mini {
+  padding-left: calc(var(--sidebar-width-mini) + 24px);
+}
+
+.feature-header__hamburger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  z-index: 10;
+}
+
+.feature-header__hamburger:hover {
+  background-color: var(--hover-bg);
+}
+
+.feature-header__hamburger svg {
+  width: 24px;
+  height: 24px;
+}
+
+.feature-header__content {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  margin-right: auto;
+}
+
+.feature-header__title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Right Section */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 16px;
+}
+
+/* Overflow Menu */
+.overflow-menu {
+  position: relative;
+}
+
+.overflow-toggle {
+  width: 36px;
+  height: 36px;
+  padding: 6px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.overflow-toggle:hover {
+  background-color: var(--hover-bg);
+}
+
+.overflow-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 200px;
+  background: var(--dropdown-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 1000;
+}
+
+/* Avatar */
+.avatar-container {
+  position: relative;
+}
+
+.avatar-button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+
+.avatar-button:hover {
+  transform: scale(1.05);
+}
+
+.avatar-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 240px;
+  background: var(--dropdown-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 1000;
+  padding: 8px 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .feature-header {
+    padding: 0 12px;
+  }
+
+  .feature-header.sidebar-open {
+    left: var(--sidebar-width-full);
+    width: calc(100% - var(--sidebar-width-full));
+    padding-left: 16px;
+  }
+
+  .feature-header__title {
+    font-size: 14px;
+  }
+
+  .header-right {
+    gap: 8px;
+    margin-left: 12px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1312px) {
+  .feature-header.sidebar-open {
+    padding-left: calc(var(--sidebar-width-mini) + 24px);
+  }
+}
+
+@media (min-width: 1313px) {
+  .feature-header.sidebar-open {
+    padding-left: calc(var(--sidebar-width-full) + 24px);
+  }
+  
+  .feature-header.sidebar-open.mini {
+    padding-left: calc(var(--sidebar-width-mini) + 24px);
+  }
+}
+
+/* Dark mode styles */
+.feature-header.dark {
+  background-color: var(--dark-bg);
+  border-color: var(--dark-border);
+}
+
+[data-theme="dark"] .feature-header {
+  background-color: var(--dark-bg);
+  border-color: var(--dark-border);
+}
+
+[data-theme="dark"] .dropdown-header {
+  border-color: var(--dark-border);
+}
+
+[data-theme="dark"] .dropdown-divider {
+  background-color: var(--dark-border);
+}
+
+[data-theme="dark"] .dropdown-item:hover {
+  background-color: var(--dark-hover);
+} 
