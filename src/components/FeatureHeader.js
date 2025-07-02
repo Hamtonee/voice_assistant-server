@@ -104,8 +104,8 @@ const FeatureHeader = ({
 
   // Show hamburger in header ONLY when:
   // 1. On mobile AND sidebar is closed
-  // 2. On desktop/tablet AND sidebar is open
-  const showHamburgerInHeader = (isMobile && !isSidebarOpen) || (!isMobile && isSidebarOpen);
+  // 2. On desktop/tablet AND sidebar is closed
+  const showHamburgerInHeader = (isMobile && !isSidebarOpen) || (!isMobile && !isSidebarOpen);
 
   return (
     <header 
