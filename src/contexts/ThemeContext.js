@@ -19,11 +19,38 @@ export const ThemeProvider = ({ children }) => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
-  // Apply theme to document
+  // Apply theme to document with forced recalculation
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    document.body.className = `${theme}-theme`;
-    localStorage.setItem('theme', theme);
+    const applyTheme = (newTheme) => {
+      const root = document.documentElement;
+      const body = document.body;
+      
+      // Remove existing theme classes and attributes
+      root.removeAttribute('data-theme');
+      body.classList.remove('light-theme', 'dark-theme');
+      
+      // Force a style recalculation by accessing a computed style
+      window.getComputedStyle(root).getPropertyValue('--picker-bg');
+      
+      // Apply new theme
+      root.setAttribute('data-theme', newTheme);
+      body.className = `${newTheme}-theme`;
+      
+      // Store in localStorage
+      localStorage.setItem('theme', newTheme);
+      
+      // Force another style recalculation to ensure CSS variables are updated
+      requestAnimationFrame(() => {
+        window.getComputedStyle(root).getPropertyValue('--picker-bg');
+        
+        // Dispatch a custom event to notify components of theme change
+        window.dispatchEvent(new CustomEvent('themeChanged', { 
+          detail: { theme: newTheme } 
+        }));
+      });
+    };
+
+    applyTheme(theme);
   }, [theme]);
 
   // Listen for system theme changes
@@ -40,7 +67,9 @@ export const ThemeProvider = ({ children }) => {
   }, []);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    console.log('🎨 Theme toggle:', theme, '->', newTheme);
+    setTheme(newTheme);
   };
 
   const value = {
