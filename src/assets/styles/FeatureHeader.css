@@ -9,8 +9,8 @@
   align-items: center;
   justify-content: flex-start;
   height: var(--header-height);
-  background-color: var(--sidebar-bg);
-  border-bottom: 1px solid var(--border-color);
+  background: #fff; /* Solid white for light mode */
+  border-bottom: 1px solid #e2e8f0;
   transition: all var(--transition-duration) cubic-bezier(0.4, 0, 0.2, 1);
   position: fixed;
   top: 0;
@@ -275,8 +275,8 @@
 }
 
 [data-theme="dark"] .feature-header {
-  background-color: var(--dark-bg);
-  border-color: var(--dark-border);
+  background: #1a1a2e; /* Solid dark for dark mode */
+  border-bottom: 1px solid #374151;
 }
 
 [data-theme="dark"] .dropdown-header {

@@ -26,99 +26,41 @@ const _chatRoleplayEndpoint = getChatRoleplayEndpoint();
 
 const ChatDetail = ({ session, onToggleChatList, isMobile }) => {
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      background: '#181c2a',
-    }}>
+    <div className="chat-detail">
       {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        padding: '16px 24px',
-        background: '#1f2437',
-        borderBottom: '1px solid #23263a',
-        height: '64px',
-      }}>
+      <div className="chat-header">
         {isMobile && (
           <button
+            className="chat-header__toggle"
             onClick={onToggleChatList}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '8px',
-              marginRight: '16px',
-              cursor: 'pointer',
-              color: '#fff',
-              fontSize: '20px',
-            }}
+            aria-label="Back to chat list"
           >
-            ☰
+            &#9776;
           </button>
         )}
-        
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          flex: 1,
-        }}>
+        <div className="chat-header__info">
           <img
+            className="chat-header__avatar"
             src={session.scenario.image}
             alt={session.scenario.title}
             width={40}
             height={40}
-            style={{
-              borderRadius: '8px',
-              marginRight: '12px',
-            }}
           />
-          
-          <div>
-            <h2 style={{
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#fff',
-              margin: 0,
-            }}>
-              {session.scenario.title}
-            </h2>
-            <p style={{
-              fontSize: '14px',
-              color: '#94a3b8',
-              margin: '4px 0 0 0',
-            }}>
-              {session.scenario.description}
-            </p>
+          <div className="chat-header__meta">
+            <h2 className="chat-header__title">{session.scenario.title}</h2>
+            <p className="chat-header__desc">{session.scenario.description}</p>
           </div>
         </div>
       </div>
 
       {/* Chat Messages */}
-      <div style={{
-        flex: 1,
-        overflow: 'auto',
-        padding: '24px',
-      }}>
+      <div className="chat-messages">
         {session.messages.map((message, index) => (
           <div
             key={message.id || index}
-            style={{
-              display: 'flex',
-              flexDirection: message.isUser ? 'row-reverse' : 'row',
-              marginBottom: '24px',
-            }}
+            className={`chat-message${message.isUser ? ' user' : ' bot'}`}
           >
-            {/* Avatar */}
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              overflow: 'hidden',
-              flexShrink: 0,
-              marginLeft: message.isUser ? '12px' : 0,
-              marginRight: message.isUser ? 0 : '12px',
-            }}>
+            <div className="chat-avatar">
               <img
                 src={message.isUser ? '/assets/images/user-avatar.webp' : session.scenario.assistantAvatar}
                 alt={message.isUser ? 'User' : 'Assistant'}
@@ -126,35 +68,11 @@ const ChatDetail = ({ session, onToggleChatList, isMobile }) => {
                 height={40}
               />
             </div>
-
-            {/* Message Content */}
-            <div style={{
-              maxWidth: '70%',
-              background: message.isUser ? '#2563eb' : '#1f2437',
-              padding: '16px',
-              borderRadius: '12px',
-              color: '#fff',
-            }}>
-              <p style={{
-                margin: 0,
-                fontSize: '16px',
-                lineHeight: 1.5,
-              }}>
-                {message.content}
-              </p>
-              
+            <div className="chat-bubble">
+              <p>{message.content}</p>
               {message.audioUrl && (
-                <div style={{
-                  marginTop: '8px',
-                }}>
-                  <audio
-                    controls
-                    src={message.audioUrl}
-                    style={{
-                      width: '100%',
-                      height: '40px',
-                    }}
-                  />
+                <div className="chat-audio">
+                  <audio controls src={message.audioUrl} />
                 </div>
               )}
             </div>
@@ -163,55 +81,15 @@ const ChatDetail = ({ session, onToggleChatList, isMobile }) => {
       </div>
 
       {/* Input Area */}
-      <div style={{
-        padding: '24px',
-        background: '#1f2437',
-        borderTop: '1px solid #23263a',
-      }}>
-        <div style={{
-          display: 'flex',
-          gap: '12px',
-        }}>
-          <button
-            style={{
-              padding: '12px',
-              background: '#2563eb',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            🎤
-          </button>
-          
-          <input
-            type="text"
-            placeholder="Type your message..."
-            style={{
-              flex: 1,
-              padding: '12px 16px',
-              background: '#181c2a',
-              border: '1px solid #23263a',
-              borderRadius: '8px',
-              color: '#fff',
-              fontSize: '16px',
-            }}
-          />
-          
-          <button
-            style={{
-              padding: '12px 24px',
-              background: '#2563eb',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            Send
-          </button>
-        </div>
+      <div className="chat-input-area">
+        <button className="mic-btn" aria-label="Record audio">
+          🎤
+        </button>
+        <input
+          type="text"
+          className="chat-text-field"
+          placeholder="Type your message..."
+        />
       </div>
     </div>
   );
