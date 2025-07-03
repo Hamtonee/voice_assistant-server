@@ -891,6 +891,21 @@ input:focus-visible {
   gap: 1.25rem;
   background: var(--chat-bg);
 }
+
+.chat-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--chat-text-muted);
+  text-align: center;
+  min-height: 200px;
+}
+
+.chat-empty-state p {
+  font-size: 1.1rem;
+  margin: 0;
+}
 .chat-message {
   display: flex;
   align-items: flex-end;

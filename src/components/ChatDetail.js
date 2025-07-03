@@ -24,7 +24,33 @@ const getChatRoleplayEndpoint = () => {
 
 const _chatRoleplayEndpoint = getChatRoleplayEndpoint();
 
-const ChatDetail = ({ session, onToggleChatList, isMobile }) => {
+const ChatDetail = ({ 
+  session, 
+  sessionId, 
+  scenario, 
+  selectedVoice, 
+  viewport, 
+  sidebarState, 
+  onNewSession, 
+  onToggleChatList, 
+  isMobile 
+}) => {
+  // Handle both session object and individual props
+  const currentSession = session || {
+    id: sessionId,
+    scenario: scenario || {},
+    messages: []
+  };
+  
+  const currentScenario = session?.scenario || scenario || {};
+  const messages = session?.messages || [];
+  
+  // Fallback values for scenario properties
+  const scenarioTitle = currentScenario.title || currentScenario.label || 'Chat Session';
+  const scenarioDescription = currentScenario.description || 'Start your conversation';
+  const scenarioImage = currentScenario.image || '/assets/images/default-scenario.webp';
+  const assistantAvatar = currentScenario.assistantAvatar || '/assets/images/assistant-avatar.webp';
+
   return (
     <div className="chat-detail">
       {/* Header */}
@@ -41,43 +67,49 @@ const ChatDetail = ({ session, onToggleChatList, isMobile }) => {
         <div className="chat-header__info">
           <img
             className="chat-header__avatar"
-            src={session.scenario.image}
-            alt={session.scenario.title}
+            src={scenarioImage}
+            alt={scenarioTitle}
             width={40}
             height={40}
           />
           <div className="chat-header__meta">
-            <h2 className="chat-header__title">{session.scenario.title}</h2>
-            <p className="chat-header__desc">{session.scenario.description}</p>
+            <h2 className="chat-header__title">{scenarioTitle}</h2>
+            <p className="chat-header__desc">{scenarioDescription}</p>
           </div>
         </div>
       </div>
 
       {/* Chat Messages */}
       <div className="chat-messages">
-        {session.messages.map((message, index) => (
-          <div
-            key={message.id || index}
-            className={`chat-message${message.isUser ? ' user' : ' bot'}`}
-          >
-            <div className="chat-avatar">
-              <img
-                src={message.isUser ? '/assets/images/user-avatar.webp' : session.scenario.assistantAvatar}
-                alt={message.isUser ? 'User' : 'Assistant'}
-                width={40}
-                height={40}
-              />
-            </div>
-            <div className="chat-bubble">
-              <p>{message.content}</p>
-              {message.audioUrl && (
-                <div className="chat-audio">
-                  <audio controls src={message.audioUrl} />
-                </div>
-              )}
-            </div>
+        {messages.length === 0 ? (
+          <div className="chat-empty-state">
+            <p>Start your conversation with {scenarioTitle}</p>
           </div>
-        ))}
+        ) : (
+          messages.map((message, index) => (
+            <div
+              key={message.id || index}
+              className={`chat-message${message.isUser ? ' user' : ' bot'}`}
+            >
+              <div className="chat-avatar">
+                <img
+                  src={message.isUser ? '/assets/images/user-avatar.webp' : assistantAvatar}
+                  alt={message.isUser ? 'User' : 'Assistant'}
+                  width={40}
+                  height={40}
+                />
+              </div>
+              <div className="chat-bubble">
+                <p>{message.content}</p>
+                {message.audioUrl && (
+                  <div className="chat-audio">
+                    <audio controls src={message.audioUrl} />
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Input Area */}
@@ -97,13 +129,13 @@ const ChatDetail = ({ session, onToggleChatList, isMobile }) => {
 
 ChatDetail.propTypes = {
   session: PropTypes.shape({
-    id: PropTypes.string.isRequired,
+    id: PropTypes.string,
     scenario: PropTypes.shape({
-      title: PropTypes.string.isRequired,
-      description: PropTypes.string.isRequired,
-      image: PropTypes.string.isRequired,
-      assistantAvatar: PropTypes.string.isRequired,
-    }).isRequired,
+      title: PropTypes.string,
+      description: PropTypes.string,
+      image: PropTypes.string,
+      assistantAvatar: PropTypes.string,
+    }),
     messages: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.string,
@@ -111,10 +143,22 @@ ChatDetail.propTypes = {
         isUser: PropTypes.bool.isRequired,
         audioUrl: PropTypes.string,
       })
-    ).isRequired,
-  }).isRequired,
-  onToggleChatList: PropTypes.func.isRequired,
-  isMobile: PropTypes.bool.isRequired,
+    ),
+  }),
+  sessionId: PropTypes.string,
+  scenario: PropTypes.shape({
+    title: PropTypes.string,
+    label: PropTypes.string,
+    description: PropTypes.string,
+    image: PropTypes.string,
+    assistantAvatar: PropTypes.string,
+  }),
+  selectedVoice: PropTypes.object,
+  viewport: PropTypes.object,
+  sidebarState: PropTypes.object,
+  onNewSession: PropTypes.func,
+  onToggleChatList: PropTypes.func,
+  isMobile: PropTypes.bool,
 };
 
 export default ChatDetail;
