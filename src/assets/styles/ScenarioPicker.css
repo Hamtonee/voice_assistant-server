@@ -322,8 +322,7 @@
 
 .enhanced-search-wrapper {
   position: relative;
-  display: flex;
-  align-items: center;
+  width: 100%;
 }
 
 .enhanced-search-icon {
@@ -343,18 +342,16 @@
 
 .enhanced-search-input {
   width: 100%;
-  flex: 1;
-  padding: 0.75rem 3rem 0.75rem 2.75rem; /* 1rem left + 24px icon + 0.5rem gap = 2.75rem */
+  padding: 0.5rem 1rem 0.5rem 3rem; /* 1rem left + 24px icon + 0.5rem gap = 3rem */
   font-size: 1rem;
-  font-weight: 400;
   border: none;
   background: transparent;
   color: var(--picker-text);
   outline: none;
   font-family: inherit;
-  transition: var(--theme-transition);
-  line-height: 1.5;
+  line-height: 24px; /* Match icon height */
   box-sizing: border-box;
+  vertical-align: middle;
   display: block;
 }
 
