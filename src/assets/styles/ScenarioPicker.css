@@ -340,7 +340,9 @@
 
 .enhanced-search-icon {
   position: absolute;
-  left: 1rem;
+  left: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--picker-text-muted);
   pointer-events: none;
   z-index: 2;
@@ -353,7 +355,7 @@
 
 .enhanced-search-input {
   flex: 1;
-  padding: 1rem 1rem 1rem 3rem;
+  padding: 1rem 4rem 1rem 3.5rem;
   font-size: 1rem;
   font-weight: 400;
   border: none;
@@ -376,7 +378,9 @@
 
 .enhanced-clear-search {
   position: absolute;
-  right: 3.5rem;
+  right: 3.75rem;
+  top: 50%;
+  transform: translateY(-50%);
   width: 1.75rem;
   height: 1.75rem;
   border: none;
@@ -394,17 +398,17 @@
 
 .enhanced-clear-search:hover {
   background: var(--picker-accent);
-  transform: scale(1.1);
+  transform: translateY(-50%) scale(1.1);
 }
 
 .enhanced-clear-search:active {
-  transform: scale(0.95);
+  transform: translateY(-50%) scale(0.95);
 }
 
 .enhanced-clear-search:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
+  transform: translateY(-50%);
 }
 
 .search-actions {
@@ -587,16 +591,16 @@
   }
   
   .enhanced-search-input {
-    padding: 0.875rem 0.875rem 0.875rem 2.75rem;
+    padding: 0.875rem 3.5rem 0.875rem 3rem;
     font-size: 1rem;
   }
   
   .enhanced-search-icon {
-    left: 0.875rem;
+    left: 1rem;
   }
   
   .enhanced-clear-search {
-    right: 3rem;
+    right: 3.25rem;
     width: 1.5rem;
     height: 1.5rem;
   }
@@ -627,11 +631,11 @@
 /* Tablet optimizations */
 @media (min-width: 769px) and (max-width: 1024px) {
   .enhanced-search-input {
-    padding: 0.9375rem 0.9375rem 0.9375rem 2.875rem;
+    padding: 0.9375rem 3.75rem 0.9375rem 3.25rem;
   }
   
   .enhanced-search-icon {
-    left: 0.9375rem;
+    left: 1.125rem;
   }
   
   .enhanced-clear-search {
@@ -669,7 +673,7 @@
   }
   
   .enhanced-clear-search:hover {
-    transform: none;
+    transform: translateY(-50%);
   }
 }
 
