@@ -178,6 +178,7 @@ const ChatWindow = React.memo(() => {
     setError(null);
   }, []);
 
+
   // Handle voice settings modal
   const handleVoiceSettings = useCallback(() => {
     // TODO: Implement voice settings modal
@@ -432,6 +433,12 @@ const ChatWindow = React.memo(() => {
         currentScenarioKey={scenario?.key}
         hasCurrentChatContent={false}
         platformName="SemaNami"
+        currentScenario={scenario}
+        selectedVoice={selectedVoice}
+        onVoiceChange={handleVoiceChange}
+        onChangeScenario={handleChangeScenario}
+        onVoiceSettings={handleVoiceSettings}
+        articleTitle=""
       >
         {renderMainContent()}
       </SemaNamiLayout>

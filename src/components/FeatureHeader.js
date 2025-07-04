@@ -1,6 +1,6 @@
 // src/components/FeatureHeader.js
 import React, { useRef, useState } from 'react';
-import { FiMoreVertical, FiVolume2, FiMoon, FiSun, FiMenu } from 'react-icons/fi';
+import { FiMoreVertical, FiVolume2, FiMoon, FiSun, FiMenu, FiRefreshCw } from 'react-icons/fi';
 import Avatar from './Avatar';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -41,6 +41,11 @@ const FeatureHeader = ({
   onToggleSidebar = () => {},
   isMobile = false,
   articleTitle = '',
+  currentScenario = null,
+  selectedVoice = null,
+  onVoiceChange = () => {},
+  onChangeScenario = () => {},
+  onVoiceSettings = () => {},
 }) => {
   const { toggleTheme, isDark } = useTheme();
   const { user, logout } = useAuth();
@@ -70,6 +75,14 @@ const FeatureHeader = ({
       return {
         title: articleTitle,
         subtitle: null
+      };
+    }
+
+    // For chat feature, show scenario title if selected
+    if (selectedFeature === 'chat' && currentScenario) {
+      return {
+        title: currentScenario.label || currentScenario.title,
+        subtitle: currentScenario.subtitle || `${currentScenario.userRole} ↔ ${currentScenario.aiRole}`
       };
     }
 
@@ -150,13 +163,35 @@ const FeatureHeader = ({
           
           {openDropdowns.overflow && (
             <div className="overflow-dropdown">
-              <button 
-                className="dropdown-item"
-                onClick={() => toggleDropdown('voiceSelector')}
-              >
-                <FiVolume2 size={16} />
-                Voice Settings
-              </button>
+              {/* TTS Voice Selection - Show for roleplay and speech coach */}
+              {(selectedFeature === 'chat' || selectedFeature === 'sema') && (
+                <button 
+                  className="dropdown-item"
+                  onClick={() => {
+                    onVoiceSettings();
+                    closeAllDropdowns();
+                  }}
+                >
+                  <FiVolume2 size={16} />
+                  Voice Settings
+                </button>
+              )}
+              
+              {/* Change Scenario - Only show for roleplay (chat feature) */}
+              {selectedFeature === 'chat' && currentScenario && (
+                <button 
+                  className="dropdown-item"
+                  onClick={() => {
+                    onChangeScenario();
+                    closeAllDropdowns();
+                  }}
+                >
+                  <FiRefreshCw size={16} />
+                  Change Scenario
+                </button>
+              )}
+              
+              {/* Theme Toggle - Always available */}
               <button 
                 className="dropdown-item"
                 onClick={toggleTheme}

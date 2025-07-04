@@ -321,127 +321,41 @@
 }
 
 .enhanced-search-wrapper {
-  position: relative;
   display: flex;
   align-items: center;
-  background: var(--picker-surface);
-  border: 2px solid var(--picker-border);
-  border-radius: 12px;
-  transition: var(--theme-transition), 
-              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-}
-
-.enhanced-search-wrapper.focused {
-  border-color: var(--picker-accent);
-  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+  width: 100%;
+  background: #fff;
+  border-radius: 8px;
+  border: 2px solid var(--picker-border, #a3a3ff);
+  padding: 0 0.5rem;
 }
 
 .enhanced-search-icon {
-  position: absolute;
-  left: 1rem;
-  color: var(--picker-text-muted);
-  pointer-events: none;
-  z-index: 2;
-  transition: var(--theme-transition), color 0.2s ease;
-}
-
-.enhanced-search-wrapper.focused .enhanced-search-icon {
-  color: var(--picker-accent);
+  width: 24px;
+  height: 24px;
+  color: var(--picker-text-muted, #6b7280);
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .enhanced-search-input {
   flex: 1;
-  padding: 1rem 1rem 1rem 3rem;
-  font-size: 1rem;
-  font-weight: 400;
   border: none;
-  background: transparent;
-  color: var(--picker-text);
   outline: none;
-  font-family: inherit;
-  transition: var(--theme-transition);
-}
-
-.enhanced-search-input::placeholder {
-  color: var(--picker-text-muted);
-  font-weight: 400;
-}
-
-.enhanced-search-input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.enhanced-clear-search {
-  position: absolute;
-  right: 3.5rem;
-  width: 1.75rem;
-  height: 1.75rem;
-  border: none;
-  background: var(--picker-text-muted);
-  color: var(--picker-surface);
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: var(--theme-transition), 
-              background-color 0.2s ease,
-              transform 0.1s ease;
-}
-
-.enhanced-clear-search:hover {
-  background: var(--picker-accent);
-  transform: scale(1.1);
-}
-
-.enhanced-clear-search:active {
-  transform: scale(0.95);
-}
-
-.enhanced-clear-search:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.search-actions {
-  display: flex;
-  align-items: center;
-  padding: 0.5rem;
-  gap: 0.25rem;
-}
-
-.search-filter-btn {
-  width: 2rem;
-  height: 2rem;
-  border: none;
   background: transparent;
-  color: var(--picker-text-muted);
-  border-radius: 6px;
-  cursor: pointer;
+  font-size: 1rem;
+  color: var(--picker-text);
+  padding: 0.75rem 0;
+  line-height: 1.5;
+}
+
+.search-actions, .search-filter-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: var(--theme-transition), 
-              background-color 0.2s ease,
-              color 0.2s ease;
-}
-
-.search-filter-btn:hover {
-  background: var(--picker-hover);
-  color: var(--picker-text);
-}
-
-.search-filter-btn:active {
-  background: var(--picker-active);
-}
-
-.search-filter-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* Search Suggestions Dropdown */
@@ -587,12 +501,14 @@
   }
   
   .enhanced-search-input {
-    padding: 0.875rem 0.875rem 0.875rem 2.75rem;
+    padding: 0.75rem 2.5rem 0.75rem 2.25rem; /* 0.75rem left + 20px icon + 0.5rem gap = 2.25rem */
     font-size: 1rem;
   }
   
   .enhanced-search-icon {
-    left: 0.875rem;
+    left: 0.75rem;
+    width: 20px;
+    height: 20px;
   }
   
   .enhanced-clear-search {
@@ -627,15 +543,17 @@
 /* Tablet optimizations */
 @media (min-width: 769px) and (max-width: 1024px) {
   .enhanced-search-input {
-    padding: 0.9375rem 0.9375rem 0.9375rem 2.875rem;
+    padding: 0.75rem 2.75rem 0.75rem 2.5rem; /* 1rem left + 22px icon + 0.5rem gap = 2.5rem */
   }
   
   .enhanced-search-icon {
-    left: 0.9375rem;
+    left: 1rem;
+    width: 22px;
+    height: 22px;
   }
   
   .enhanced-clear-search {
-    right: 3.25rem;
+    right: 3.125rem;
   }
 }
 
@@ -669,7 +587,7 @@
   }
   
   .enhanced-clear-search:hover {
-    transform: none;
+    transform: translateY(-50%);
   }
 }
 
