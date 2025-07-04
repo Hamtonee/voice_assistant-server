@@ -178,6 +178,26 @@ const ChatWindow = React.memo(() => {
     setError(null);
   }, []);
 
+  // --- FIX: Always declare these hooks at the top level ---
+  // Handle voice settings modal
+  const handleVoiceSettings = useCallback(() => {
+    // TODO: Implement voice settings modal
+    console.log('Voice settings clicked');
+  }, []);
+
+  // Handle change scenario
+  const handleChangeScenario = useCallback(() => {
+    if (clearScenario) {
+      clearScenario();
+    }
+  }, [clearScenario]);
+
+  // Handle voice change
+  const handleVoiceChange = useCallback((voice) => {
+    // TODO: Implement voice change logic
+    console.log('Voice changed:', voice);
+  }, []);
+
   // Memoized props to prevent unnecessary re-renders
   const sidebarProps = useMemo(() => ({
     selectedFeature,
@@ -398,25 +418,6 @@ const ChatWindow = React.memo(() => {
       </div>
     );
   };
-
-  // Handle voice settings modal
-  const handleVoiceSettings = useCallback(() => {
-    // TODO: Implement voice settings modal
-    console.log('Voice settings clicked');
-  }, []);
-
-  // Handle change scenario
-  const handleChangeScenario = useCallback(() => {
-    if (clearScenario) {
-      clearScenario();
-    }
-  }, [clearScenario]);
-
-  // Handle voice change
-  const handleVoiceChange = useCallback((voice) => {
-    // TODO: Implement voice change logic
-    console.log('Voice changed:', voice);
-  }, []);
 
   return (
     <ChatWindowErrorBoundary>
