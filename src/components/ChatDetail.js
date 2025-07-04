@@ -109,14 +109,14 @@ const ChatDetail = ({
     if (currentScenario.key && messages.length === 0) {
       const instructionMessage = {
         id: 'instruction-' + Date.now(),
-        content: `Welcome to ${scenarioTitle}!\n\n${scenarioPrompt}\n\nYou are the ${userRole}, and I'll be the ${aiRole}. Start the conversation whenever you're ready!`,
+        content: `${scenarioPrompt}\n\nYou are the ${userRole}, and I'll be the ${aiRole}. Start the conversation whenever you're ready!`,
         isUser: false,
         isInstruction: true,
         timestamp: new Date()
       };
       setMessages([instructionMessage]);
     }
-  }, [currentScenario.key, scenarioTitle, scenarioPrompt, userRole, aiRole, messages.length]);
+  }, [currentScenario.key, scenarioPrompt, userRole, aiRole, messages.length]);
 
   // Handle voice recording
   const handleVoiceToggle = useCallback(() => {

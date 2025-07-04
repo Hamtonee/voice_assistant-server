@@ -67,6 +67,20 @@
   --chat-radius-xs: 8px;
 }
 
+/* Dark theme adjustments for instruction messages */
+[data-theme="dark"] .chat-message.instruction .chat-bubble {
+  border-color: #4dabf7;
+  box-shadow: 0 4px 16px rgba(77, 171, 247, 0.2);
+}
+
+[data-theme="dark"] .chat-message.instruction .chat-bubble::before {
+  background: linear-gradient(90deg, #4dabf7, #339af0);
+}
+
+[data-theme="dark"] .chat-message.instruction .chat-bubble__content p:first-child {
+  color: #4dabf7;
+}
+
 /* GLOBAL THEME TRANSITIONS */
 * {
   transition: var(--theme-transition);
@@ -1326,11 +1340,25 @@ input:focus-visible {
 }
 
 .chat-message.instruction .chat-bubble {
-  background: var(--chat-instruction-bg);
-  color: var(--chat-instruction-text);
-  border: 1px solid var(--chat-instruction-border);
-  border-radius: var(--chat-radius-md);
-  text-align: center;
+  background: var(--chat-surface);
+  border: 2px solid #4dabf7;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 16px 0;
+  position: relative;
+  box-shadow: 0 4px 16px rgba(77, 171, 247, 0.15);
+  text-align: left;
+}
+
+.chat-message.instruction .chat-bubble::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #4dabf7, #339af0);
+  border-radius: 12px 12px 0 0;
 }
 
 .chat-bubble:hover {
@@ -1354,8 +1382,24 @@ input:focus-visible {
 }
 
 .chat-message.instruction .chat-bubble__content p {
+  color: var(--chat-text);
+  line-height: 1.6;
+  margin-bottom: 12px;
   font-size: 14px;
-  line-height: 1.5;
+}
+
+.chat-message.instruction .chat-bubble__content p:first-child {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #4dabf7;
+  margin-bottom: 16px;
+}
+
+.chat-message.instruction .chat-bubble__content p:last-child {
+  font-style: italic;
+  color: var(--chat-text-muted);
+  font-size: 0.95em;
+  margin-bottom: 0;
 }
 
 /* Audio Play Button */

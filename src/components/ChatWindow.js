@@ -399,6 +399,25 @@ const ChatWindow = React.memo(() => {
     );
   };
 
+  // Handle voice settings modal
+  const handleVoiceSettings = useCallback(() => {
+    // TODO: Implement voice settings modal
+    console.log('Voice settings clicked');
+  }, []);
+
+  // Handle change scenario
+  const handleChangeScenario = useCallback(() => {
+    if (clearScenario) {
+      clearScenario();
+    }
+  }, [clearScenario]);
+
+  // Handle voice change
+  const handleVoiceChange = useCallback((voice) => {
+    // TODO: Implement voice change logic
+    console.log('Voice changed:', voice);
+  }, []);
+
   return (
     <ChatWindowErrorBoundary>
       <SemaNamiLayout
@@ -413,6 +432,12 @@ const ChatWindow = React.memo(() => {
         currentScenarioKey={scenario?.key}
         hasCurrentChatContent={false}
         platformName="SemaNami"
+        currentScenario={scenario}
+        selectedVoice={selectedVoice}
+        onVoiceChange={handleVoiceChange}
+        onChangeScenario={handleChangeScenario}
+        onVoiceSettings={handleVoiceSettings}
+        articleTitle=""
       >
         {renderMainContent()}
       </SemaNamiLayout>

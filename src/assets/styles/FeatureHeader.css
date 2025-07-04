@@ -56,7 +56,8 @@
 
 .feature-header__content {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   min-width: 0;
   padding: 0;
   margin-right: auto;
@@ -67,6 +68,17 @@
   font-weight: 600;
   margin: 0;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.feature-header__subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  margin: 2px 0 0 0;
+  color: var(--text-secondary, #64748b);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -289,4 +301,8 @@
 
 [data-theme="dark"] .dropdown-item:hover {
   background-color: var(--dark-hover);
+}
+
+[data-theme="dark"] .feature-header__subtitle {
+  color: #94a3b8;
 } 
