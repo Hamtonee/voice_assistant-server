@@ -40,28 +40,63 @@ export default function ChatList({
 
   // Filter and sort sessions intelligently
   const processedSessions = useMemo(() => {
-    // Defensive check: ensure sessions is always an array
     const safeSessions = Array.isArray(sessions) ? sessions : [];
-    
-    // Filter sessions based on feature and scenario
-    let filtered = safeSessions;
-    
-    if (selectedFeature === 'chat' && scenarioKey) {
-      filtered = safeSessions.filter(s => s.scenarioKey === scenarioKey);
-    } else if (selectedFeature !== 'chat') {
-      filtered = safeSessions.filter(s => s.feature === selectedFeature);
+    let filtered = [];
+
+    if (selectedFeature === 'chat') {
+      if (scenarioKey) {
+        // Inside a scenario: show all sessions for that scenario type
+        filtered = safeSessions.filter(s => s.scenarioKey === scenarioKey);
+        // Sort by createdAt ascending for sequential naming
+        filtered = filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        // Add sequential naming
+        filtered = filtered.map((s, idx) => ({
+          ...s,
+          title: s.title || `${s.scenarioLabel || 'Session'} ${idx + 1}`
+        }));
+      } else {
+        // Scenario picker: show only the most recent instance of each scenario type
+        const latestByScenario = {};
+        safeSessions.forEach(s => {
+          if (!s.scenarioKey) return;
+          if (!latestByScenario[s.scenarioKey] || new Date(s.createdAt) > new Date(latestByScenario[s.scenarioKey].createdAt)) {
+            latestByScenario[s.scenarioKey] = s;
+          }
+        });
+        filtered = Object.values(latestByScenario);
+        // Sort by createdAt descending (most recent first)
+        filtered = filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // Add clean naming
+        filtered = filtered.map(s => ({
+          ...s,
+          title: s.title || s.scenarioLabel || 'Session'
+        }));
+      }
+    } else {
+      // For other features (sema, tusome):
+      // Show all sessions for the feature if in feature view, or only the most recent if in picker
+      if (scenarioKey) {
+        // Not used for non-chat, but keep logic consistent
+        filtered = safeSessions.filter(s => s.feature === selectedFeature);
+        filtered = filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        filtered = filtered.map((s, idx) => ({
+          ...s,
+          title: s.title || `${getFeatureName()} ${idx + 1}`
+        }));
+      } else {
+        // Show only the most recent session for the feature
+        const latest = safeSessions.filter(s => s.feature === selectedFeature)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+        filtered = latest ? [{
+          ...latest,
+          title: latest.title || getFeatureName()
+        }] : [];
+      }
     }
-    
-    // Sort sessions - active chat first, then by date
+
+    // Sort active session first if present
     const activeSession = filtered.find(s => s.id === activeChatId);
-    const otherSessions = filtered
-      .filter(s => s.id !== activeChatId)
-      .sort((a, b) => {
-        const dateA = new Date(a.updatedAt || a.createdAt || 0);
-        const dateB = new Date(b.updatedAt || b.createdAt || 0);
-        return dateB - dateA; // Most recent first
-      });
-    
+    const otherSessions = filtered.filter(s => s.id !== activeChatId);
     return activeSession ? [activeSession, ...otherSessions] : otherSessions;
   }, [sessions, selectedFeature, scenarioKey, activeChatId]);
 
@@ -203,35 +238,6 @@ export default function ChatList({
     }
   };
 
-  // Render session status indicator
-  const renderSessionStatus = (session) => {
-    if (session.resumed) {
-      return (
-        <span className="session-status resumed" title="Resumed empty session">
-          🔄
-        </span>
-      );
-    }
-    
-    if (session.metadata?.interactionLevel === 'meaningful') {
-      return (
-        <span className="session-status meaningful" title="Active session">
-          ✅
-        </span>
-      );
-    }
-    
-    if (session.metadata?.interactionLevel === 'engaged') {
-      return (
-        <span className="session-status engaged" title="In progress">
-          ⚡
-        </span>
-      );
-    }
-    
-    return null;
-  };
-
   // Get feature-specific preview text for sessions
   const getSessionPreview = (session) => {
     return {
@@ -311,7 +317,6 @@ export default function ChatList({
                       <Clock size={10} />
                       {formatTime(session.updatedAt || session.createdAt)}
                     </span>
-                    {renderSessionStatus(session)}
                   </div>
                 </div>
                 

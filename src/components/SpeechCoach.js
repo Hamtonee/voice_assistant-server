@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import TTSService from '../services/TTSService';
 import api from '../api';
 import '../assets/styles/SpeechCoach.css';
-import { FiMic, FiMicOff, FiSend, FiTrash2, FiBarChart, FiX, FiChevronDown } from 'react-icons/fi';
+import { FiMic, FiMicOff, FiSend, FiTrash2, FiBarChart, FiX, FiChevronDown, FiMessageSquare, FiBookOpen } from 'react-icons/fi';
 import { handleApiError, handleSpeechError } from '../utils/errorHandler';
 
 // Debounce function to prevent rapid-fire state changes
@@ -50,6 +50,15 @@ export default function SpeechCoach({
   // UI state
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [browserWarning, setBrowserWarning] = useState(null);
+  const [transcriptPreview, setTranscriptPreview] = useState('');
+  const [speechEndTimer, setSpeechEndTimer] = useState(null);
+
+  // Add new state for feedback categories
+  const [feedbackCategories, setFeedbackCategories] = useState({
+    vocabulary: true,
+    communication: true,
+    suggestions: true
+  });
 
   // Refs
   const recognitionRef = useRef(null);
@@ -78,162 +87,7 @@ export default function SpeechCoach({
     }
   }, []);
 
-  // Move function definitions before useEffect
-  const handleRecognitionResult = useCallback((event) => {
-    let finalTranscript = '';
-    for (let i = event.resultIndex; i < event.results.length; ++i) {
-      if (event.results[i].isFinal) {
-        finalTranscript += event.results[i][0].transcript;
-      }
-    }
-    setInputText(prev => prev + finalTranscript);
-  }, []);
-
-  const handleRecognitionError = useCallback((event) => {
-    console.error('Recognition error:', event.error);
-    setError('Speech recognition error: ' + event.error);
-  }, []);
-
-  const handleRecognitionEnd = useCallback(() => {
-    if (!isUnmountingRef.current) {
-      recognitionRef.current = null;
-    }
-  }, []);
-
-  // useEffect for recognition setup
-  useEffect(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.onresult = handleRecognitionResult;
-      recognitionRef.current.onerror = handleRecognitionError;
-      recognitionRef.current.onend = handleRecognitionEnd;
-      
-      return cleanup;
-    }
-  }, [recognitionRef, handleRecognitionResult, handleRecognitionError, handleRecognitionEnd, cleanup]);
-
-  // Initialize speech services
-  useEffect(() => {
-    isUnmountingRef.current = false;
-    
-    const initializeApp = async () => {
-      try {
-        // Initialize TTS service first
-        if (!ttsServiceRef.current) {
-          ttsServiceRef.current = TTSService.getInstance();
-          // Initialize TTS
-          await ttsServiceRef.current.initialize();
-        }
-        
-        // Initialize speech recognition
-        if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-          const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
-          recognitionRef.current = new SpeechRecognition();
-          
-          // Bind recognition methods
-          if (recognitionRef.current) {
-            recognitionRef.current.continuous = true;
-            recognitionRef.current.interimResults = true;
-            
-            setIsSpeechSupported(true);
-          }
-        } else {
-          setIsSpeechSupported(false);
-          setBrowserWarning('Speech recognition is not supported in this browser. Please use Chrome or Edge for the best experience.');
-        }
-      } catch (error) {
-        const handledError = handleSpeechError(error, 'Speech Service Initialization');
-        setError(handledError);
-      }
-    };
-
-    initializeApp();
-
-    return () => {
-      isUnmountingRef.current = true;
-      cleanup();
-    };
-  }, [cleanup, handleRecognitionResult, handleRecognitionError, handleRecognitionEnd]);
-
-  // Handle scroll detection
-  useEffect(() => {
-    const messagesElement = messagesRef.current;
-    
-    const handleScroll = debounce(() => {
-      if (messagesElement) {
-        const { scrollTop, scrollHeight, clientHeight } = messagesElement;
-        setShowScrollButton(scrollHeight - scrollTop > clientHeight + 50);
-      }
-    }, 100);
-
-    if (messagesElement) {
-      messagesElement.addEventListener('scroll', handleScroll);
-      return () => {
-        // Store ref value in closure to avoid stale ref in cleanup
-        messagesElement.removeEventListener('scroll', handleScroll);
-      };
-    }
-  }, []);
-
-  // Auto-scroll to bottom
-  const scrollToBottom = useCallback(() => {
-    if (messagesRef.current) {
-      messagesRef.current.scrollTo({
-        top: messagesRef.current.scrollHeight,
-        behavior: 'smooth'
-      });
-    }
-  }, []);
-
-  // Start recording
-  const handleStartRecording = useCallback(() => {
-    if (!recognitionRef.current || isRecording) return;
-
-    try {
-      setIsRecording(true);
-      setError(null);
-
-      recognitionRef.current.start();
-    } catch (err) {
-      if (err.name === 'InvalidStateError') {
-        // Already started, ignore.
-      } else {
-        console.error('Start Recording Failed:', err);
-        setError('Could not start microphone. Please check permissions.');
-        setIsRecording(false);
-      }
-    }
-  }, [isRecording]);
-
-  // Stop recording
-  const handleStopRecording = useCallback(() => {
-    if (!recognitionRef.current || !isRecording) return;
-
-    try {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-    } catch (err) {
-      console.error('Stop Recording Failed:', err);
-    }
-  }, [isRecording]);
-
-  // Effect to control listening state based on `alwaysListen` prop
-  useEffect(() => {
-    if (alwaysListen) {
-      handleStartRecording();
-    } else {
-      handleStopRecording();
-    }
-  }, [alwaysListen, handleStartRecording, handleStopRecording]);
-
-  const handleMicClick = () => {
-    if (alwaysListen) {
-      onToggleListen(); // Allow parent to change `alwaysListen` state
-    } else {
-      isRecording ? handleStopRecording() : handleStartRecording();
-    }
-  };
-
-  // Send message
+  // Enhanced send message with wait time logic - moved before handleRecognitionResult
   const handleSendMessage = useCallback(async () => {
     const trimmedInput = inputText.trim();
     if (!trimmedInput) {
@@ -244,6 +98,12 @@ export default function SpeechCoach({
     setIsProcessing(true);
     setError(null);
     handleStopRecording();
+    
+    // Clear any pending timers
+    if (speechEndTimer) {
+      clearTimeout(speechEndTimer);
+      setSpeechEndTimer(null);
+    }
 
     const userMessage = {
       id: Date.now(),
@@ -304,7 +164,241 @@ export default function SpeechCoach({
         handleStartRecording();
       }
     }
-  }, [inputText, sessionId, selectedVoice, handleStopRecording, alwaysListen, handleStartRecording]);
+  }, [inputText, sessionId, selectedVoice, speechEndTimer, alwaysListen]);
+
+  // Move function definitions before useEffect
+  const handleRecognitionResult = useCallback((event) => {
+    let interimTranscript = '';
+    let finalTranscript = '';
+    
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalTranscript += transcript;
+      } else {
+        interimTranscript += transcript;
+      }
+    }
+    
+    if (finalTranscript) {
+      const newText = inputText + finalTranscript;
+      setInputText(newText);
+      
+      // Clear existing timer
+      if (speechEndTimer) {
+        clearTimeout(speechEndTimer);
+        setSpeechEndTimer(null);
+      }
+      
+      // Start timer for direct auto-send after speech ends
+      const timer = setTimeout(() => {
+        if (newText.trim()) {
+          // Auto-send directly if no manual editing
+          setInputText(currentText => {
+            if (currentText === newText) {
+              console.log('✅ Auto-sending SpeechCoach message - no manual edits detected');
+              handleSendMessage();
+            } else {
+              console.log('❌ Auto-send canceled - manual editing detected in SpeechCoach');
+            }
+            return currentText;
+          });
+        }
+      }, 2000); // 2 second wait for auto-send
+      setSpeechEndTimer(timer);
+    }
+    
+    // Show interim results
+    if (interimTranscript) {
+      setTranscriptPreview(interimTranscript);
+    } else {
+      setTranscriptPreview('');
+    }
+  }, [inputText, speechEndTimer, handleSendMessage]);
+
+  const handleRecognitionError = useCallback((event) => {
+    console.error('Recognition error:', event.error);
+    let errorMessage = 'Speech recognition failed. Please try again.';
+    
+    switch (event.error) {
+      case 'network':
+        errorMessage = 'Network error. Please check your internet connection.';
+        break;
+      case 'not-allowed':
+        errorMessage = 'Microphone access denied. Please allow microphone permissions.';
+        break;
+      case 'no-speech':
+        errorMessage = 'No speech detected. Please try speaking again.';
+        break;
+      case 'audio-capture':
+        errorMessage = 'Audio capture failed. Please check your microphone.';
+        break;
+      case 'service-not-allowed':
+        errorMessage = 'Speech recognition service not available.';
+        break;
+      default:
+        errorMessage = `Speech recognition error: ${event.error}`;
+    }
+    
+    setError(errorMessage);
+    setIsRecording(false);
+    setTranscriptPreview('');
+  }, []);
+
+  const handleRecognitionEnd = useCallback(() => {
+    if (!isUnmountingRef.current) {
+      recognitionRef.current = null;
+    }
+  }, []);
+
+  // useEffect for recognition setup
+  useEffect(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.onresult = handleRecognitionResult;
+      recognitionRef.current.onerror = handleRecognitionError;
+      recognitionRef.current.onend = handleRecognitionEnd;
+      
+      return cleanup;
+    }
+  }, [recognitionRef, handleRecognitionResult, handleRecognitionError, handleRecognitionEnd, cleanup]);
+
+  // Initialize speech services
+  useEffect(() => {
+    isUnmountingRef.current = false;
+    
+    const initializeApp = async () => {
+      try {
+        // Initialize TTS service first
+        if (!ttsServiceRef.current) {
+          ttsServiceRef.current = TTSService.getInstance();
+          // Initialize TTS
+          await ttsServiceRef.current.initialize();
+        }
+        
+        // Initialize speech recognition
+        if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+          const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+          recognitionRef.current = new SpeechRecognition();
+          
+          // Bind recognition methods
+          if (recognitionRef.current) {
+            recognitionRef.current.continuous = true;
+            recognitionRef.current.interimResults = true;
+            recognitionRef.current.lang = 'en-US';
+            recognitionRef.current.maxAlternatives = 1;
+            
+            // Add event handlers
+            recognitionRef.current.onstart = () => {
+              setIsRecording(true);
+              setError(null);
+              setTranscriptPreview('');
+            };
+            
+            recognitionRef.current.onend = () => {
+              setIsRecording(false);
+              setTranscriptPreview('');
+            };
+            
+            setIsSpeechSupported(true);
+          }
+        } else {
+          setIsSpeechSupported(false);
+          setBrowserWarning('Speech recognition is not supported in this browser. Please use Chrome or Edge for the best experience.');
+        }
+      } catch (error) {
+        const handledError = handleSpeechError(error, 'Speech Service Initialization');
+        setError(handledError);
+      }
+    };
+
+    initializeApp();
+
+    return () => {
+      isUnmountingRef.current = true;
+      cleanup();
+    };
+  }, [cleanup, handleRecognitionResult, handleRecognitionError, handleRecognitionEnd]);
+
+  // Handle scroll detection
+  useEffect(() => {
+    const messagesElement = messagesRef.current;
+    
+    const handleScroll = debounce(() => {
+      if (messagesElement) {
+        const { scrollTop, scrollHeight, clientHeight } = messagesElement;
+        setShowScrollButton(scrollHeight - scrollTop > clientHeight + 50);
+      }
+    }, 100);
+
+    if (messagesElement) {
+      messagesElement.addEventListener('scroll', handleScroll);
+      return () => {
+        // Store ref value in closure to avoid stale ref in cleanup
+        messagesElement.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, []);
+
+  // Auto-scroll to bottom
+  const scrollToBottom = useCallback(() => {
+    if (messagesRef.current) {
+      messagesRef.current.scrollTo({
+        top: messagesRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, []);
+
+  // Start recording
+  const handleStartRecording = useCallback(() => {
+    if (!recognitionRef.current || isRecording) return;
+
+    try {
+      setError(null);
+      setTranscriptPreview('');
+      recognitionRef.current.start();
+    } catch (err) {
+      console.error('Start Recording Failed:', err);
+      if (err.name === 'InvalidStateError') {
+        setError('Speech recognition is already running. Please wait a moment and try again.');
+      } else if (err.name === 'NotAllowedError') {
+        setError('Microphone access denied. Please allow microphone permissions and try again.');
+      } else {
+        setError('Could not start microphone. Please check permissions.');
+      }
+      setIsRecording(false);
+    }
+  }, [isRecording]);
+
+  // Stop recording
+  const handleStopRecording = useCallback(() => {
+    if (!recognitionRef.current || !isRecording) return;
+
+    try {
+      recognitionRef.current.stop();
+    } catch (err) {
+      console.error('Stop Recording Failed:', err);
+    }
+    setIsRecording(false);
+    setTranscriptPreview('');
+  }, [isRecording]);
+
+  // Effect to control listening state based on `alwaysListen` prop
+  useEffect(() => {
+    if (alwaysListen) {
+      handleStartRecording();
+    } else {
+      handleStopRecording();
+    }
+  }, [alwaysListen, handleStartRecording, handleStopRecording]);
+
+  const handleMicClick = () => {
+    if (alwaysListen) {
+      onToggleListen(); // Allow parent to change `alwaysListen` state
+    } else {
+      isRecording ? handleStopRecording() : handleStartRecording();
+    }
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -335,6 +429,106 @@ export default function SpeechCoach({
     }
   }, [onNewSession]);
 
+  // Handle manual editing to cancel auto-send
+  const handleManualEdit = useCallback((newText) => {
+    // If user manually edits during timer, cancel auto-send
+    if (speechEndTimer) {
+      console.log('🔄 Manual editing detected in SpeechCoach - canceling auto-send');
+      clearTimeout(speechEndTimer);
+      setSpeechEndTimer(null);
+    }
+    setInputText(newText);
+  }, [speechEndTimer]);
+
+  const renderFeedback = (feedback) => {
+    if (!feedback) return null;
+
+    return (
+      <div className="feedback-container">
+        {/* Summary Section */}
+        {feedback.summary && (
+          <div className="feedback-summary">
+            <h4>Summary</h4>
+            <p>{feedback.summary}</p>
+          </div>
+        )}
+
+        {/* Vocabulary Section */}
+        {feedbackCategories.vocabulary && feedback.vocabulary && (
+          <div className="feedback-section vocabulary-feedback">
+            <div className="section-header" onClick={() => setFeedbackCategories(prev => ({ ...prev, vocabulary: !prev.vocabulary }))}>
+              <FiBookOpen />
+              <h4>Vocabulary Suggestions</h4>
+            </div>
+            <div className="section-content">
+              {Object.entries(feedback.vocabulary.static).map(([original, suggestion], idx) => (
+                <div key={`static-${idx}`} className="suggestion-item">
+                  <span className="original">{original}</span>
+                  <span className="arrow">→</span>
+                  <span className="suggestion">{suggestion}</span>
+                </div>
+              ))}
+              {Object.entries(feedback.vocabulary.dynamic).map(([original, suggestion], idx) => (
+                <div key={`dynamic-${idx}`} className="suggestion-item">
+                  <span className="original">{original}</span>
+                  <span className="arrow">→</span>
+                  <span className="suggestion">{suggestion}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Communication Concepts Section */}
+        {feedbackCategories.communication && feedback.communication_concepts && feedback.communication_concepts.length > 0 && (
+          <div className="feedback-section concepts-feedback">
+            <div className="section-header" onClick={() => setFeedbackCategories(prev => ({ ...prev, communication: !prev.communication }))}>
+              <FiMessageSquare />
+              <h4>Communication Patterns</h4>
+            </div>
+            <div className="section-content">
+              {feedback.communication_concepts.map((concept, idx) => (
+                <div key={`concept-${idx}`} className="concept-item">
+                  <div className="concept-type">{concept.type}</div>
+                  <div className="concept-example">
+                    <div className="example-scenario">{concept.example.scenario}</div>
+                    <div className="example-better">{concept.example.better_approach}</div>
+                  </div>
+                  <div className="concept-suggestion">{concept.suggestion}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Detailed Feedback Section */}
+        {feedbackCategories.suggestions && feedback.detailed && (
+          <div className="feedback-section detailed-feedback">
+            <div className="section-header" onClick={() => setFeedbackCategories(prev => ({ ...prev, suggestions: !prev.suggestions }))}>
+              <FiBarChart />
+              <h4>Detailed Feedback</h4>
+            </div>
+            <div className="section-content">
+              <p>{feedback.detailed}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Update the message display to use the new feedback renderer
+  const renderMessage = (message) => {
+    return (
+      <div className={`message ${message.role}`} key={message.id}>
+        <div className="message-content">
+          <p>{message.content}</p>
+          {message.feedback && renderFeedback(message.feedback)}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={`speech-coach ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <audio ref={audioRef} />
@@ -348,25 +542,7 @@ export default function SpeechCoach({
             </div>
           </div>
         ) : (
-          messages.map(message => (
-            <div key={message.id} className={`message ${message.type}`}>
-              <p>{message.content}</p>
-              {message.correctedSentence && (
-                <div className="correction">
-                  <small>Suggestion: <em>{message.correctedSentence}</em></small>
-                </div>
-              )}
-              {message.suggestions?.length > 0 && (
-                <div className="coach-controls">
-                  {message.suggestions.slice(0, 3).map((suggestion, index) => (
-                    <button key={index} className="suggestion-btn" onClick={() => setInputText(suggestion)}>
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))
+          messages.map(renderMessage)
         )}
       </div>
 
@@ -395,6 +571,16 @@ export default function SpeechCoach({
                 <div className="progress-stat-label">{key}</div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Transcript Preview */}
+      {transcriptPreview && (
+        <div className="transcript-preview">
+          <div className="transcript-preview-content">
+            <span className="transcript-preview-label">Listening...</span>
+            <span className="transcript-preview-text">{transcriptPreview}</span>
           </div>
         </div>
       )}
@@ -429,7 +615,7 @@ export default function SpeechCoach({
                     className="enhanced-input-field"
                     placeholder="Type or speak your message..."
                     value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
+                    onChange={(e) => handleManualEdit(e.target.value)}
                     onKeyDown={handleKeyPress}
                     disabled={isProcessing}
                     rows={1}

@@ -7,7 +7,8 @@
 :root {
   --sidebar-width: 300px;
   --sidebar-width-mobile: 280px;
-  --header-height: 3rem;
+  /* Use header height from CSSVariables.css - 64px desktop, 56px mobile */
+  --header-height: 64px;
   --input-container-height: 80px;
   --input-bottom-extension: 20px;
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -430,6 +431,171 @@
   pointer-events: none;
 }
 
+/* Transcript Preview */
+.transcript-preview {
+  position: fixed;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 123, 255, 0.95);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 24px;
+  font-size: 14px;
+  max-width: 80%;
+  z-index: 1001;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0, 123, 255, 0.3);
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.transcript-preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.transcript-preview-label {
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+.transcript-preview-text {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .transcript-preview {
+    bottom: 100px;
+    max-width: 90%;
+    padding: 10px 16px;
+  }
+  
+  .transcript-preview-text {
+    font-size: 13px;
+  }
+}
+
+/* Send Confirmation */
+.send-confirmation {
+  position: fixed;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(40, 167, 69, 0.95);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 16px;
+  font-size: 14px;
+  max-width: 90%;
+  z-index: 1002;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(40, 167, 69, 0.3);
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.send-confirmation-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.send-confirmation-label {
+  font-size: 12px;
+  opacity: 0.9;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.send-confirmation-text {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.3;
+  text-align: center;
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+.send-confirmation-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.send-confirmation-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.send-confirmation-btn.confirm {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.send-confirmation-btn.confirm:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.send-confirmation-btn.cancel {
+  background: rgba(220, 53, 69, 0.8);
+  color: white;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.send-confirmation-btn.cancel:hover {
+  background: rgba(220, 53, 69, 0.9);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .send-confirmation {
+    bottom: 120px;
+    max-width: 95%;
+    padding: 14px 20px;
+  }
+  
+  .send-confirmation-actions {
+    gap: 8px;
+  }
+  
+  .send-confirmation-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
 /* RESPONSIVE: Chat Input Container with dynamic positioning */
 .chat-input-container {
   position: relative;
@@ -617,6 +783,7 @@ input:disabled {
 /* MOBILE RESPONSIVE DESIGN */
 @media (max-width: 768px) {
   :root {
+    --header-height: 56px; /* Mobile header height */
     --input-container-height: 70px;
     --input-bottom-extension: 15px;
   }
@@ -685,6 +852,7 @@ input:disabled {
 
 @media (max-width: 480px) {
   :root {
+    --header-height: 56px; /* Mobile header height */
     --input-container-height: 65px;
     --input-bottom-extension: 10px;
   }
@@ -731,6 +899,7 @@ input:disabled {
 /* LANDSCAPE ORIENTATION */
 @media screen and (orientation: landscape) and (max-height: 600px) {
   :root {
+    --header-height: 56px; /* Mobile header height for landscape */
     --input-container-height: 60px;
     --input-bottom-extension: 8px;
   }

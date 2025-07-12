@@ -1378,4 +1378,249 @@
       right: max(var(--space-md), env(safe-area-inset-right));
     }
   }
+}
+
+/* Transcript Preview */
+.transcript-preview {
+  position: fixed;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 123, 255, 0.95);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 24px;
+  font-size: 14px;
+  max-width: 80%;
+  z-index: 1001;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0, 123, 255, 0.3);
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.transcript-preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.transcript-preview-label {
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+.transcript-preview-text {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Responsive adjustments for transcript preview */
+@media (max-width: 768px) {
+  .transcript-preview {
+    bottom: 120px;
+    max-width: 90%;
+    padding: 10px 16px;
+  }
+  
+  .transcript-preview-text {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .transcript-preview {
+    bottom: 110px;
+    max-width: 95%;
+    padding: 8px 12px;
+  }
+  
+  .transcript-preview-label {
+    font-size: 11px;
+  }
+  
+  .transcript-preview-text {
+    font-size: 12px;
+  }
+}
+
+.feedback-container {
+  margin-top: 1rem;
+  border-radius: 8px;
+  background: var(--background-secondary);
+  overflow: hidden;
+}
+
+.feedback-summary {
+  padding: 1rem;
+  background: var(--background-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.feedback-summary h4 {
+  margin: 0 0 0.5rem;
+  color: var(--text-primary);
+}
+
+.feedback-section {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--background-tertiary);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.section-header:hover {
+  background: var(--background-hover);
+}
+
+.section-header svg {
+  margin-right: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.section-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.section-content {
+  padding: 1rem;
+  background: var(--background-secondary);
+}
+
+/* Vocabulary Suggestions */
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  background: var(--background-tertiary);
+  border-radius: 4px;
+}
+
+.suggestion-item .original {
+  color: var(--text-error);
+  text-decoration: line-through;
+}
+
+.suggestion-item .arrow {
+  margin: 0 0.5rem;
+  color: var(--text-secondary);
+}
+
+.suggestion-item .suggestion {
+  color: var(--text-success);
+  font-weight: 500;
+}
+
+/* Communication Concepts */
+.concept-item {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: var(--background-tertiary);
+  border-radius: 4px;
+}
+
+.concept-type {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.concept-example {
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  background: var(--background-primary);
+  border-radius: 4px;
+}
+
+.example-scenario {
+  font-style: italic;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.example-better {
+  color: var(--text-success);
+}
+
+.concept-suggestion {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: var(--background-primary);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-style: italic;
+}
+
+/* Detailed Feedback */
+.detailed-feedback .section-content {
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* Animations */
+.feedback-section {
+  transition: all 0.3s ease-in-out;
+}
+
+.section-content {
+  transition: max-height 0.3s ease-in-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .feedback-container {
+    margin: 0.5rem 0;
+  }
+
+  .section-header {
+    padding: 0.5rem;
+  }
+
+  .section-content {
+    padding: 0.5rem;
+  }
+
+  .concept-item {
+    padding: 0.75rem;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .feedback-container {
+    background: var(--dark-background-secondary);
+  }
+
+  .section-header {
+    background: var(--dark-background-tertiary);
+  }
+
+  .suggestion-item,
+  .concept-item,
+  .concept-example {
+    background: var(--dark-background-primary);
+  }
 } 

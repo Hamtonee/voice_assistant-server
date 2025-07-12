@@ -408,7 +408,48 @@ export const useSessionManagement = () => {
     }
   }, []);
 
-  // ENHANCED: Fetch sessions with proper state initialization
+  // ENHANCED: Ensure active session exists for feature (auto-create if needed)
+  const ensureActiveSession = useCallback(async (feature, metadata = {}) => {
+    try {
+      const currentId = activeSessionIds[feature];
+      
+      // If we already have an active session, return it
+      if (currentId) {
+        const existingSession = sessions.find(s => s.id === currentId);
+        if (existingSession) {
+          console.log(`✅ [Session Ensure] Using existing ${feature} session: ${currentId}`);
+          return existingSession;
+        }
+      }
+      
+      // Check if any sessions exist for this feature
+      const featureSessions = sessions.filter(s => s.feature === feature);
+      if (featureSessions.length > 0) {
+        // Use the most recent session
+        const recentSession = featureSessions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+        setActiveSessionIds(prev => ({
+          ...prev,
+          [feature]: recentSession.id
+        }));
+        console.log(`🔄 [Session Ensure] Activated existing ${feature} session: ${recentSession.id}`);
+        return recentSession;
+      }
+      
+      // No sessions exist, create one
+      console.log(`🆕 [Session Ensure] No ${feature} sessions found, creating new one`);
+      const newSession = await createNewSession(feature, false, {
+        ...metadata,
+        reason: 'auto_creation_on_feature_select'
+      });
+      
+      return newSession;
+    } catch (error) {
+      console.error(`❌ [Session Ensure] Failed to ensure ${feature} session:`, error);
+      throw error;
+    }
+  }, [activeSessionIds, sessions, createNewSession]);
+
+  // ENHANCED: Fetch sessions with automatic session creation for new users
   const fetchSessions = useCallback(async () => {
     try {
       console.log('📥 [Session Fetch] Loading sessions from API...');
@@ -437,13 +478,29 @@ export const useSessionManagement = () => {
         tusome: tusomeSessions.length ? tusomeSessions[0].id : 'none'
       });
       
+      // For new users with no sessions, create initial sessions for better UX
+      if (sessionsData.length === 0) {
+        console.log('🆕 [New User] Creating initial sessions for better UX...');
+        
+        try {
+          // Create a chat session first (most commonly used)
+          await createNewSession('chat', false, { 
+            reason: 'initial_setup_for_new_user',
+            isInitialSession: true 
+          });
+          console.log('✅ [New User] Created initial chat session');
+        } catch (error) {
+          console.warn('⚠️ [New User] Failed to create initial chat session:', error);
+        }
+      }
+      
       return sessionsData;
     } catch (error) {
       console.error('❌ [Session Fetch] Failed to fetch sessions:', error);
       setSessions([]);
       return [];
     }
-  }, []);
+  }, [createNewSession]);
 
   // Clear validation cache
   const clearValidationCache = useCallback(() => {
@@ -511,6 +568,9 @@ export const useSessionManagement = () => {
     getArticleSessions,
     getArticleCount,
     canCreateNewArticle,
-    getArticleSessionById
+    getArticleSessionById,
+    
+    // New operations
+    ensureActiveSession
   };
 }; 

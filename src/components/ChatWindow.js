@@ -11,8 +11,8 @@ import {
 
 // Component imports from the new barrel file
 import {
-  FeatureHeader,
-  ChatSidebar,
+  // FeatureHeader, // Unused - keeping for future use
+  // ChatSidebar, // Unused - keeping for future use
   LottieLoader,
   LazyScenarioPicker,
   LazySpeechCoach,
@@ -198,8 +198,8 @@ const ChatWindow = React.memo(() => {
     console.log('Voice changed:', voice);
   }, []);
 
-  // Memoized props to prevent unnecessary re-renders
-  const sidebarProps = useMemo(() => ({
+  // Memoized props to prevent unnecessary re-renders - keeping for future use
+  const _sidebarProps = useMemo(() => ({
     selectedFeature,
     onSelectFeature: handleFeatureSelect,
     chatInstances: getSessionsByFeature(selectedFeature),
@@ -223,8 +223,8 @@ const ChatWindow = React.memo(() => {
     scenario?.key
   ]);
 
-  // Memoized header props
-  const headerProps = useMemo(() => ({
+  // Memoized header props - keeping for future use
+  const _headerProps = useMemo(() => ({
     sidebarOpen,
     onToggleSidebar: toggleSidebar,
     selectedFeature,

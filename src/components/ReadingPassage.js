@@ -150,6 +150,8 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   const [_loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
+
+  
   // Reading progress state
   const [_readWords, setReadWords] = useState(0);
   const [_readingProgress, setReadingProgress] = useState(0);
@@ -514,7 +516,7 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
   }, [viewMode, forceListView]);
 
   // Handle going back to article list
-  const handleGoBackToList = useEffect(() => {
+  const handleGoBackToList = useCallback(() => {
     setViewMode('list');
     setSelectedArticleId(null);
   }, []);
@@ -1222,14 +1224,103 @@ const ReadingPassage = ({ sessionId, selectedVoice, viewport, sidebarState, onNe
       {/* Article Creation View */}
       {viewMode === 'creating' && (
         <div className="creation-container">
-          {/* Creation view implementation coming next */}
+          <div className="creation-header">
+            <button 
+              className="back-button"
+              onClick={() => setViewMode('list')}
+            >
+              ← Back to Articles
+            </button>
+            <h2>Create New Reading Article</h2>
+            <p>Customize your reading experience with personalized content</p>
+          </div>
+
+          <div className="wizard-container" ref={wizardRef}>
+            {renderWizardStep()}
+            
+            <div className="wizard-navigation">
+              {customStep > 1 && (
+                <button 
+                  className="btn btn-secondary"
+                  onClick={_prevStep}
+                >
+                  Previous
+                </button>
+              )}
+              
+              {customStep < 3 ? (
+                <button 
+                  className="btn btn-primary"
+                  onClick={_nextStep}
+                  disabled={customStep === 1 && !params.category}
+                >
+                  Next
+                </button>
+              ) : (
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => fetchTopic(API_ENDPOINTS.READING_TOPIC)}
+                  disabled={_loading}
+                >
+                  {_loading ? 'Generating...' : 'Generate Article'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
       {/* Article Reading View */}
       {viewMode === 'reading' && topic && (
         <div className="reading-container">
-          {/* Reading view implementation coming after creation view */}
+          <div className="reading-header">
+            <button 
+              className="back-button"
+              onClick={() => setViewMode('list')}
+            >
+              ← Back to Articles
+            </button>
+            
+            <div className="article-info">
+              <h1 className="article-title">{topic.title}</h1>
+              <div className="article-meta">
+                <span className="category-tag">{params.category}</span>
+                <span className="difficulty-tag">{params.difficulty}</span>
+                <span className="reading-time">
+                  {Math.ceil(topic.content?.split(/\s+/).length / 200)} min read
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="reading-content" ref={contentRef}>
+            <div className="article-body">
+              {topic.content?.split('\n\n').map((paragraph, index) => (
+                <p key={index} className="article-paragraph">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          </div>
+
+          <div className="reading-footer">
+            <div className="reading-progress">
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill" 
+                  style={{ width: `${_readingProgress * 100}%` }}
+                />
+              </div>
+              <span className="progress-text">
+                {Math.round(_readingProgress * 100)}% complete
+              </span>
+            </div>
+            
+            <div className="reading-stats">
+              <span>Words read: {_readWords}</span>
+              <span>Time: {Math.floor(_readingTime / 60)}:{(String(_readingTime % 60).padStart(2, '0'))}</span>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -7,12 +7,18 @@ import PropTypes from 'prop-types';
 // import OptimizedImage from './ui/OptimizedImage';
 import api from '../api';
 
-const _AUTO_SEND_DELAY = 3000;
+import { debounce } from 'lodash';
+
+// Enhanced timing constants for better UX
+const DEBOUNCE_DELAY = 300; // 300ms debounce for rapid clicks
+const SPEECH_CONTINUATION_DELAY = 2000; // 2 seconds to allow speech continuation
 const _ALWAYS_IDLE_TIMEOUT = 5000;
 const _HISTORY_WINDOW = 10;
 const _MAX_API_RETRIES = 3;
 const _AUDIO_TIMEOUT = 30000;
 const _CHAT_ROLEPLAY_ENDPOINT = '/api/chat/roleplay';
+
+
 
 // Safe environment variable access
 const getChatRoleplayEndpoint = () => {
@@ -44,6 +50,12 @@ const ChatDetail = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [isPlaying, setIsPlaying] = useState(null);
+  const [transcriptPreview, setTranscriptPreview] = useState('');
+  const [autoSendTimer, setAutoSendTimer] = useState(null);
+  const [speechEndTimer, setSpeechEndTimer] = useState(null);
+  const [lastSendTime, setLastSendTime] = useState(0);
+  const [isManuallyEditing, setIsManuallyEditing] = useState(false);
+  const [lastTranscribedText, setLastTranscribedText] = useState('');
 
   // Refs
   const messagesEndRef = useRef(null);
@@ -62,83 +74,32 @@ const ChatDetail = ({
   
   // Fallback values for scenario properties
   const scenarioTitle = currentScenario.title || currentScenario.label || 'Chat Session';
-  const scenarioDescription = currentScenario.description || 'Start your conversation';
+  const _scenarioDescription = currentScenario.description || 'Start your conversation';
   const scenarioImage = currentScenario.image || '/assets/images/default-scenario.webp';
   const assistantAvatar = currentScenario.assistantAvatar || '/assets/images/assistant-avatar.webp';
   const scenarioPrompt = currentScenario.prompt || '';
   const aiRole = currentScenario.aiRole || 'Assistant';
   const userRole = currentScenario.userRole || 'User';
 
-  // Initialize speech recognition
-  useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      
-      if (recognitionRef.current) {
-        recognitionRef.current.continuous = false;
-        recognitionRef.current.interimResults = false;
-        recognitionRef.current.lang = 'en-US';
-        
-        recognitionRef.current.onresult = (event) => {
-          const transcript = event.results[0][0].transcript;
-          setInputText(prev => prev + transcript);
-          setIsRecording(false);
-        };
-        
-        recognitionRef.current.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
-          setError('Speech recognition failed. Please try again.');
-          setIsRecording(false);
-        };
-        
-        recognitionRef.current.onend = () => {
-          setIsRecording(false);
-        };
-      }
+  // Clear all timers utility
+  const clearAllTimers = useCallback(() => {
+    if (autoSendTimer) {
+      clearTimeout(autoSendTimer);
+      setAutoSendTimer(null);
     }
-  }, []);
-
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Add initial instruction message when scenario is set
-  useEffect(() => {
-    if (currentScenario.key && messages.length === 0) {
-      const instructionMessage = {
-        id: 'instruction-' + Date.now(),
-        content: `${scenarioPrompt}\n\nYou are the ${userRole}, and I'll be the ${aiRole}. Start the conversation whenever you're ready!`,
-        isUser: false,
-        isInstruction: true,
-        timestamp: new Date()
-      };
-      setMessages([instructionMessage]);
+    if (speechEndTimer) {
+      clearTimeout(speechEndTimer);
+      setSpeechEndTimer(null);
     }
-  }, [currentScenario.key, scenarioPrompt, userRole, aiRole, messages.length]);
+  }, [autoSendTimer, speechEndTimer]);
 
-  // Handle voice recording
-  const handleVoiceToggle = useCallback(() => {
-    if (!recognitionRef.current) {
-      setError('Speech recognition is not supported in this browser.');
-      return;
-    }
-
-    if (isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-    } else {
-      setError(null);
-      setIsRecording(true);
-      recognitionRef.current.start();
-    }
-  }, [isRecording]);
-
-  // Handle message sending
+  // Handle message sending with enhanced logic
   const handleSendMessage = useCallback(async () => {
     const trimmedMessage = inputText.trim();
     if (!trimmedMessage || isProcessing) return;
+
+    // Clear timers
+    clearAllTimers();
 
     const userMessage = {
       id: 'user-' + Date.now(),
@@ -172,21 +133,215 @@ const ChatDetail = ({
     } catch (err) {
       console.error('Failed to send message:', err);
       setError('Failed to send message. Please try again.');
-      // Remove the user message on error
       setMessages(prev => prev.slice(0, -1));
-      setInputText(trimmedMessage); // Restore the input
+      setInputText(trimmedMessage);
     } finally {
       setIsProcessing(false);
     }
-  }, [inputText, isProcessing, currentScenario.key, currentSession.id, sessionId, selectedVoice]);
+  }, [inputText, isProcessing, currentScenario.key, currentSession.id, sessionId, selectedVoice, clearAllTimers]);
 
-  // Handle Enter key press
+  // Detect manual editing and cancel auto-send
+  const handleManualEdit = useCallback((newText) => {
+    // Check if user is manually editing the transcribed text
+    if (lastTranscribedText && newText !== lastTranscribedText && autoSendTimer) {
+      console.log('🔄 Manual editing detected - canceling auto-send');
+      setIsManuallyEditing(true);
+      clearAllTimers();
+    }
+    setInputText(newText);
+  }, [lastTranscribedText, autoSendTimer, clearAllTimers]);
+
+  // Debounced send function to prevent rapid-fire sending
+  const debouncedSend = useCallback(
+    debounce((forced = false) => {
+      const now = Date.now();
+      if (!forced && now - lastSendTime < DEBOUNCE_DELAY) {
+        return;
+      }
+      setLastSendTime(now);
+      handleSendMessage();
+    }, DEBOUNCE_DELAY),
+    [lastSendTime, handleSendMessage]
+  );
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      
+      if (recognitionRef.current) {
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
+        recognitionRef.current.lang = 'en-US';
+        recognitionRef.current.maxAlternatives = 1;
+        
+        recognitionRef.current.onresult = (event) => {
+          let interimTranscript = '';
+          let finalTranscript = '';
+          
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+          
+          if (finalTranscript) {
+            const newText = inputText + finalTranscript;
+            setInputText(newText);
+            setLastTranscribedText(newText); // Track what was transcribed
+            setIsManuallyEditing(false); // Reset manual editing flag
+            
+            // Clear any existing timer
+            clearAllTimers();
+            
+            // Start a timer for auto-send after speech ends
+            const timer = setTimeout(() => {
+              if (newText.trim()) {
+                // Auto-send directly if no manual editing detected
+                setInputText(currentText => {
+                  if (currentText === newText && !isManuallyEditing) {
+                    console.log('✅ Auto-sending message after wait time - no manual edits detected');
+                    handleSendMessage();
+                  } else {
+                    console.log('❌ Auto-send canceled - manual editing detected or text changed');
+                  }
+                  return currentText;
+                });
+              }
+            }, SPEECH_CONTINUATION_DELAY);
+            setSpeechEndTimer(timer);
+          }
+          
+          // Show interim results
+          if (interimTranscript) {
+            setTranscriptPreview(interimTranscript);
+          } else {
+            setTranscriptPreview('');
+          }
+        };
+        
+        recognitionRef.current.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          let errorMessage = 'Speech recognition failed. Please try again.';
+          
+          switch (event.error) {
+            case 'network':
+              errorMessage = 'Network error. Please check your internet connection.';
+              break;
+            case 'not-allowed':
+              errorMessage = 'Microphone access denied. Please allow microphone permissions.';
+              break;
+            case 'no-speech':
+              errorMessage = 'No speech detected. Please try speaking again.';
+              break;
+            case 'audio-capture':
+              errorMessage = 'Audio capture failed. Please check your microphone.';
+              break;
+            case 'service-not-allowed':
+              errorMessage = 'Speech recognition service not available.';
+              break;
+            default:
+              errorMessage = `Speech recognition error: ${event.error}`;
+          }
+          
+          setError(errorMessage);
+          setIsRecording(false);
+          setTranscriptPreview('');
+        };
+        
+        recognitionRef.current.onstart = () => {
+          setIsRecording(true);
+          setError(null);
+          setTranscriptPreview('');
+          clearAllTimers();
+        };
+        
+        recognitionRef.current.onend = () => {
+          setIsRecording(false);
+          setTranscriptPreview('');
+        };
+      }
+    } else {
+      setError('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+    }
+    
+    // Cleanup timers on unmount
+    return () => {
+      clearAllTimers();
+    };
+  }, [clearAllTimers, inputText, isManuallyEditing, handleSendMessage]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Add initial instruction message when scenario is set
+  useEffect(() => {
+    if (currentScenario.key && messages.length === 0) {
+      const instructionMessage = {
+        id: 'instruction-' + Date.now(),
+        content: `${scenarioPrompt}\n\nYou are the ${userRole}, and I'll be the ${aiRole}. Start the conversation whenever you're ready!`,
+        isUser: false,
+        isInstruction: true,
+        timestamp: new Date()
+      };
+      setMessages([instructionMessage]);
+    }
+  }, [currentScenario.key, scenarioPrompt, userRole, aiRole, messages.length]);
+
+  // Handle voice recording
+  const handleVoiceToggle = useCallback(() => {
+    if (!recognitionRef.current) {
+      setError('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+      return;
+    }
+
+    if (isRecording) {
+      try {
+        recognitionRef.current.stop();
+      } catch (err) {
+        console.error('Error stopping speech recognition:', err);
+      }
+      setIsRecording(false);
+      setTranscriptPreview('');
+    } else {
+      try {
+        setError(null);
+        setTranscriptPreview('');
+        recognitionRef.current.start();
+      } catch (err) {
+        console.error('Error starting speech recognition:', err);
+        if (err.name === 'InvalidStateError') {
+          setError('Speech recognition is already running. Please wait a moment and try again.');
+        } else if (err.name === 'NotAllowedError') {
+          setError('Microphone access denied. Please allow microphone permissions and try again.');
+        } else {
+          setError('Failed to start speech recognition. Please try again.');
+        }
+        setIsRecording(false);
+      }
+    }
+  }, [isRecording]);
+
+  // Handle manual send (button click)
+  const handleManualSend = useCallback(() => {
+    clearAllTimers();
+    debouncedSend(true);
+  }, [clearAllTimers, debouncedSend]);
+
+  // Enhanced key press handling
   const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      clearAllTimers();
+      debouncedSend(true);
     }
-  }, [handleSendMessage]);
+  }, [clearAllTimers, debouncedSend]);
 
   // Handle audio playback
   const handlePlayAudio = useCallback((audioUrl, messageId) => {
@@ -337,6 +492,16 @@ const ChatDetail = ({
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Transcript Preview */}
+      {transcriptPreview && (
+        <div className="transcript-preview">
+          <div className="transcript-preview-content">
+            <span className="transcript-preview-label">Listening...</span>
+            <span className="transcript-preview-text">{transcriptPreview}</span>
+          </div>
+        </div>
+      )}
+
       {/* Input Area */}
       <div className="chat-input-area">
         <div className="chat-input-container">
@@ -355,7 +520,7 @@ const ChatDetail = ({
               className="chat-text-field"
               placeholder={`Message ${aiRole}...`}
               value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
+              onChange={(e) => handleManualEdit(e.target.value)}
               onKeyPress={handleKeyPress}
               disabled={isProcessing}
               rows={1}
@@ -364,7 +529,7 @@ const ChatDetail = ({
           
           <button
             className={`send-btn ${inputText.trim() ? 'active' : ''}`}
-            onClick={handleSendMessage}
+            onClick={handleManualSend}
             disabled={!inputText.trim() || isProcessing}
             aria-label="Send message"
           >
