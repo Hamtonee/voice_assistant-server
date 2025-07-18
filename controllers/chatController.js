@@ -6,13 +6,28 @@ import { normalizeChat, normalizeChats } from '../utils/apiResponseNormalizer.js
 // ✅ List all chats for the current user
 export const listChats = async (req, res) => {
   try {
+    const { feature } = req.query;
+    
+    // Build where clause
+    const whereClause = { owner_id: req.user.id };
+    
+    // 🔧 FIX: Add feature filtering if specified
+    if (feature) {
+      whereClause.feature = feature;
+      console.log(`🔧 Filtering chats by feature: ${feature}`);
+    }
+    
     const chats = await prisma.chat.findMany({
-      where: { owner_id: req.user.id },
+      where: whereClause,
       orderBy: { created_at: 'desc' },
       include: { messages: true },
     });
     
-    console.log(`✅ Found ${chats.length} chats for user ${req.user.id}`);
+    if (feature) {
+      console.log(`✅ Found ${chats.length} chats for user ${req.user.id} with feature '${feature}'`);
+    } else {
+      console.log(`✅ Found ${chats.length} chats for user ${req.user.id} (all features)`);
+    }
     
     // Normalize response for frontend consistency
     const normalizedChats = normalizeChats(chats);
