@@ -46,7 +46,7 @@ model Chat {
   title             String             @default("") @db.VarChar(255)
   owner_id          Int                @map("owner_id")
   created_at        DateTime           @default(now())
-  updated_at        DateTime           @updatedAt
+  updated_at        DateTime           @default(now()) @updatedAt
   scenario_key      String?            @db.VarChar(100)
   feature           String             @default("chat") @db.VarChar(50)
   is_active         Boolean            @default(true)

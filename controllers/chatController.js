@@ -1,16 +1,22 @@
 // server/controllers/chatController.js
 
 import prisma from '../config/prisma.js';
+import { normalizeChat, normalizeChats } from '../utils/apiResponseNormalizer.js';
 
 // ✅ List all chats for the current user
 export const listChats = async (req, res) => {
   try {
     const chats = await prisma.chat.findMany({
-      where: { ownerId: req.user.id },
-      orderBy: { createdAt: 'desc' },
+      where: { owner_id: req.user.id },
+      orderBy: { created_at: 'desc' },
       include: { messages: true },
     });
-    res.json(chats);
+    
+    console.log(`✅ Found ${chats.length} chats for user ${req.user.id}`);
+    
+    // Normalize response for frontend consistency
+    const normalizedChats = normalizeChats(chats);
+    res.json(normalizedChats);
   } catch (err) {
     console.error('Error listing chats:', err);
     res.status(500).json({ error: 'Failed to fetch chats' });
@@ -22,11 +28,14 @@ export const getChat = async (req, res) => {
   const id = Number(req.params.id);
   try {
     const chat = await prisma.chat.findFirst({
-      where: { id, ownerId: req.user.id },
+      where: { id, owner_id: req.user.id },
       include: { messages: true },
     });
     if (!chat) return res.status(404).json({ error: 'Not found' });
-    res.json(chat);
+    
+    // Normalize response for frontend consistency
+    const normalizedChat = normalizeChat(chat);
+    res.json(normalizedChat);
   } catch (err) {
     console.error('Error fetching chat:', err);
     res.status(500).json({ error: 'Failed to fetch chat' });
@@ -39,21 +48,23 @@ export const createChat = async (req, res) => {
   try {
     const chat = await prisma.chat.create({
       data: {
-        ownerId: req.user.id,
+        owner_id: req.user.id,
         feature: 'chat',
-        scenarioKey: scenarioKey ?? null,
+        scenario_key: scenarioKey ?? null,
       },
     });
 
     await prisma.event.create({
       data: {
-        userId: req.user.id,
+        user_id: req.user.id,
         type: 'CHAT_CREATED',
         description: `Chat ${chat.id} created`,
       },
     });
 
-    res.status(201).json(chat);
+    // Normalize response for frontend consistency
+    const normalizedChat = normalizeChat(chat);
+    res.status(201).json(normalizedChat);
   } catch (err) {
     console.error('Error creating chat:', err);
     res.status(500).json({ error: 'Failed to create chat' });
@@ -66,12 +77,12 @@ export const createScenarioChat = async (req, res) => {
   try {
     const chat = await prisma.chat.create({
       data: {
-        ownerId: req.user.id,
+        owner_id: req.user.id,
         feature: 'chat',
-        scenarioKey,
+        scenario_key: scenarioKey,
         title,
         messages: {
-          create: { role: 'system', text: prompt },
+          create: { role: 'system', content: prompt },
         },
       },
       include: { messages: true },
@@ -79,13 +90,15 @@ export const createScenarioChat = async (req, res) => {
 
     await prisma.event.create({
       data: {
-        userId: req.user.id,
+        user_id: req.user.id,
         type: 'CHAT_CREATED',
         description: `Scenario chat ${chat.id} created for ${scenarioKey}`,
       },
     });
 
-    res.status(201).json(chat);
+    // Normalize response for frontend consistency
+    const normalizedChat = normalizeChat(chat);
+    res.status(201).json(normalizedChat);
   } catch (err) {
     console.error('Error creating scenario chat:', err);
     res.status(500).json({ error: 'Failed to create scenario chat' });
@@ -98,12 +111,12 @@ export const createFeatureChat = async (req, res) => {
   try {
     const chat = await prisma.chat.create({
       data: {
-        ownerId: req.user.id,
+        owner_id: req.user.id,
         feature,
         title: title ?? '',
-        scenarioKey: scenarioKey ?? null,
+        scenario_key: scenarioKey ?? null,
         messages: prompt
-          ? { create: { role: 'system', text: prompt } }
+          ? { create: { role: 'system', content: prompt } }
           : undefined,
       },
       include: { messages: true },
@@ -111,13 +124,15 @@ export const createFeatureChat = async (req, res) => {
 
     await prisma.event.create({
       data: {
-        userId: req.user.id,
+        user_id: req.user.id,
         type: `${feature.toUpperCase()}_CHAT_CREATED`,
         description: `${feature} chat ${chat.id} created`,
       },
     });
 
-    res.status(201).json(chat);
+    // Normalize response for frontend consistency
+    const normalizedChat = normalizeChat(chat);
+    res.status(201).json(normalizedChat);
   } catch (err) {
     console.error('Error creating feature chat:', err);
     res.status(500).json({ error: 'Failed to create feature chat' });
@@ -131,12 +146,12 @@ export const addMessage = async (req, res) => {
 
   try {
     const msg = await prisma.message.create({
-      data: { chatId, role, text },
+      data: { chat_id: chatId, role, content: text },
     });
 
     await prisma.event.create({
       data: {
-        userId: req.user.id,
+        user_id: req.user.id,
         type: 'MESSAGE_ADDED',
         description: `Message ${msg.id} added to chat ${chatId}`,
       },
@@ -147,7 +162,9 @@ export const addMessage = async (req, res) => {
       include: { messages: true },
     });
 
-    res.json(updated);
+    // Normalize response for frontend consistency
+    const normalizedChat = normalizeChat(updated);
+    res.json(normalizedChat);
   } catch (err) {
     console.error('Error adding message:', err);
     res.status(500).json({ error: 'Failed to add message' });
@@ -161,7 +178,7 @@ export const updateTitle = async (req, res) => {
 
   try {
     const result = await prisma.chat.updateMany({
-      where: { id, ownerId: req.user.id },
+      where: { id, owner_id: req.user.id },
       data: { title },
     });
 
@@ -170,7 +187,7 @@ export const updateTitle = async (req, res) => {
 
     await prisma.event.create({
       data: {
-        userId: req.user.id,
+        user_id: req.user.id,
         type: 'CHAT_RENAMED',
         description: `Chat ${id} renamed to "${title}"`,
       },
@@ -181,7 +198,9 @@ export const updateTitle = async (req, res) => {
       include: { messages: true },
     });
 
-    res.json(updated);
+    // Normalize response for frontend consistency
+    const normalizedChat = normalizeChat(updated);
+    res.json(normalizedChat);
   } catch (err) {
     console.error('Error renaming chat:', err);
     res.status(500).json({ error: 'Failed to update title' });
@@ -195,27 +214,31 @@ export const deleteChat = async (req, res) => {
   try {
     const existing = await prisma.chat.findUnique({
       where: { id },
-      select: { ownerId: true },
+      select: { owner_id: true },
     });
 
-    if (!existing || existing.ownerId !== req.user.id)
-      return res.status(404).json({ error: 'Not found' });
+    if (!existing) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
 
-    // Manually delete messages (if cascade not enabled)
-    await prisma.message.deleteMany({ where: { chatId: id } });
+    if (existing.owner_id !== req.user.id) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
 
-    // Delete the chat
-    await prisma.chat.delete({ where: { id } });
+    // Delete chat and associated messages (cascade should handle this)
+    await prisma.chat.delete({
+      where: { id },
+    });
 
     await prisma.event.create({
       data: {
-        userId: req.user.id,
+        user_id: req.user.id,
         type: 'CHAT_DELETED',
         description: `Chat ${id} deleted`,
       },
     });
 
-    res.status(204).send();
+    res.json({ success: true, message: 'Chat deleted successfully' });
   } catch (err) {
     console.error('Error deleting chat:', err);
     res.status(500).json({ error: 'Failed to delete chat' });

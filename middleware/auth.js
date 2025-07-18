@@ -2,12 +2,10 @@ import jwt from 'jsonwebtoken';
 import prisma from '../config/prisma.js';
 
 /**
- * 🔒 JWT Authentication Middleware with Session Enforcement
+ * 🔒 JWT Authentication Middleware 
  *
  * - Verifies the Bearer token in Authorization header.
  * - Loads the user from the database (excluding password).
- * - Checks if the session is still active (single session enforcement).
- * - Updates last activity timestamp.
  * - Attaches user info to req.user.
  */
 export default async function auth(req, res, next) {
@@ -50,9 +48,8 @@ export default async function auth(req, res, next) {
     });
   }
 
-  // ✅ 3. Extract user ID and token ID from payload
+  // ✅ 3. Extract user ID from payload
   const userId = payload.userId || payload.id || payload.sub;
-  const tokenId = payload.tokenId;
 
   if (!userId) {
     console.error('⚠️ Token payload missing userId or id:', payload);
@@ -62,18 +59,18 @@ export default async function auth(req, res, next) {
     });
   }
 
-  // ✅ 4. Fetch user from database with session info
+  // ✅ 4. Fetch user from database using correct AuthUser model
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.authUser.findUnique({
       where: { id: Number(userId) },
       select: {
         id: true,
         email: true,
-        name: true,
-        activeTokenId: true,
-        lastActive: true,
-        deviceInfo: true,
-        createdAt: true,
+        full_name: true,
+        is_active: true,
+        is_verified: true,
+        created_at: true,
+        last_login: true,
         // password intentionally excluded
       },
     });
@@ -86,58 +83,31 @@ export default async function auth(req, res, next) {
       });
     }
 
-    console.log('🔍 Session check:', {
+    // ✅ 5. Check if user is active
+    if (!user.is_active) {
+      console.warn('⚠️ Inactive user attempted access:', userId);
+      return res.status(401).json({ 
+        error: 'Account is inactive',
+        code: 'ACCOUNT_INACTIVE'
+      });
+    }
+
+    console.log('✅ User authenticated successfully:', {
       userId: user.id,
-      requestTokenId: tokenId,
-      dbActiveTokenId: user.activeTokenId,
-      hasTokenId: !!tokenId,
-      hasActiveTokenId: !!user.activeTokenId,
-      tokensMatch: tokenId === user.activeTokenId
+      email: user.email,
+      isActive: user.is_active
     });
 
-    // ✅ 5. Check session validity (single active session enforcement)
-    if (tokenId && user.activeTokenId && user.activeTokenId !== tokenId) {
-      console.warn('🚨 SESSION CONFLICT detected for user:', userId, {
-        requestTokenId: tokenId,
-        activeTokenId: user.activeTokenId
-      });
-      return res.status(401).json({ 
-        error: 'Session expired. You have been logged in elsewhere.',
-        code: 'SESSION_CONFLICT'
-      });
-    }
-
-    // For tokens without tokenId (backward compatibility), 
-    // check if there's an active session that would conflict
-    if (!tokenId && user.activeTokenId) {
-      console.warn('⚠️ Old token format detected, but user has active session:', userId);
-      return res.status(401).json({ 
-        error: 'Session expired. Please log in again.',
-        code: 'SESSION_UPGRADE_REQUIRED'
-      });
-    }
-
-    // If token has no tokenId but user has no active session, allow (backward compatibility)
-    if (!tokenId && !user.activeTokenId) {
-      console.log('⚠️ Legacy token allowed (no session tracking)');
-    }
-
-    // ✅ 6. Update last active timestamp (only if token has session tracking)
-    if (tokenId && user.activeTokenId === tokenId) {
-      try {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { lastActive: new Date() }
-        });
-      } catch (updateErr) {
-        console.error('⚠️ Failed to update lastActive:', updateErr.message);
-        // Don't fail the request for this
-      }
-    }
-
-    // ✅ 7. Attach user to request for downstream use
-    req.user = user;
-    req.tokenId = tokenId;
+    // ✅ 6. Attach user to request for downstream use
+    req.user = {
+      id: user.id,
+      email: user.email,
+      name: user.full_name,
+      isActive: user.is_active,
+      isVerified: user.is_verified,
+      createdAt: user.created_at,
+      lastLogin: user.last_login
+    };
     
     next();
   } catch (err) {
