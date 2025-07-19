@@ -20,12 +20,12 @@ const cleanUrl = (url) => {
   console.log('🔍 Before cleaning:', JSON.stringify(url));
   console.log('🔍 Before cleaning (raw):', url);
   
-  // More aggressive cleaning - remove ALL unwanted characters including semicolons
+  // Remove ALL unwanted characters including semicolons, quotes, and extra whitespace
   let cleaned = url
     .trim()
-    .replace(/['"`;,\s]/g, '')   // Remove quotes, semicolons, commas, whitespace globally
+    .replace(/['"`;]/g, '')      // Remove quotes and semicolons
+    .replace(/[,\s]+/g, '')      // Remove commas and whitespace
     .replace(/\/+$/, '')         // Remove trailing slashes
-    .replace(/;$/, '');          // Remove trailing semicolon specifically
   
   // Ensure it starts with http
   if (cleaned && !cleaned.startsWith('http')) {
@@ -47,8 +47,16 @@ const cleanUrl = (url) => {
 
 console.log('🔍 Raw FRONTEND_URLS:', JSON.stringify(process.env.FRONTEND_URLS));
 
-const allowedOrigins = process.env.FRONTEND_URLS
-  ? process.env.FRONTEND_URLS.split(',').map(url => cleanUrl(url)).filter(url => url && url.length > 0)
+// Clean the entire FRONTEND_URLS string first, then split
+let frontendUrls = process.env.FRONTEND_URLS || '';
+if (frontendUrls) {
+  // Remove any trailing semicolons from the entire string
+  frontendUrls = frontendUrls.replace(/;+$/, '');
+  console.log('🔍 Cleaned FRONTEND_URLS string:', JSON.stringify(frontendUrls));
+}
+
+const allowedOrigins = frontendUrls
+  ? frontendUrls.split(',').map(url => cleanUrl(url)).filter(url => url && url.length > 0)
   : ['http://localhost:3000', 'http://192.168.100.122:3000'];
 
 console.log('🔧 Final Cleaned Origins:', allowedOrigins);
