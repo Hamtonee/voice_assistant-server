@@ -1,6 +1,5 @@
 // server/index.js
 import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import { PrismaClient } from '@prisma/client';
@@ -15,18 +14,9 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 
-// ——— Simplified CORS configuration ———
+// ——— Simple CORS configuration ———
 console.log('🔍 Raw FRONTEND_URLS:', JSON.stringify(process.env.FRONTEND_URLS));
-
-// Use a simple, hardcoded list of allowed origins to avoid parsing issues
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://192.168.100.122:3000',
-  'https://semanami-ai.com',
-  'https://www.semanami-ai.com'
-];
-
-console.log('🔧 Using hardcoded allowed origins:', allowedOrigins);
+console.log('🔧 Using simple CORS headers - allowing all origins');
 
 // ——— Prisma error logging ———
 prisma.$on('error', (e) => {
@@ -139,7 +129,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server listening on port ${PORT} (LAN access enabled)`);
   console.log(`🔗 Local: http://localhost:${PORT}`);
   console.log(`🔗 Network: http://192.168.100.122:${PORT}`);
-  console.log('🔧 Allowed CORS origins:', allowedOrigins);
+  console.log('🔧 CORS: Allowing all origins');
 });
 
 // ——— Graceful Shutdown ———
