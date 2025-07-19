@@ -39,43 +39,21 @@ app.use((req, _res, next) => {
   next();
 });
 
-// ——— Explicit CORS Headers (for flexibility/debugging) ———
+// ——— Simple CORS Headers ———
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  
+  // Allow all origins for now to get the server running
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
-  
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    console.log(`✅ Allowed origin: ${origin}`);
-  } else if (!origin) {
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
-    console.log(`🔧 No origin header — using default: ${allowedOrigins[0]}`);
-  } else {
-    console.warn(`❌ Blocked origin: ${origin}`);
-  }
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
   next();
 });
-
-// ——— CORS Middleware (backup and robust control) ———
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error(`Not allowed by CORS → Origin: ${origin}`));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE, OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-  optionsSuccessStatus: 200
-}));
 
 // ——— Body and Cookie Parsers ———
 app.use(express.json());
