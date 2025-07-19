@@ -157,11 +157,27 @@ export const createFeatureChat = async (req, res) => {
 // ✅ Add a message to a chat
 export const addMessage = async (req, res) => {
   const chatId = Number(req.params.id);
-  const { role, text } = req.body;
+  const { role, text, metadata } = req.body;
 
   try {
+    // Validate required fields
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: 'Message text cannot be empty' });
+    }
+
+    // Combine metadata with source info
+    const messageMetadata = {
+      source: 'api',
+      ...(metadata || {})
+    };
+
     const msg = await prisma.message.create({
-      data: { chat_id: chatId, role, content: text },
+      data: { 
+        chat_id: chatId, 
+        role, 
+        content: text,
+        message_metadata: messageMetadata
+      },
     });
 
     await prisma.event.create({
