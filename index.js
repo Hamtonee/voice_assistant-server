@@ -15,51 +15,18 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 
-// ——— Clean and parse allowed origins ———
-const cleanUrl = (url) => {
-  console.log('🔍 Before cleaning:', JSON.stringify(url));
-  console.log('🔍 Before cleaning (raw):', url);
-  
-  // Remove ALL unwanted characters including semicolons, quotes, and extra whitespace
-  let cleaned = url
-    .trim()
-    .replace(/['"`;]/g, '')      // Remove quotes and semicolons
-    .replace(/[,\s]+/g, '')      // Remove commas and whitespace
-    .replace(/\/+$/, '')         // Remove trailing slashes
-  
-  // Ensure it starts with http
-  if (cleaned && !cleaned.startsWith('http')) {
-    cleaned = 'https://' + cleaned;
-  }
-  
-  // Final validation - ensure it's a valid URL
-  try {
-    new URL(cleaned);
-  } catch (e) {
-    console.warn(`⚠️ Invalid URL after cleaning: ${cleaned}`);
-    return null;
-  }
-  
-  console.log('🔍 After cleaning:', JSON.stringify(cleaned));
-  console.log('🔍 After cleaning (raw):', cleaned);
-  return cleaned;
-};
-
+// ——— Simplified CORS configuration ———
 console.log('🔍 Raw FRONTEND_URLS:', JSON.stringify(process.env.FRONTEND_URLS));
 
-// Clean the entire FRONTEND_URLS string first, then split
-let frontendUrls = process.env.FRONTEND_URLS || '';
-if (frontendUrls) {
-  // Remove any trailing semicolons from the entire string
-  frontendUrls = frontendUrls.replace(/;+$/, '');
-  console.log('🔍 Cleaned FRONTEND_URLS string:', JSON.stringify(frontendUrls));
-}
+// Use a simple, hardcoded list of allowed origins to avoid parsing issues
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://192.168.100.122:3000',
+  'https://semanami-ai.com',
+  'https://www.semanami-ai.com'
+];
 
-const allowedOrigins = frontendUrls
-  ? frontendUrls.split(',').map(url => cleanUrl(url)).filter(url => url && url.length > 0)
-  : ['http://localhost:3000', 'http://192.168.100.122:3000'];
-
-console.log('🔧 Final Cleaned Origins:', allowedOrigins);
+console.log('🔧 Using hardcoded allowed origins:', allowedOrigins);
 
 // ——— Prisma error logging ———
 prisma.$on('error', (e) => {
