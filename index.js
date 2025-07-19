@@ -20,15 +20,24 @@ const cleanUrl = (url) => {
   console.log('🔍 Before cleaning:', JSON.stringify(url));
   console.log('🔍 Before cleaning (raw):', url);
   
-  // More aggressive cleaning - remove ALL unwanted characters
+  // More aggressive cleaning - remove ALL unwanted characters including semicolons
   let cleaned = url
     .trim()
     .replace(/['"`;,\s]/g, '')   // Remove quotes, semicolons, commas, whitespace globally
-    .replace(/\/+$/, '');        // Remove trailing slashes
+    .replace(/\/+$/, '')         // Remove trailing slashes
+    .replace(/;$/, '');          // Remove trailing semicolon specifically
   
   // Ensure it starts with http
   if (cleaned && !cleaned.startsWith('http')) {
     cleaned = 'https://' + cleaned;
+  }
+  
+  // Final validation - ensure it's a valid URL
+  try {
+    new URL(cleaned);
+  } catch (e) {
+    console.warn(`⚠️ Invalid URL after cleaning: ${cleaned}`);
+    return null;
   }
   
   console.log('🔍 After cleaning:', JSON.stringify(cleaned));
@@ -39,7 +48,7 @@ const cleanUrl = (url) => {
 console.log('🔍 Raw FRONTEND_URLS:', JSON.stringify(process.env.FRONTEND_URLS));
 
 const allowedOrigins = process.env.FRONTEND_URLS
-  ? process.env.FRONTEND_URLS.split(',').map(url => cleanUrl(url)).filter(url => url.length > 0)
+  ? process.env.FRONTEND_URLS.split(',').map(url => cleanUrl(url)).filter(url => url && url.length > 0)
   : ['http://localhost:3000', 'http://192.168.100.122:3000'];
 
 console.log('🔧 Final Cleaned Origins:', allowedOrigins);
