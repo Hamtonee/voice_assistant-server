@@ -8,15 +8,28 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/authRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import concurrentLimiter from './middleware/concurrentLimiter.js';
+import { 
+  API_CONFIG, 
+  CORS_CONFIG, 
+  DB_CONFIG, 
+  JWT_CONFIG, 
+  HEALTH_ENDPOINTS 
+} from './config/apiConfig.js';
 
 dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
 
-// ——— Simple CORS configuration ———
-console.log('🔍 Raw FRONTEND_URLS:', JSON.stringify(process.env.FRONTEND_URLS));
-console.log('🔧 Using simple CORS headers - allowing all origins');
+// ——— Configuration logging ———
+console.log('🔧 API Configuration:', {
+  baseUrl: API_CONFIG.BASE_URL,
+  version: API_CONFIG.VERSION,
+  customDomain: API_CONFIG.CUSTOM_DOMAIN,
+  environment: API_CONFIG.NODE_ENV,
+  corsOrigins: CORS_CONFIG.ORIGINS,
+  databaseConnected: DB_CONFIG.CONNECTED
+});
 
 // ——— Prisma error logging ———
 prisma.$on('error', (e) => {
@@ -30,12 +43,8 @@ app.use((req, _res, next) => {
 });
 
 // ——— CORS Configuration ———
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'https://semanami-ai.com',
-  'https://www.semanami-ai.com'
-];
+const allowedOrigins = CORS_CONFIG.ORIGINS;
+console.log('🔧 CORS Origins:', allowedOrigins);
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -96,7 +105,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
 
 // ——— Health Check Endpoint ———
-app.get('/api/health', (_req, res) => {
+app.get(HEALTH_ENDPOINTS.CHECK, (_req, res) => {
   const timestamp = new Date().toISOString();
   const ttsAvailable = process.env.TTS_SERVICE_URL || process.env.GOOGLE_CREDENTIALS_BASE64 ? true : false;
   
@@ -104,10 +113,15 @@ app.get('/api/health', (_req, res) => {
     status: 'healthy',
     timestamp,
     tts_available: ttsAvailable,
-    version: process.env.VERSION || '1.0.0',
-    environment: process.env.NODE_ENV || 'development',
+    version: API_CONFIG.VERSION_NUMBER,
+    environment: API_CONFIG.NODE_ENV,
     server: 'express',
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    custom_domain: API_CONFIG.CUSTOM_DOMAIN,
+    api_base_url: API_CONFIG.BASE_URL,
+    cors_origins: CORS_CONFIG.ORIGINS,
+    database_connected: DB_CONFIG.CONNECTED,
+    jwt_configured: !!JWT_CONFIG.SECRET
   });
 });
 
@@ -136,10 +150,15 @@ app.use((err, _req, res, _next) => {
 // ——— Start Server ———
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server listening on port ${PORT} (LAN access enabled)`);
-  console.log(`🔗 Local: http://localhost:${PORT}`);
-  console.log(`🔗 Network: http://192.168.100.122:${PORT}`);
-  console.log('🔧 CORS: Allowing all origins');
+  console.log(`🚀 Server listening on port ${PORT}`);
+  console.log(`🔗 Environment: ${API_CONFIG.NODE_ENV}`);
+  console.log(`🔗 Custom Domain: ${API_CONFIG.CUSTOM_DOMAIN}`);
+  console.log(`🔗 API Base URL: ${API_CONFIG.BASE_URL}`);
+  console.log(`🔗 API Version: ${API_CONFIG.VERSION}`);
+  console.log(`🔗 CORS Origins: ${CORS_CONFIG.ORIGINS.join(', ')}`);
+  console.log(`🔗 Database: ${DB_CONFIG.CONNECTED ? 'Connected' : 'Not configured'}`);
+  console.log(`🔗 JWT: ${JWT_CONFIG.SECRET ? 'Configured' : 'Not configured'}`);
+  console.log('🔧 CORS: Configured with environment variables');
 });
 
 // ——— Graceful Shutdown ———
