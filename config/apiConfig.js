@@ -30,7 +30,7 @@ export const CHAT_ENDPOINTS = {
 
 // Health Check Endpoint
 export const HEALTH_ENDPOINTS = {
-  CHECK: process.env.HEALTH_CHECK_ENDPOINT || '/health'
+  CHECK: process.env.HEALTH_CHECK_ENDPOINT || '/api/health'
 };
 
 // CORS Configuration

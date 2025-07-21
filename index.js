@@ -106,23 +106,43 @@ app.use('/api/chats', chatRoutes);
 
 // ——— Health Check Endpoint ———
 app.get(HEALTH_ENDPOINTS.CHECK, (_req, res) => {
-  const timestamp = new Date().toISOString();
-  const ttsAvailable = process.env.TTS_SERVICE_URL || process.env.GOOGLE_CREDENTIALS_BASE64 ? true : false;
-  
-  res.json({
-    status: 'healthy',
-    timestamp,
-    tts_available: ttsAvailable,
-    version: API_CONFIG.VERSION_NUMBER,
-    environment: API_CONFIG.NODE_ENV,
-    server: 'express',
-    uptime: process.uptime(),
-    custom_domain: API_CONFIG.CUSTOM_DOMAIN,
-    api_base_url: API_CONFIG.BASE_URL,
-    cors_origins: CORS_CONFIG.ORIGINS,
-    database_connected: DB_CONFIG.CONNECTED,
-    jwt_configured: !!JWT_CONFIG.SECRET
-  });
+  try {
+    const timestamp = new Date().toISOString();
+    const ttsAvailable = process.env.TTS_SERVICE_URL || process.env.GOOGLE_CREDENTIALS_BASE64 ? true : false;
+    
+    res.json({
+      status: 'healthy',
+      timestamp,
+      tts_available: ttsAvailable,
+      version: API_CONFIG.VERSION_NUMBER,
+      environment: API_CONFIG.NODE_ENV,
+      server: 'express',
+      uptime: process.uptime(),
+      custom_domain: API_CONFIG.CUSTOM_DOMAIN,
+      api_base_url: API_CONFIG.BASE_URL,
+      cors_origins: CORS_CONFIG.ORIGINS,
+      database_connected: DB_CONFIG.CONNECTED,
+      jwt_configured: !!JWT_CONFIG.SECRET
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({ error: 'Health check failed', details: error.message });
+  }
+});
+
+// ——— Additional Health Check at /health ———
+app.get('/health', (_req, res) => {
+  try {
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      version: API_CONFIG.VERSION_NUMBER,
+      environment: API_CONFIG.NODE_ENV
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({ error: 'Health check failed', details: error.message });
+  }
 });
 
 // --- Handle SPA routing for production ---
@@ -149,28 +169,54 @@ app.use((err, _req, res, _next) => {
 
 // ——— Start Server ———
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server listening on port ${PORT}`);
-  console.log(`🔗 Environment: ${API_CONFIG.NODE_ENV}`);
-  console.log(`🔗 Custom Domain: ${API_CONFIG.CUSTOM_DOMAIN}`);
-  console.log(`🔗 API Base URL: ${API_CONFIG.BASE_URL}`);
-  console.log(`🔗 API Version: ${API_CONFIG.VERSION}`);
-  console.log(`🔗 CORS Origins: ${CORS_CONFIG.ORIGINS.join(', ')}`);
-  console.log(`🔗 Database: ${DB_CONFIG.CONNECTED ? 'Connected' : 'Not configured'}`);
-  console.log(`🔗 JWT: ${JWT_CONFIG.SECRET ? 'Configured' : 'Not configured'}`);
-  console.log('🔧 CORS: Configured with environment variables');
-});
 
-// ——— Graceful Shutdown ———
-const shutdown = async () => {
-  console.log('🛑 Shutting down server...');
-  server.close(async () => {
-    console.log('HTTP server closed.');
-    await prisma.$disconnect();
-    console.log('Prisma disconnected.');
-    process.exit(0);
-  });
+// Test database connection before starting server
+const testDatabaseConnection = async () => {
+  try {
+    await prisma.$connect();
+    console.log('✅ Database connection successful');
+    return true;
+  } catch (error) {
+    console.error('❌ Database connection failed:', error);
+    return false;
+  }
 };
 
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+const startServer = async () => {
+  try {
+    // Test database connection
+    const dbConnected = await testDatabaseConnection();
+    
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server listening on port ${PORT}`);
+      console.log(`🔗 Environment: ${API_CONFIG.NODE_ENV}`);
+      console.log(`🔗 Custom Domain: ${API_CONFIG.CUSTOM_DOMAIN}`);
+      console.log(`🔗 API Base URL: ${API_CONFIG.BASE_URL}`);
+      console.log(`🔗 API Version: ${API_CONFIG.VERSION}`);
+      console.log(`🔗 CORS Origins: ${CORS_CONFIG.ORIGINS.join(', ')}`);
+      console.log(`🔗 Database: ${dbConnected ? 'Connected' : 'Not connected'}`);
+      console.log(`🔗 JWT: ${JWT_CONFIG.SECRET ? 'Configured' : 'Not configured'}`);
+      console.log('🔧 CORS: Configured with environment variables');
+    });
+
+    // ——— Graceful Shutdown ———
+    const shutdown = async () => {
+      console.log('🛑 Shutting down server...');
+      server.close(async () => {
+        console.log('HTTP server closed.');
+        await prisma.$disconnect();
+        console.log('Prisma disconnected.');
+        process.exit(0);
+      });
+    };
+
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+    
+  } catch (error) {
+    console.error('❌ Server startup failed:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
