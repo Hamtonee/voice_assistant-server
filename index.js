@@ -5,161 +5,224 @@ import cookieParser from 'cookie-parser';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import authRoutes from './routes/authRoutes.js';
-import chatRoutes from './routes/chatRoutes.js';
-import concurrentLimiter from './middleware/concurrentLimiter.js';
-import { 
-  API_CONFIG, 
-  CORS_CONFIG, 
-  DB_CONFIG, 
-  JWT_CONFIG, 
-  HEALTH_ENDPOINTS 
-} from './config/apiConfig.js';
 
+// Load environment variables first
 dotenv.config();
 
 const app = express();
-const prisma = new PrismaClient();
 
-// ——— Configuration logging ———
-console.log('🔧 API Configuration:', {
-  baseUrl: API_CONFIG.BASE_URL,
-  version: API_CONFIG.VERSION,
-  customDomain: API_CONFIG.CUSTOM_DOMAIN,
-  environment: API_CONFIG.NODE_ENV,
-  corsOrigins: CORS_CONFIG.ORIGINS,
-  databaseConnected: DB_CONFIG.CONNECTED
-});
+// Initialize Prisma with error handling
+let prisma;
+let dbConnected = false;
 
-// ——— Prisma error logging ———
-prisma.$on('error', (e) => {
-  console.error('🟥 Prisma error event:', e);
-});
-
-// ——— Request logger ———
-app.use((req, _res, next) => {
-  console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
-  next();
-});
-
-// ——— CORS Configuration ———
-const allowedOrigins = CORS_CONFIG.ORIGINS;
-console.log('🔧 CORS Origins:', allowedOrigins);
-
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Check if origin is allowed
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  next();
-});
-
-// ——— Body and Cookie Parsers ———
-app.use(express.json());
-app.use(cookieParser());
-
-// --- Serve frontend in production ---
-if (process.env.NODE_ENV === 'production') {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
-
-  app.use(express.static(clientBuildPath, {
-    maxAge: '1y',
-    immutable: true,
-    // Set custom headers for caching
-    setHeaders: (res, path) => {
-      if (path.endsWith('.js') || path.endsWith('.css') || path.endsWith('.png') || path.endsWith('.webp') || path.endsWith('.jpg')) {
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-      }
-    }
-  }));
+try {
+  prisma = new PrismaClient();
+  console.log('✅ Prisma client initialized');
+} catch (error) {
+  console.error('❌ Failed to initialize Prisma client:', error);
+  prisma = null;
 }
 
-// Static file serving with caching
-app.use(express.static('public', {
-  maxAge: '1y',
-  immutable: true,
-  setHeaders: (res, path) => {
-    if (path.endsWith('.webp')) {
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    }
-  }
-}));
+// Import routes with error handling
+let authRoutes, chatRoutes, concurrentLimiter;
+let configImported = false;
 
-// ——— Limit concurrent users ———
-app.use(concurrentLimiter);
-
-// ——— Routes ———
-app.use('/api/auth', authRoutes);
-app.use('/api/chats', chatRoutes);
-
-// ——— Health Check Endpoint ———
-app.get(HEALTH_ENDPOINTS.CHECK, (_req, res) => {
+// Function to initialize routes and config
+const initializeApp = async () => {
   try {
-    const timestamp = new Date().toISOString();
-    const ttsAvailable = process.env.TTS_SERVICE_URL || process.env.GOOGLE_CREDENTIALS_BASE64 ? true : false;
+    const authModule = await import('./routes/authRoutes.js');
+    const chatModule = await import('./routes/chatRoutes.js');
+    const limiterModule = await import('./middleware/concurrentLimiter.js');
+    const configModule = await import('./config/apiConfig.js');
     
-    res.json({
-      status: 'healthy',
-      timestamp,
-      tts_available: ttsAvailable,
-      version: API_CONFIG.VERSION_NUMBER,
+    authRoutes = authModule.default;
+    chatRoutes = chatModule.default;
+    concurrentLimiter = limiterModule.default;
+    
+    const { 
+      API_CONFIG, 
+      CORS_CONFIG, 
+      DB_CONFIG, 
+      JWT_CONFIG, 
+      HEALTH_ENDPOINTS 
+    } = configModule;
+    
+    configImported = true;
+    
+    // ——— Configuration logging ———
+    console.log('🔧 API Configuration:', {
+      baseUrl: API_CONFIG.BASE_URL,
+      version: API_CONFIG.VERSION,
+      customDomain: API_CONFIG.CUSTOM_DOMAIN,
       environment: API_CONFIG.NODE_ENV,
-      server: 'express',
-      uptime: process.uptime(),
-      custom_domain: API_CONFIG.CUSTOM_DOMAIN,
-      api_base_url: API_CONFIG.BASE_URL,
-      cors_origins: CORS_CONFIG.ORIGINS,
-      database_connected: DB_CONFIG.CONNECTED,
-      jwt_configured: !!JWT_CONFIG.SECRET
+      corsOrigins: CORS_CONFIG.ORIGINS,
+      databaseConnected: DB_CONFIG.CONNECTED
     });
-  } catch (error) {
-    console.error('Health check error:', error);
-    res.status(500).json({ error: 'Health check failed', details: error.message });
-  }
-});
 
-// ——— Additional Health Check at /health ———
-app.get('/health', (_req, res) => {
-  try {
-    res.json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      version: API_CONFIG.VERSION_NUMBER,
-      environment: API_CONFIG.NODE_ENV
+    // ——— Prisma error logging ———
+    if (prisma) {
+      prisma.$on('error', (e) => {
+        console.error('🟥 Prisma error event:', e);
+      });
+    }
+
+    // ——— Request logger ———
+    app.use((req, _res, next) => {
+      console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
+      next();
     });
+
+    // ——— CORS Configuration ———
+    const allowedOrigins = CORS_CONFIG.ORIGINS;
+    console.log('🔧 CORS Origins:', allowedOrigins);
+
+    app.use((req, res, next) => {
+      const origin = req.headers.origin;
+      
+      // Check if origin is allowed
+      if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      }
+      
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+      
+      if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+      }
+      next();
+    });
+
+    // ——— Body and Cookie Parsers ———
+    app.use(express.json());
+    app.use(cookieParser());
+
+    // --- Serve frontend in production ---
+    if (process.env.NODE_ENV === 'production') {
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
+
+      app.use(express.static(clientBuildPath, {
+        maxAge: '1y',
+        immutable: true,
+        // Set custom headers for caching
+        setHeaders: (res, path) => {
+          if (path.endsWith('.js') || path.endsWith('.css') || path.endsWith('.png') || path.endsWith('.webp') || path.endsWith('.jpg')) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          }
+        }
+      }));
+    }
+
+    // Static file serving with caching
+    app.use(express.static('public', {
+      maxAge: '1y',
+      immutable: true,
+      setHeaders: (res, path) => {
+        if (path.endsWith('.webp')) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      }
+    }));
+
+    // ——— Limit concurrent users ———
+    if (concurrentLimiter) {
+      app.use(concurrentLimiter);
+    }
+
+    // ——— Routes ———
+    if (authRoutes) {
+      app.use('/api/auth', authRoutes);
+    }
+    if (chatRoutes) {
+      app.use('/api/chats', chatRoutes);
+    }
+
+    // ——— Health Check Endpoint ———
+    app.get(HEALTH_ENDPOINTS.CHECK, (_req, res) => {
+      try {
+        const timestamp = new Date().toISOString();
+        const ttsAvailable = process.env.TTS_SERVICE_URL || process.env.GOOGLE_CREDENTIALS_BASE64 ? true : false;
+        
+        res.json({
+          status: 'healthy',
+          timestamp,
+          tts_available: ttsAvailable,
+          version: API_CONFIG.VERSION_NUMBER,
+          environment: API_CONFIG.NODE_ENV,
+          server: 'express',
+          uptime: process.uptime(),
+          custom_domain: API_CONFIG.CUSTOM_DOMAIN,
+          api_base_url: API_CONFIG.BASE_URL,
+          cors_origins: CORS_CONFIG.ORIGINS,
+          database_connected: dbConnected,
+          jwt_configured: !!JWT_CONFIG.SECRET
+        });
+      } catch (error) {
+        console.error('Health check error:', error);
+        res.status(500).json({ error: 'Health check failed', details: error.message });
+      }
+    });
+
+    // ——— Additional Health Check at /health ———
+    app.get('/health', (_req, res) => {
+      try {
+        res.json({
+          status: 'healthy',
+          timestamp: new Date().toISOString(),
+          version: API_CONFIG.VERSION_NUMBER,
+          environment: API_CONFIG.NODE_ENV
+        });
+      } catch (error) {
+        console.error('Health check error:', error);
+        res.status(500).json({ error: 'Health check failed', details: error.message });
+      }
+    });
+
+    // --- Handle SPA routing for production ---
+    if (process.env.NODE_ENV === 'production') {
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
+
+      app.get('*', (req, res) => {
+        res.sendFile(path.resolve(clientBuildPath, 'index.html'));
+      });
+    }
+
+    // ——— Root Health Check ———
+    app.get('/', (_req, res) => {
+      res.send('🟢 API up and running!');
+    });
+
   } catch (error) {
-    console.error('Health check error:', error);
-    res.status(500).json({ error: 'Health check failed', details: error.message });
+    console.error('❌ Failed to import modules:', error);
+    
+    // Basic health check that works even if imports fail
+    app.get('/api/health', (_req, res) => {
+      res.json({
+        status: 'degraded',
+        timestamp: new Date().toISOString(),
+        error: 'Module import failed',
+        environment: process.env.NODE_ENV || 'unknown'
+      });
+    });
+    
+    app.get('/health', (_req, res) => {
+      res.json({
+        status: 'degraded',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'unknown'
+      });
+    });
+    
+    app.get('/', (_req, res) => {
+      res.send('🟡 API running with limited functionality');
+    });
   }
-});
-
-// --- Handle SPA routing for production ---
-if (process.env.NODE_ENV === 'production') {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
-
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve(clientBuildPath, 'index.html'));
-  });
-}
-
-// ——— Root Health Check ———
-app.get('/', (_req, res) => {
-  res.send('🟢 API up and running!');
-});
+};
 
 // ——— Error Handler ———
 app.use((err, _req, res, _next) => {
@@ -172,6 +235,11 @@ const PORT = process.env.PORT || 5000;
 
 // Test database connection before starting server
 const testDatabaseConnection = async () => {
+  if (!prisma) {
+    console.log('⚠️ No Prisma client available');
+    return false;
+  }
+  
   try {
     await prisma.$connect();
     console.log('✅ Database connection successful');
@@ -184,19 +252,19 @@ const testDatabaseConnection = async () => {
 
 const startServer = async () => {
   try {
+    // Initialize app components
+    await initializeApp();
+    
     // Test database connection
-    const dbConnected = await testDatabaseConnection();
+    dbConnected = await testDatabaseConnection();
     
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server listening on port ${PORT}`);
-      console.log(`🔗 Environment: ${API_CONFIG.NODE_ENV}`);
-      console.log(`🔗 Custom Domain: ${API_CONFIG.CUSTOM_DOMAIN}`);
-      console.log(`🔗 API Base URL: ${API_CONFIG.BASE_URL}`);
-      console.log(`🔗 API Version: ${API_CONFIG.VERSION}`);
-      console.log(`🔗 CORS Origins: ${CORS_CONFIG.ORIGINS.join(', ')}`);
-      console.log(`🔗 Database: ${dbConnected ? 'Connected' : 'Not connected'}`);
-      console.log(`🔗 JWT: ${JWT_CONFIG.SECRET ? 'Configured' : 'Not configured'}`);
-      console.log('🔧 CORS: Configured with environment variables');
+      if (configImported) {
+        console.log(`🔗 Environment: ${process.env.NODE_ENV || 'unknown'}`);
+        console.log(`🔗 Database: ${dbConnected ? 'Connected' : 'Not connected'}`);
+      }
+      console.log('🔧 Server started successfully');
     });
 
     // ——— Graceful Shutdown ———
@@ -204,8 +272,10 @@ const startServer = async () => {
       console.log('🛑 Shutting down server...');
       server.close(async () => {
         console.log('HTTP server closed.');
-        await prisma.$disconnect();
-        console.log('Prisma disconnected.');
+        if (prisma) {
+          await prisma.$disconnect();
+          console.log('Prisma disconnected.');
+        }
         process.exit(0);
       });
     };
