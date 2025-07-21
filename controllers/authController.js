@@ -53,10 +53,10 @@ export const register = async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
     const user = await prisma.authUser.create({
-      data: { 
-        email: email.toLowerCase(), 
-        password: hashed, 
-        name 
+      data: {
+        email: email.toLowerCase(),
+        hashed_password: hashed,
+        full_name: name, // or req.body.full_name if that's what you use
       },
     });
 
@@ -68,10 +68,10 @@ export const register = async (req, res) => {
       },
     });
 
-    return res.status(201).json({ 
-      id: user.id, 
-      email: user.email, 
-      name: user.name 
+    return res.status(201).json({
+      id: user.id,
+      email: user.email,
+      name: user.full_name
     });
   } catch (err) {
     console.error('Registration error:', err);
@@ -96,22 +96,24 @@ export const login = async (req, res) => {
       select: {
         id: true,
         email: true,
-        name: true,
-        password: true,
-        activeTokenId: true,
-        deviceInfo: true,
-        lastActive: true,
+        full_name: true,
+        hashed_password: true,
+        is_active: true,
+        is_verified: true,
+        created_at: true,
+        updated_at: true,
+        last_login: true,
       },
     });
 
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const valid = await bcrypt.compare(password, user.password);
+    const valid = await bcrypt.compare(password, user.hashed_password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-    console.log('👤 User session status:', { 
-      userId: user.id, 
-      hasActiveToken: !!user.activeTokenId, 
+    console.log('👤 User session status:', {
+      userId: user.id,
+      hasActiveToken: !!user.activeTokenId,
       activeTokenId: user.activeTokenId,
       forceNewSession,
       lastActive: user.lastActive
@@ -120,7 +122,7 @@ export const login = async (req, res) => {
     // Check for existing active session (STRICT: only allow if explicitly forcing)
     if (user.activeTokenId && forceNewSession !== true) {
       console.log('🚨 Blocking login - session conflict detected');
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Already logged in elsewhere. Only one active session allowed.',
         code: 'SESSION_CONFLICT',
         currentDevice: user.deviceInfo || 'Unknown Device'
@@ -134,18 +136,18 @@ export const login = async (req, res) => {
     // Generate new session
     const tokenId = generateTokenId();
     const deviceInfo = getDeviceInfo(req);
-    
+
     console.log('🆔 Generated new tokenId:', tokenId); // Debug log
-    
-    const accessToken = generateAccessToken({ 
-      userId: user.id, 
+
+    const accessToken = generateAccessToken({
+      userId: user.id,
       email: user.email,
-      tokenId 
+      tokenId
     });
-    const refreshToken = generateRefreshToken({ 
-      userId: user.id, 
+    const refreshToken = generateRefreshToken({
+      userId: user.id,
       email: user.email,
-      tokenId 
+      tokenId
     });
 
     // Update user with new active session
@@ -179,12 +181,12 @@ export const login = async (req, res) => {
       },
     });
 
-    return res.json({ 
+    return res.json({
       token: accessToken,
       user: {
         id: user.id,
         email: user.email,
-        name: user.name
+        name: user.full_name
       }
     });
   } catch (err) {
@@ -230,7 +232,7 @@ export const refresh = async (req, res) => {
         dbTokenId: user?.activeTokenId,
         requestTokenId: payload.tokenId
       });
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Session expired. You have been logged in elsewhere.',
         code: 'SESSION_CONFLICT'
       });
@@ -263,10 +265,10 @@ export const refresh = async (req, res) => {
 export const logout = async (req, res) => {
   try {
     res.clearCookie('refreshToken');
-    
+
     if (req.user?.id) {
       console.log('🚪 Logging out user:', req.user.id);
-      
+
       // Clear the active session
       await prisma.authUser.update({
         where: { id: req.user.id },
@@ -286,7 +288,7 @@ export const logout = async (req, res) => {
 
       console.log('✅ User logged out successfully:', req.user.id);
     }
-    
+
     return res.json({ ok: true, message: 'Logged out successfully' });
   } catch (err) {
     console.error('Logout error:', err);
@@ -344,14 +346,14 @@ export const resetPassword = async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(new_password, 10);
-    
+
     console.log('🔄 Resetting password for user:', record.userId);
-    
+
     // Update password and clear active sessions (force re-login)
     await prisma.authUser.update({
       where: { id: record.userId },
-      data: { 
-        password: hashed,
+      data: {
+        hashed_password: hashed,
         activeTokenId: null // Force re-login after password reset
       },
     });
@@ -390,7 +392,7 @@ export const getMe = async (req, res) => {
       select: {
         id: true,
         email: true,
-        name: true,
+        full_name: true,
         createdAt: true,
         lastActive: true,
         deviceInfo: true
@@ -416,8 +418,8 @@ export const sessionCheck = async (req, res) => {
     console.log('🔍 Session check requested for user:', req.user?.id);
     // This endpoint just validates the session through middleware
     // If we reach here, the session is valid
-    return res.json({ 
-      valid: true, 
+    return res.json({
+      valid: true,
       user: req.user,
       tokenId: req.tokenId,
       timestamp: new Date()
