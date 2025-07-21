@@ -96,7 +96,9 @@ const loadAdditionalModules = async () => {
     app.use(cookieParser());
     
     // Add routes
+    console.log('Registering route: /api/auth');
     app.use('/api/auth', authRoutes);
+    console.log('Registering route: /api/chats');
     app.use('/api/chats', chatRoutes);
     
     // Update health check with full information
