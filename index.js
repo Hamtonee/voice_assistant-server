@@ -1,111 +1,91 @@
 // server/index.js
 import express from 'express';
 import dotenv from 'dotenv';
-import cookieParser from 'cookie-parser';
-import { PrismaClient } from '@prisma/client';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 // Load environment variables first
 dotenv.config();
 
 const app = express();
 
-// Basic health check that works immediately
+// Basic middleware
+app.use(express.json());
+
+// IMMEDIATE health check endpoints - these must work regardless of other imports
 app.get('/api/health', (_req, res) => {
   res.json({
-    status: 'starting',
+    status: 'healthy',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'unknown',
-    message: 'Server is starting up'
+    message: 'Server is running',
+    uptime: process.uptime()
   });
 });
 
 app.get('/health', (_req, res) => {
   res.json({
-    status: 'starting',
+    status: 'healthy',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'unknown'
   });
 });
 
 app.get('/', (_req, res) => {
-  res.send('🟡 API starting up...');
+  res.send('🟢 API up and running!');
 });
 
-// Initialize Prisma with error handling
-let prisma;
-let dbConnected = false;
+// Start server immediately
+const PORT = process.env.PORT || 5000;
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server listening on port ${PORT}`);
+  console.log(`🔗 Environment: ${process.env.NODE_ENV || 'unknown'}`);
+  console.log('✅ Health check endpoints available at /api/health and /health');
+});
 
-try {
-  prisma = new PrismaClient();
-  console.log('✅ Prisma client initialized');
-} catch (error) {
-  console.error('❌ Failed to initialize Prisma client:', error);
-  prisma = null;
-}
-
-// Import routes with error handling
-let authRoutes, chatRoutes, concurrentLimiter;
-let configImported = false;
-
-// Function to initialize routes and config
-const initializeApp = async () => {
+// Now try to load additional modules
+const loadAdditionalModules = async () => {
   try {
-    const authModule = await import('./routes/authRoutes.js');
-    const chatModule = await import('./routes/chatRoutes.js');
-    const limiterModule = await import('./middleware/concurrentLimiter.js');
-    const configModule = await import('./config/apiConfig.js');
+    console.log('🔄 Loading additional modules...');
     
-    authRoutes = authModule.default;
-    chatRoutes = chatModule.default;
-    concurrentLimiter = limiterModule.default;
+    // Import additional dependencies
+    const cookieParser = (await import('cookie-parser')).default;
+    const { PrismaClient } = await import('@prisma/client');
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
     
+    // Import routes
+    const authRoutes = (await import('./routes/authRoutes.js')).default;
+    const chatRoutes = (await import('./routes/chatRoutes.js')).default;
+    const concurrentLimiter = (await import('./middleware/concurrentLimiter.js')).default;
     const { 
       API_CONFIG, 
       CORS_CONFIG, 
       DB_CONFIG, 
       JWT_CONFIG, 
       HEALTH_ENDPOINTS 
-    } = configModule;
+    } = await import('./config/apiConfig.js');
     
-    configImported = true;
+    // Initialize Prisma
+    const prisma = new PrismaClient();
+    let dbConnected = false;
     
-    // ——— Configuration logging ———
-    console.log('🔧 API Configuration:', {
-      baseUrl: API_CONFIG.BASE_URL,
-      version: API_CONFIG.VERSION,
-      customDomain: API_CONFIG.CUSTOM_DOMAIN,
-      environment: API_CONFIG.NODE_ENV,
-      corsOrigins: CORS_CONFIG.ORIGINS,
-      databaseConnected: DB_CONFIG.CONNECTED
-    });
-
-    // ——— Prisma error logging ———
-    if (prisma) {
-      prisma.$on('error', (e) => {
-        console.error('🟥 Prisma error event:', e);
-      });
+    try {
+      await prisma.$connect();
+      dbConnected = true;
+      console.log('✅ Database connected');
+    } catch (dbError) {
+      console.error('❌ Database connection failed:', dbError);
     }
-
-    // ——— Request logger ———
-    app.use((req, _res, next) => {
-      console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
-      next();
-    });
-
-    // ——— CORS Configuration ———
+    
+    // Add middleware
+    app.use(cookieParser());
+    
+    // CORS Configuration
     const allowedOrigins = CORS_CONFIG.ORIGINS;
-    console.log('🔧 CORS Origins:', allowedOrigins);
-
     app.use((req, res, next) => {
       const origin = req.headers.origin;
-      
-      // Check if origin is allowed
       if (origin && allowedOrigins.includes(origin)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
       }
-      
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
@@ -115,181 +95,64 @@ const initializeApp = async () => {
       }
       next();
     });
-
-    // ——— Body and Cookie Parsers ———
-    app.use(express.json());
-    app.use(cookieParser());
-
-    // --- Serve frontend in production ---
+    
+    // Add routes
+    app.use('/api/auth', authRoutes);
+    app.use('/api/chats', chatRoutes);
+    
+    // Update health check with full information
+    app.get('/api/health', (_req, res) => {
+      const timestamp = new Date().toISOString();
+      const ttsAvailable = process.env.TTS_SERVICE_URL || process.env.GOOGLE_CREDENTIALS_BASE64 ? true : false;
+      
+      res.json({
+        status: 'healthy',
+        timestamp,
+        tts_available: ttsAvailable,
+        version: API_CONFIG.VERSION_NUMBER,
+        environment: API_CONFIG.NODE_ENV,
+        server: 'express',
+        uptime: process.uptime(),
+        custom_domain: API_CONFIG.CUSTOM_DOMAIN,
+        api_base_url: API_CONFIG.BASE_URL,
+        cors_origins: CORS_CONFIG.ORIGINS,
+        database_connected: dbConnected,
+        jwt_configured: !!JWT_CONFIG.SECRET
+      });
+    });
+    
+    // Serve frontend in production
     if (process.env.NODE_ENV === 'production') {
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = path.dirname(__filename);
       const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
-
-      app.use(express.static(clientBuildPath, {
-        maxAge: '1y',
-        immutable: true,
-        // Set custom headers for caching
-        setHeaders: (res, path) => {
-          if (path.endsWith('.js') || path.endsWith('.css') || path.endsWith('.png') || path.endsWith('.webp') || path.endsWith('.jpg')) {
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-          }
-        }
-      }));
-    }
-
-    // Static file serving with caching
-    app.use(express.static('public', {
-      maxAge: '1y',
-      immutable: true,
-      setHeaders: (res, path) => {
-        if (path.endsWith('.webp')) {
-          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        }
-      }
-    }));
-
-    // ——— Limit concurrent users ———
-    if (concurrentLimiter) {
-      app.use(concurrentLimiter);
-    }
-
-    // ——— Routes ———
-    if (authRoutes) {
-      app.use('/api/auth', authRoutes);
-    }
-    if (chatRoutes) {
-      app.use('/api/chats', chatRoutes);
-    }
-
-    // ——— Updated Health Check Endpoint ———
-    app.get(HEALTH_ENDPOINTS.CHECK, (_req, res) => {
-      try {
-        const timestamp = new Date().toISOString();
-        const ttsAvailable = process.env.TTS_SERVICE_URL || process.env.GOOGLE_CREDENTIALS_BASE64 ? true : false;
-        
-        res.json({
-          status: 'healthy',
-          timestamp,
-          tts_available: ttsAvailable,
-          version: API_CONFIG.VERSION_NUMBER,
-          environment: API_CONFIG.NODE_ENV,
-          server: 'express',
-          uptime: process.uptime(),
-          custom_domain: API_CONFIG.CUSTOM_DOMAIN,
-          api_base_url: API_CONFIG.BASE_URL,
-          cors_origins: CORS_CONFIG.ORIGINS,
-          database_connected: dbConnected,
-          jwt_configured: !!JWT_CONFIG.SECRET
-        });
-      } catch (error) {
-        console.error('Health check error:', error);
-        res.status(500).json({ error: 'Health check failed', details: error.message });
-      }
-    });
-
-    // ——— Updated Additional Health Check at /health ———
-    app.get('/health', (_req, res) => {
-      try {
-        res.json({
-          status: 'healthy',
-          timestamp: new Date().toISOString(),
-          version: API_CONFIG.VERSION_NUMBER,
-          environment: API_CONFIG.NODE_ENV
-        });
-      } catch (error) {
-        console.error('Health check error:', error);
-        res.status(500).json({ error: 'Health check failed', details: error.message });
-      }
-    });
-
-    // --- Handle SPA routing for production ---
-    if (process.env.NODE_ENV === 'production') {
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = path.dirname(__filename);
-      const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
-
+      
+      app.use(express.static(clientBuildPath));
+      
       app.get('*', (req, res) => {
         res.sendFile(path.resolve(clientBuildPath, 'index.html'));
       });
     }
-
-    // ——— Updated Root Health Check ———
-    app.get('/', (_req, res) => {
-      res.send('🟢 API up and running!');
-    });
-
-  } catch (error) {
-    console.error('❌ Failed to import modules:', error);
     
-    // Keep the basic health checks that were set up earlier
-    console.log('⚠️ Running with limited functionality due to import errors');
+    console.log('✅ All modules loaded successfully');
+    
+  } catch (error) {
+    console.error('❌ Failed to load additional modules:', error);
+    console.log('⚠️ Server running with basic functionality only');
   }
 };
 
-// ——— Error Handler ———
-app.use((err, _req, res, _next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Server error' });
-});
+// Load additional modules after server starts
+loadAdditionalModules();
 
-// ——— Start Server ———
-const PORT = process.env.PORT || 5000;
-
-// Test database connection before starting server
-const testDatabaseConnection = async () => {
-  if (!prisma) {
-    console.log('⚠️ No Prisma client available');
-    return false;
-  }
-  
-  try {
-    await prisma.$connect();
-    console.log('✅ Database connection successful');
-    return true;
-  } catch (error) {
-    console.error('❌ Database connection failed:', error);
-    return false;
-  }
+// Graceful shutdown
+const shutdown = async () => {
+  console.log('🛑 Shutting down server...');
+  server.close(() => {
+    console.log('HTTP server closed.');
+    process.exit(0);
+  });
 };
 
-const startServer = async () => {
-  try {
-    // Initialize app components
-    await initializeApp();
-    
-    // Test database connection
-    dbConnected = await testDatabaseConnection();
-    
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Server listening on port ${PORT}`);
-      if (configImported) {
-        console.log(`🔗 Environment: ${process.env.NODE_ENV || 'unknown'}`);
-        console.log(`🔗 Database: ${dbConnected ? 'Connected' : 'Not connected'}`);
-      }
-      console.log('🔧 Server started successfully');
-    });
-
-    // ——— Graceful Shutdown ———
-    const shutdown = async () => {
-      console.log('🛑 Shutting down server...');
-      server.close(async () => {
-        console.log('HTTP server closed.');
-        if (prisma) {
-          await prisma.$disconnect();
-          console.log('Prisma disconnected.');
-        }
-        process.exit(0);
-      });
-    };
-
-    process.on('SIGINT', shutdown);
-    process.on('SIGTERM', shutdown);
-    
-  } catch (error) {
-    console.error('❌ Server startup failed:', error);
-    process.exit(1);
-  }
-};
-
-startServer();
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
