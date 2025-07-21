@@ -88,6 +88,21 @@ app.use(concurrentLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
 
+// Health Check Endpoints
+app.get('/api/health', (_req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'unknown',
+    message: 'Server is running',
+    uptime: process.uptime()
+  });
+});
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'healthy' });
+});
+
 // Root Health Check
 app.get('/', (_req, res) => {
   res.send('🟢 API up and running!');
