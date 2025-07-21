@@ -159,11 +159,31 @@ export const addMessage = async (req, res) => {
   const chatId = Number(req.params.id);
   const { role, text, metadata } = req.body;
 
+  console.log('📝 addMessage called with:', { chatId, role, textLength: text?.length, metadata });
+
   try {
     // Validate required fields
     if (!text || !text.trim()) {
+      console.log('❌ Validation failed: text is empty or missing');
       return res.status(400).json({ error: 'Message text cannot be empty' });
     }
+
+    if (!role) {
+      console.log('❌ Validation failed: role is missing');
+      return res.status(400).json({ error: 'Message role is required' });
+    }
+
+    // Check if chat exists and belongs to user
+    const chat = await prisma.chat.findFirst({
+      where: { id: chatId, owner_id: req.user.id }
+    });
+
+    if (!chat) {
+      console.log('❌ Chat not found or not owned by user:', { chatId, userId: req.user.id });
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    console.log('✅ Chat validation passed:', { chatId, chatTitle: chat.title });
 
     // Combine metadata with source info
     const messageMetadata = {
@@ -179,6 +199,8 @@ export const addMessage = async (req, res) => {
         message_metadata: messageMetadata
       },
     });
+
+    console.log('✅ Message created successfully:', { messageId: msg.id, chatId, role });
 
     await prisma.event.create({
       data: {
@@ -197,7 +219,7 @@ export const addMessage = async (req, res) => {
     const normalizedChat = normalizeChat(updated);
     res.json(normalizedChat);
   } catch (err) {
-    console.error('Error adding message:', err);
+    console.error('❌ Error adding message:', err);
     res.status(500).json({ error: 'Failed to add message' });
   }
 };
