@@ -23,7 +23,10 @@ const cleanUrl = (url) => {
 };
 
 const allowedOrigins = process.env.FRONTEND_URLS
-  ? process.env.FRONTEND_URLS.split(',').map(url => cleanUrl(url)).filter(url => url.length > 0)
+  ? process.env.FRONTEND_URLS
+      .split(',')
+      .map(url => url.trim().replace(/^['"]+|['"]+$/g, '')) // strips ' or " from ends
+      .filter(url => url.length > 0)
   : ['http://localhost:3000', 'http://192.168.100.122:3000'];
 
 console.log('🔧 Cleaned Allowed Origins:', allowedOrigins);
