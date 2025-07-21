@@ -7,6 +7,22 @@ dotenv.config();
 
 const app = express();
 
+// CORS middleware - must be before any routes
+const allowedOrigins = ['https://semanami-ai.com', 'https://www.semanami-ai.com', 'http://localhost:3000'];
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
 // Basic middleware
 app.use(express.json());
 
@@ -78,23 +94,6 @@ const loadAdditionalModules = async () => {
     
     // Add middleware
     app.use(cookieParser());
-    
-    // CORS Configuration
-    const allowedOrigins = CORS_CONFIG.ORIGINS;
-    app.use((req, res, next) => {
-      const origin = req.headers.origin;
-      if (origin && allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-      }
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
-      
-      if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-      }
-      next();
-    });
     
     // Add routes
     app.use('/api/auth', authRoutes);
