@@ -43,7 +43,7 @@ export const register = async (req, res) => {
 
   try {
     // Check if user exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.authUser.findUnique({
       where: { email: email.toLowerCase() }
     });
 
@@ -52,7 +52,7 @@ export const register = async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
+    const user = await prisma.authUser.create({
       data: { 
         email: email.toLowerCase(), 
         password: hashed, 
@@ -91,7 +91,7 @@ export const login = async (req, res) => {
   console.log('🔑 Login attempt:', { email, forceNewSession }); // Debug log
 
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.authUser.findUnique({
       where: { email: email.toLowerCase() },
       select: {
         id: true,
@@ -149,7 +149,7 @@ export const login = async (req, res) => {
     });
 
     // Update user with new active session
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.authUser.update({
       where: { id: user.id },
       data: {
         activeTokenId: tokenId,
@@ -215,7 +215,7 @@ export const refresh = async (req, res) => {
     });
 
     // Check if user still exists and session is still active
-    const user = await prisma.user.findUnique({
+    const user = await prisma.authUser.findUnique({
       where: { id: payload.userId },
       select: {
         id: true,
@@ -244,7 +244,7 @@ export const refresh = async (req, res) => {
     });
 
     // Update last active timestamp
-    await prisma.user.update({
+    await prisma.authUser.update({
       where: { id: user.id },
       data: { lastActive: new Date() }
     });
@@ -268,7 +268,7 @@ export const logout = async (req, res) => {
       console.log('🚪 Logging out user:', req.user.id);
       
       // Clear the active session
-      await prisma.user.update({
+      await prisma.authUser.update({
         where: { id: req.user.id },
         data: {
           activeTokenId: null,
@@ -302,7 +302,7 @@ export const forgotPassword = async (req, res) => {
   if (!email) return res.status(400).json({ error: 'Email is required.' });
 
   try {
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    const user = await prisma.authUser.findUnique({ where: { email: email.toLowerCase() } });
     if (!user) return res.json({ ok: true });
 
     const token = crypto.randomBytes(32).toString('hex');
@@ -348,7 +348,7 @@ export const resetPassword = async (req, res) => {
     console.log('🔄 Resetting password for user:', record.userId);
     
     // Update password and clear active sessions (force re-login)
-    await prisma.user.update({
+    await prisma.authUser.update({
       where: { id: record.userId },
       data: { 
         password: hashed,
@@ -385,7 +385,7 @@ export const getMe = async (req, res) => {
     }
 
     // Get fresh user data with session info
-    const user = await prisma.user.findUnique({
+    const user = await prisma.authUser.findUnique({
       where: { id: req.user.id },
       select: {
         id: true,
