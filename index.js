@@ -11,6 +11,28 @@ dotenv.config();
 
 const app = express();
 
+// Basic health check that works immediately
+app.get('/api/health', (_req, res) => {
+  res.json({
+    status: 'starting',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'unknown',
+    message: 'Server is starting up'
+  });
+});
+
+app.get('/health', (_req, res) => {
+  res.json({
+    status: 'starting',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'unknown'
+  });
+});
+
+app.get('/', (_req, res) => {
+  res.send('🟡 API starting up...');
+});
+
 // Initialize Prisma with error handling
 let prisma;
 let dbConnected = false;
@@ -140,7 +162,7 @@ const initializeApp = async () => {
       app.use('/api/chats', chatRoutes);
     }
 
-    // ——— Health Check Endpoint ———
+    // ——— Updated Health Check Endpoint ———
     app.get(HEALTH_ENDPOINTS.CHECK, (_req, res) => {
       try {
         const timestamp = new Date().toISOString();
@@ -166,7 +188,7 @@ const initializeApp = async () => {
       }
     });
 
-    // ——— Additional Health Check at /health ———
+    // ——— Updated Additional Health Check at /health ———
     app.get('/health', (_req, res) => {
       try {
         res.json({
@@ -192,7 +214,7 @@ const initializeApp = async () => {
       });
     }
 
-    // ——— Root Health Check ———
+    // ——— Updated Root Health Check ———
     app.get('/', (_req, res) => {
       res.send('🟢 API up and running!');
     });
@@ -200,27 +222,8 @@ const initializeApp = async () => {
   } catch (error) {
     console.error('❌ Failed to import modules:', error);
     
-    // Basic health check that works even if imports fail
-    app.get('/api/health', (_req, res) => {
-      res.json({
-        status: 'degraded',
-        timestamp: new Date().toISOString(),
-        error: 'Module import failed',
-        environment: process.env.NODE_ENV || 'unknown'
-      });
-    });
-    
-    app.get('/health', (_req, res) => {
-      res.json({
-        status: 'degraded',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'unknown'
-      });
-    });
-    
-    app.get('/', (_req, res) => {
-      res.send('🟡 API running with limited functionality');
-    });
+    // Keep the basic health checks that were set up earlier
+    console.log('⚠️ Running with limited functionality due to import errors');
   }
 };
 
