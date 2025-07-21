@@ -24,8 +24,8 @@ export const AUTH_ENDPOINTS = {
 // Chat Management Endpoints
 export const CHAT_ENDPOINTS = {
   LIST: process.env.CHATS_ENDPOINT || '/chats',
-  DETAIL: process.env.CHAT_DETAIL_ENDPOINT || '/chats/{chat_id}',
-  MESSAGES: process.env.CHAT_MESSAGES_ENDPOINT || '/chats/{chat_id}/messages'
+  DETAIL: process.env.CHAT_DETAIL_ENDPOINT || '/chats/:chat_id',
+  MESSAGES: process.env.CHAT_MESSAGES_ENDPOINT || '/chats/:chat_id/messages'
 };
 
 // Health Check Endpoint
