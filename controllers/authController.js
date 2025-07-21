@@ -119,19 +119,14 @@ export const login = async (req, res) => {
       lastActive: user.lastActive
     }); // Debug log
 
-    // Check for existing active session (STRICT: only allow if explicitly forcing)
-    if (user.activeTokenId && forceNewSession !== true) {
-      console.log('🚨 Blocking login - session conflict detected');
-      return res.status(401).json({
-        error: 'Already logged in elsewhere. Only one active session allowed.',
-        code: 'SESSION_CONFLICT',
-        currentDevice: user.deviceInfo || 'Unknown Device'
-      });
-    }
-
-    if (forceNewSession === true && user.activeTokenId) {
-      console.log('🔄 Force login - invalidating existing session');
-    }
+    // Remove all session logic referencing activeTokenId, deviceInfo, lastActive
+    // If you want to update last_login, do so explicitly
+    await prisma.authUser.update({
+      where: { id: user.id },
+      data: {
+        last_login: new Date()
+      }
+    });
 
     // Generate new session
     const tokenId = generateTokenId();
@@ -186,7 +181,12 @@ export const login = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        name: user.full_name
+        full_name: user.full_name,
+        is_active: user.is_active,
+        is_verified: user.is_verified,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+        last_login: user.last_login
       }
     });
   } catch (err) {
