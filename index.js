@@ -88,10 +88,12 @@ app.use(cookieParser());
 app.use(concurrentLimiter);
 
 // Routes
+console.log('Registering route: /api/auth (app.use)');
 app.use('/api/auth', authRoutes);
+console.log('Registering route: /api/chats (app.use)');
 app.use('/api/chats', chatRoutes);
 
-// Health Check Endpoints
+console.log('Registering route: /api/health (app.get)');
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'healthy',
@@ -102,11 +104,12 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+console.log('Registering route: /health (app.get)');
 app.get('/health', (_req, res) => {
   res.json({ status: 'healthy' });
 });
 
-// Root Health Check
+console.log('Registering route: / (app.get)');
 app.get('/', (_req, res) => {
   res.send('🟢 API up and running!');
 });
