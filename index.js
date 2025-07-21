@@ -92,14 +92,33 @@ const loadAdditionalModules = async () => {
       console.error('❌ Database connection failed:', dbError);
     }
     
-    // Add middleware
-    app.use(cookieParser());
-    
-    // Add routes
-    console.log('Registering route: /api/auth');
-    app.use('/api/auth', authRoutes);
-    console.log('Registering route: /api/chats');
-    app.use('/api/chats', chatRoutes);
+    try {
+      console.log('Importing cookie-parser...');
+      const cookieParser = (await import('cookie-parser')).default;
+      app.use(cookieParser());
+      console.log('cookie-parser registered');
+    } catch (err) {
+      console.error('Error importing or registering cookie-parser:', err);
+      throw err;
+    }
+    try {
+      console.log('Importing authRoutes...');
+      const authRoutes = (await import('./routes/authRoutes.js')).default;
+      console.log('Registering route: /api/auth');
+      app.use('/api/auth', authRoutes);
+    } catch (err) {
+      console.error('Error importing or registering /api/auth:', err);
+      throw err;
+    }
+    try {
+      console.log('Importing chatRoutes...');
+      const chatRoutes = (await import('./routes/chatRoutes.js')).default;
+      console.log('Registering route: /api/chats');
+      app.use('/api/chats', chatRoutes);
+    } catch (err) {
+      console.error('Error importing or registering /api/chats:', err);
+      throw err;
+    }
     
     // Update health check with full information
     app.get('/api/health', (_req, res) => {
