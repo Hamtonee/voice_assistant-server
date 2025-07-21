@@ -75,6 +75,17 @@ app.use(concurrentLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
 
+// Health check endpoint for deployment
+app.get('/api/health', (_req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'unknown',
+    message: 'Server is running',
+    uptime: process.uptime()
+  });
+});
+
 // Root Health Check
 app.get('/', (_req, res) => {
   res.send('🟢 API up and running!');
@@ -104,4 +115,5 @@ const shutdown = async () => {
 };
 
 process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 process.on('SIGTERM', shutdown);
