@@ -62,7 +62,7 @@ export const register = async (req, res) => {
 
     await prisma.event.create({
       data: {
-        userId: user.id,
+        user_id: user.id,
         type: 'USER_REGISTERED',
         description: `User ${email} registered.`,
       },
@@ -103,6 +103,9 @@ export const login = async (req, res) => {
         created_at: true,
         updated_at: true,
         last_login: true,
+        activeTokenId: true,
+        deviceInfo: true,
+        lastActive: true
       },
     });
 
@@ -170,7 +173,7 @@ export const login = async (req, res) => {
 
     await prisma.event.create({
       data: {
-        userId: user.id,
+        user_id: user.id,
         type: 'USER_LOGIN',
         description: `User ${email} logged in${forceNewSession ? ' (forced new session)' : ''} on ${deviceInfo}.`,
       },
@@ -280,7 +283,7 @@ export const logout = async (req, res) => {
 
       await prisma.event.create({
         data: {
-          userId: req.user.id,
+          user_id: req.user.id,
           type: 'USER_LOGOUT',
           description: `User ${req.user.email || req.user.id} logged out.`,
         },
@@ -311,7 +314,7 @@ export const forgotPassword = async (req, res) => {
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
     await prisma.resetToken.create({
-      data: { token, userId: user.id, expiresAt },
+      data: { token, user_id: user.id, expires_at: expiresAt },
     });
 
     const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
@@ -341,17 +344,17 @@ export const resetPassword = async (req, res) => {
 
   try {
     const record = await prisma.resetToken.findUnique({ where: { token } });
-    if (!record || record.expiresAt < new Date()) {
+    if (!record || record.expires_at < new Date()) {
       return res.status(400).json({ error: 'Invalid or expired reset token.' });
     }
 
     const hashed = await bcrypt.hash(new_password, 10);
 
-    console.log('🔄 Resetting password for user:', record.userId);
+    console.log('🔄 Resetting password for user:', record.user_id);
 
     // Update password and clear active sessions (force re-login)
     await prisma.authUser.update({
-      where: { id: record.userId },
+      where: { id: record.user_id },
       data: {
         hashed_password: hashed,
         activeTokenId: null // Force re-login after password reset
@@ -362,13 +365,13 @@ export const resetPassword = async (req, res) => {
 
     await prisma.event.create({
       data: {
-        userId: record.userId,
+        user_id: record.user_id,
         type: 'PASSWORD_RESET',
         description: 'Password was reset successfully.',
       },
     });
 
-    console.log('✅ Password reset successful for user:', record.userId);
+    console.log('✅ Password reset successful for user:', record.user_id);
     return res.json({ ok: true });
   } catch (err) {
     console.error('Reset password error:', err);
@@ -393,7 +396,7 @@ export const getMe = async (req, res) => {
         id: true,
         email: true,
         full_name: true,
-        createdAt: true,
+        created_at: true,
         lastActive: true,
         deviceInfo: true
       }
