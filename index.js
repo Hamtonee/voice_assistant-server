@@ -13,21 +13,28 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 
+// ——— Clean and parse allowed origins ———
+const cleanUrl = (url) => {
+  console.log('🔍 Before cleaning:', JSON.stringify(url));
+  let cleaned = url
+    .trim()
+    .replace(/^['"`]+/g, '')     // Remove quotes from start
+    .replace(/['"`]+$/g, '')     // Remove quotes from end
+    .replace(/;+$/g, '')          // Remove semicolons from end
+    .replace(/,+$/g, '')          // Remove commas from end
+    .replace(/\s+$/g, '')        // Remove whitespace from end
+    .replace(/^[;,\s]+/g, '');   // Remove semicolons, commas, whitespace from start
+  console.log('🔍 After cleaning:', JSON.stringify(cleaned));
+  return cleaned;
+};
 
-const rawOrigins = process.env.FRONTEND_URLS || '';
+console.log('🔍 Raw FRONTEND_URLS:', JSON.stringify(process.env.FRONTEND_URLS));
 
-const allowedOrigins = rawOrigins
-  .split(',')
-  .map(origin =>
-    origin
-      .trim()
-      .replace(/^['"`[\]()\-\\/]+|['"`[\]()\-\\/]+$/g, '')
-  )
-  .filter(Boolean);
+const allowedOrigins = process.env.FRONTEND_URLS
+  ? process.env.FRONTEND_URLS.split(',').map(url => cleanUrl(url)).filter(url => url.length > 0)
+  : ['http://localhost:3000', 'http://192.168.100.122:3000'];
 
-console.log('🔧 Cleaned Allowed Origins:', allowedOrigins);
-
-console.log('🔧 Cleaned Allowed Origins:', allowedOrigins);
+console.log('🔧 Final Cleaned Origins:', allowedOrigins);
 
 // ——— Prisma error logging ———
 prisma.$on('error', (e) => {
