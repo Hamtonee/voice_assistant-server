@@ -59,12 +59,12 @@ export const getChat = async (req, res) => {
 
 // ✅ Create a blank chat (manual typing or progressive input)
 export const createChat = async (req, res) => {
-  const { scenarioKey } = req.body;
+  const { scenarioKey, feature = 'chat' } = req.body;
   try {
     const chat = await prisma.chat.create({
       data: {
         owner_id: req.user.id,
-        feature: 'chat',
+        feature: feature,
         scenario_key: scenarioKey ?? null,
       },
     });
