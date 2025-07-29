@@ -24,6 +24,8 @@ model AuthUser {
   refresh_tokens RefreshToken[]
   chats         Chat[]
   events        Event[]
+  messages      Message[]    // Relation to messages
+  articles      Article[]    // Relation to articles
 
   @@map("auth_users")
 }
@@ -54,6 +56,7 @@ model Chat {
   owner             AuthUser           @relation(fields: [owner_id], references: [id])
   messages          Message[]
   learningSessions  LearningSession[]
+  articles          Article[]          // New relation for articles
 
   @@map("chats")
 }
@@ -66,10 +69,49 @@ model Message {
   timestamp        DateTime @default(now())
   message_metadata Json?
   content_length   Int?
+  
+  // Enhanced session identification fields
+  session_id       String?  @db.VarChar(100)  // Alternative session identifier
+  user_id          Int?     @map("user_id")   // User ownership for messages
+  feature_type     String?  @db.VarChar(50)   // Feature identification (chat, sema, tusome)
 
   chat             Chat     @relation(fields: [chat_id], references: [id])
+  user             AuthUser? @relation(fields: [user_id], references: [id])
 
   @@map("messages")
+}
+
+// New dedicated Article model for better article management
+model Article {
+  id                Int      @id @default(autoincrement())
+  chat_id           Int      @map("chat_id")
+  user_id           Int      @map("user_id")
+  title             String   @db.VarChar(255)
+  content           String   @db.Text
+  category          String   @db.VarChar(100)
+  difficulty        String   @db.VarChar(50)
+  feature           String   @default("tusome") @db.VarChar(50)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @default(now()) @updatedAt
+  
+  // Article-specific metadata
+  paragraph_count   Int?
+  reading_progress  Float    @default(0)
+  is_favorite       Boolean  @default(false)
+  article_metadata  Json?    // For additional article-specific data
+  
+  // Relations
+  chat             Chat     @relation(fields: [chat_id], references: [id])
+  user             AuthUser @relation(fields: [user_id], references: [id])
+  
+  // Indexes for better query performance
+  @@index([chat_id])
+  @@index([user_id])
+  @@index([feature])
+  @@index([category])
+  @@index([created_at])
+  
+  @@map("articles")
 }
 
 model Event {
