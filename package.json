@@ -1,36 +1,103 @@
 {
-  "name": "server",
+  "name": "semanami-ai-voice-assistant",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "type": "module",
-  "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "description": "AI-powered voice assistant platform featuring speech coaching, reading comprehension, and interactive language learning with real-time feedback and personalized content.",
+  "keywords": [
+    "ai-voice-assistant",
+    "speech-coaching",
+    "reading-comprehension",
+    "language-learning",
+    "voice-recognition",
+    "pronunciation-feedback",
+    "interactive-chat",
+    "personalized-learning",
+    "voice-activity-detection",
+    "language-practice",
+    "ai-education",
+    "speech-analysis",
+    "text-to-speech",
+    "natural-language-processing",
+    "machine-learning",
+    "react",
+    "nodejs",
+    "python",
+    "postgresql",
+    "websocket"
+  ],
+  "author": {
+    "name": "SemaNami Team",
+    "email": "team@semanami-ai.com",
+    "url": "https://semanami-ai.com"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/semanami-ai.git",
+    "directory": "."
+  },
+  "homepage": "https://semanami-ai.com",
+  "bugs": {
+    "url": "https://github.com/your-org/semanami-ai/issues",
+    "email": "support@semanami-ai.com"
+  },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
   },
+  "scripts": {
+    "start": "cd client && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "test": "npm run test:server && npm run test:client",
+    "test:server": "cd server && npm test",
+    "test:client": "cd client && npm test",
+    "lint": "npm run lint:server && npm run lint:client",
+    "lint:server": "cd server && npm run lint",
+    "lint:client": "cd client && npm run lint",
+    "deploy": "npm run build && npm run deploy:server",
+    "deploy:server": "cd server && npm run deploy"
+  },
   "dependencies": {
-    "@prisma/client": "^6.9.0",
-    "axios": "^1.9.0",
-    "bcrypt": "^5.1.1",
-    "body-parser": "^2.2.0",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
-    "crypto": "^1.0.1",
-    "dotenv": "^16.5.0",
-    "express": "^5.1.0",
-    "express-rate-limit": "^7.5.0",
-    "express-session": "^1.18.1",
-    "jsonwebtoken": "^9.0.2",
-    "jwt-decode": "^4.0.0",
-    "nodemailer": "^7.0.3",
-    "prisma": "^6.9.0",
-    "studio": "prisma studio --schema=./prisma/schema.prisma"
+    "concurrently": "^8.2.2"
+  },
+  "devDependencies": {
+    "prettier": "^3.1.0",
+    "eslint": "^8.55.0"
+  },
+  "platform": {
+    "name": "SemaNami AI Voice Assistant",
+    "type": "web-application",
+    "category": "education",
+    "features": [
+      "Speech Coaching with Real-time Feedback",
+      "Reading Comprehension with Personalized Articles",
+      "Interactive Chat Scenarios",
+      "Voice Activity Detection",
+      "Pronunciation Analysis",
+      "Multi-language Support",
+      "Adaptive Learning Algorithms",
+      "Progress Tracking"
+    ],
+    "technologies": [
+      "React.js",
+      "Node.js",
+      "Python",
+      "PostgreSQL",
+      "WebSocket",
+      "Web Speech API",
+      "Machine Learning",
+      "Natural Language Processing"
+    ],
+    "targetAudience": [
+      "Language Learners",
+      "Professionals",
+      "Educators",
+      "Accessibility Users"
+    ]
+  },
+  "config": {
+    "unsafe-perm": true
   }
 }

@@ -117,3 +117,6 @@ const shutdown = async () => {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 process.on('SIGTERM', shutdown);
+process.on('SIGTERM', shutdown);
+process.on('SIGTERM', shutdown);
+process.on('SIGTERM', shutdown);
