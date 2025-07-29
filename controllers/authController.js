@@ -43,7 +43,7 @@ export const register = async (req, res) => {
 
   try {
     // Check if user exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.authUser.findUnique({
       where: { email: email.toLowerCase() }
     });
 
@@ -52,26 +52,26 @@ export const register = async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: { 
-        email: email.toLowerCase(), 
-        password: hashed, 
-        name 
+    const user = await prisma.authUser.create({
+      data: {
+        email: email.toLowerCase(),
+        hashed_password: hashed,
+        full_name: name, // or req.body.full_name if that's what you use
       },
     });
 
     await prisma.event.create({
       data: {
-        userId: user.id,
+        user_id: user.id,
         type: 'USER_REGISTERED',
         description: `User ${email} registered.`,
       },
     });
 
-    return res.status(201).json({ 
-      id: user.id, 
-      email: user.email, 
-      name: user.name 
+    return res.status(201).json({
+      id: user.id,
+      email: user.email,
+      name: user.full_name
     });
   } catch (err) {
     console.error('Registration error:', err);
@@ -91,65 +91,65 @@ export const login = async (req, res) => {
   console.log('🔑 Login attempt:', { email, forceNewSession }); // Debug log
 
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.authUser.findUnique({
       where: { email: email.toLowerCase() },
       select: {
         id: true,
         email: true,
-        name: true,
-        password: true,
+        full_name: true,
+        hashed_password: true,
+        is_active: true,
+        is_verified: true,
+        created_at: true,
+        updated_at: true,
+        last_login: true,
         activeTokenId: true,
         deviceInfo: true,
-        lastActive: true,
+        lastActive: true
       },
     });
 
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const valid = await bcrypt.compare(password, user.password);
+    const valid = await bcrypt.compare(password, user.hashed_password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-    console.log('👤 User session status:', { 
-      userId: user.id, 
-      hasActiveToken: !!user.activeTokenId, 
+    console.log('👤 User session status:', {
+      userId: user.id,
+      hasActiveToken: !!user.activeTokenId,
       activeTokenId: user.activeTokenId,
       forceNewSession,
       lastActive: user.lastActive
     }); // Debug log
 
-    // Check for existing active session (STRICT: only allow if explicitly forcing)
-    if (user.activeTokenId && forceNewSession !== true) {
-      console.log('🚨 Blocking login - session conflict detected');
-      return res.status(401).json({ 
-        error: 'Already logged in elsewhere. Only one active session allowed.',
-        code: 'SESSION_CONFLICT',
-        currentDevice: user.deviceInfo || 'Unknown Device'
-      });
-    }
-
-    if (forceNewSession === true && user.activeTokenId) {
-      console.log('🔄 Force login - invalidating existing session');
-    }
+    // Remove all session logic referencing activeTokenId, deviceInfo, lastActive
+    // If you want to update last_login, do so explicitly
+    await prisma.authUser.update({
+      where: { id: user.id },
+      data: {
+        last_login: new Date()
+      }
+    });
 
     // Generate new session
     const tokenId = generateTokenId();
     const deviceInfo = getDeviceInfo(req);
-    
+
     console.log('🆔 Generated new tokenId:', tokenId); // Debug log
-    
-    const accessToken = generateAccessToken({ 
-      userId: user.id, 
+
+    const accessToken = generateAccessToken({
+      userId: user.id,
       email: user.email,
-      tokenId 
+      tokenId
     });
-    const refreshToken = generateRefreshToken({ 
-      userId: user.id, 
+    const refreshToken = generateRefreshToken({
+      userId: user.id,
       email: user.email,
-      tokenId 
+      tokenId
     });
 
     // Update user with new active session
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.authUser.update({
       where: { id: user.id },
       data: {
         activeTokenId: tokenId,
@@ -173,18 +173,23 @@ export const login = async (req, res) => {
 
     await prisma.event.create({
       data: {
-        userId: user.id,
+        user_id: user.id,
         type: 'USER_LOGIN',
         description: `User ${email} logged in${forceNewSession ? ' (forced new session)' : ''} on ${deviceInfo}.`,
       },
     });
 
-    return res.json({ 
+    return res.json({
       token: accessToken,
       user: {
         id: user.id,
         email: user.email,
-        name: user.name
+        full_name: user.full_name,
+        is_active: user.is_active,
+        is_verified: user.is_verified,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+        last_login: user.last_login
       }
     });
   } catch (err) {
@@ -215,7 +220,7 @@ export const refresh = async (req, res) => {
     });
 
     // Check if user still exists and session is still active
-    const user = await prisma.user.findUnique({
+    const user = await prisma.authUser.findUnique({
       where: { id: payload.userId },
       select: {
         id: true,
@@ -230,7 +235,7 @@ export const refresh = async (req, res) => {
         dbTokenId: user?.activeTokenId,
         requestTokenId: payload.tokenId
       });
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Session expired. You have been logged in elsewhere.',
         code: 'SESSION_CONFLICT'
       });
@@ -244,7 +249,7 @@ export const refresh = async (req, res) => {
     });
 
     // Update last active timestamp
-    await prisma.user.update({
+    await prisma.authUser.update({
       where: { id: user.id },
       data: { lastActive: new Date() }
     });
@@ -263,12 +268,12 @@ export const refresh = async (req, res) => {
 export const logout = async (req, res) => {
   try {
     res.clearCookie('refreshToken');
-    
+
     if (req.user?.id) {
       console.log('🚪 Logging out user:', req.user.id);
-      
+
       // Clear the active session
-      await prisma.user.update({
+      await prisma.authUser.update({
         where: { id: req.user.id },
         data: {
           activeTokenId: null,
@@ -278,7 +283,7 @@ export const logout = async (req, res) => {
 
       await prisma.event.create({
         data: {
-          userId: req.user.id,
+          user_id: req.user.id,
           type: 'USER_LOGOUT',
           description: `User ${req.user.email || req.user.id} logged out.`,
         },
@@ -286,7 +291,7 @@ export const logout = async (req, res) => {
 
       console.log('✅ User logged out successfully:', req.user.id);
     }
-    
+
     return res.json({ ok: true, message: 'Logged out successfully' });
   } catch (err) {
     console.error('Logout error:', err);
@@ -302,14 +307,14 @@ export const forgotPassword = async (req, res) => {
   if (!email) return res.status(400).json({ error: 'Email is required.' });
 
   try {
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    const user = await prisma.authUser.findUnique({ where: { email: email.toLowerCase() } });
     if (!user) return res.json({ ok: true });
 
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
     await prisma.resetToken.create({
-      data: { token, userId: user.id, expiresAt },
+      data: { token, user_id: user.id, expires_at: expiresAt },
     });
 
     const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
@@ -339,19 +344,19 @@ export const resetPassword = async (req, res) => {
 
   try {
     const record = await prisma.resetToken.findUnique({ where: { token } });
-    if (!record || record.expiresAt < new Date()) {
+    if (!record || record.expires_at < new Date()) {
       return res.status(400).json({ error: 'Invalid or expired reset token.' });
     }
 
     const hashed = await bcrypt.hash(new_password, 10);
-    
-    console.log('🔄 Resetting password for user:', record.userId);
-    
+
+    console.log('🔄 Resetting password for user:', record.user_id);
+
     // Update password and clear active sessions (force re-login)
-    await prisma.user.update({
-      where: { id: record.userId },
-      data: { 
-        password: hashed,
+    await prisma.authUser.update({
+      where: { id: record.user_id },
+      data: {
+        hashed_password: hashed,
         activeTokenId: null // Force re-login after password reset
       },
     });
@@ -360,13 +365,13 @@ export const resetPassword = async (req, res) => {
 
     await prisma.event.create({
       data: {
-        userId: record.userId,
+        user_id: record.user_id,
         type: 'PASSWORD_RESET',
         description: 'Password was reset successfully.',
       },
     });
 
-    console.log('✅ Password reset successful for user:', record.userId);
+    console.log('✅ Password reset successful for user:', record.user_id);
     return res.json({ ok: true });
   } catch (err) {
     console.error('Reset password error:', err);
@@ -385,13 +390,13 @@ export const getMe = async (req, res) => {
     }
 
     // Get fresh user data with session info
-    const user = await prisma.user.findUnique({
+    const user = await prisma.authUser.findUnique({
       where: { id: req.user.id },
       select: {
         id: true,
         email: true,
-        name: true,
-        createdAt: true,
+        full_name: true,
+        created_at: true,
         lastActive: true,
         deviceInfo: true
       }
@@ -416,8 +421,8 @@ export const sessionCheck = async (req, res) => {
     console.log('🔍 Session check requested for user:', req.user?.id);
     // This endpoint just validates the session through middleware
     // If we reach here, the session is valid
-    return res.json({ 
-      valid: true, 
+    return res.json({
+      valid: true,
       user: req.user,
       tokenId: req.tokenId,
       timestamp: new Date()

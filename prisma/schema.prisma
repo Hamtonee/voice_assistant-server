@@ -19,6 +19,9 @@ model AuthUser {
   created_at      DateTime  @default(now())
   updated_at      DateTime? @updatedAt
   last_login      DateTime?
+  activeTokenId   String?   @db.VarChar(255)
+  deviceInfo      String?   @db.VarChar(255)
+  lastActive      DateTime?
 
   // Relations
   refresh_tokens RefreshToken[]
