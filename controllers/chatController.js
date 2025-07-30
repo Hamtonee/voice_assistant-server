@@ -230,38 +230,46 @@ export const addMessage = async (req, res) => {
       typeValue: messageMetadata.type
     });
 
-    const msg = await prisma.message.create({
-      data: { 
-        chat_id: chatId, 
-        role, 
-        content: text,
-        message_metadata: messageMetadata
-      },
+    // Use a transaction to ensure data consistency
+    const result = await prisma.$transaction(async (tx) => {
+      const msg = await tx.message.create({
+        data: { 
+          chat_id: chatId, 
+          role, 
+          content: text,
+          message_metadata: messageMetadata
+        },
+      });
+
+      console.log('🔍 [chatController] Message created successfully:', { 
+        messageId: msg.id, 
+        chatId, 
+        role,
+        savedMetadata: msg.message_metadata,
+        hasSavedMetadata: !!msg.message_metadata
+      });
+
+      await tx.event.create({
+        data: {
+          user_id: req.user.id,
+          type: 'MESSAGE_ADDED',
+          description: `Message ${msg.id} added to chat ${chatId}`,
+        },
+      });
+
+      // Fetch the updated chat with messages in the same transaction
+      const updated = await tx.chat.findUnique({
+        where: { id: chatId },
+        include: { messages: true },
+      });
+
+      return { msg, updated };
     });
 
-    console.log('🔍 [chatController] Message created successfully:', { 
-      messageId: msg.id, 
-      chatId, 
-      role,
-      savedMetadata: msg.message_metadata,
-      hasSavedMetadata: !!msg.message_metadata
-    });
-
-    await prisma.event.create({
-      data: {
-        user_id: req.user.id,
-        type: 'MESSAGE_ADDED',
-        description: `Message ${msg.id} added to chat ${chatId}`,
-      },
-    });
-
-    const updated = await prisma.chat.findUnique({
-      where: { id: chatId },
-      include: { messages: true },
-    });
+    console.log('🔍 [chatController] Transaction completed, messages count:', result.updated.messages?.length || 0);
 
     // Normalize response for frontend consistency
-    const normalizedChat = normalizeChat(updated);
+    const normalizedChat = normalizeChat(result.updated);
     res.json(normalizedChat);
   } catch (err) {
     console.error('❌ Error adding message:', err);
