@@ -30,9 +30,17 @@ const cleanUrl = (url) => {
 
 console.log('🔍 Raw FRONTEND_URLS:', JSON.stringify(process.env.FRONTEND_URLS));
 
+// Temporary fix: Allow all origins until environment variables are set
 const allowedOrigins = process.env.FRONTEND_URLS
   ? process.env.FRONTEND_URLS.split(',').map(url => cleanUrl(url)).filter(url => url.length > 0)
-  : ['http://localhost:3000', 'http://192.168.100.122:3000'];
+  : [
+      'http://localhost:3000', 
+      'http://192.168.100.122:3000',
+      'https://semanami-ai.com',
+      'https://www.semanami-ai.com',
+      // Temporary: Allow all origins for debugging
+      '*'
+    ];
 
 console.log('🔧 Final Cleaned Origins:', allowedOrigins);
 
@@ -54,11 +62,11 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
   
-  if (origin && allowedOrigins.includes(origin)) {
+  if (origin && (allowedOrigins.includes(origin) || allowedOrigins.includes('*'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     console.log(`✅ Allowed origin: ${origin}`);
   } else if (!origin) {
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0] === '*' ? '*' : allowedOrigins[0]);
     console.log(`🔧 No origin header — using default: ${allowedOrigins[0]}`);
   } else {
     console.warn(`❌ Blocked origin: ${origin}`);
@@ -73,7 +81,7 @@ app.use((req, res, next) => {
 // CORS Middleware (backup)
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
       callback(null, true);
     } else {
       callback(new Error(`Not allowed by CORS → Origin: ${origin}`));
