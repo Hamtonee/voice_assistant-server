@@ -42,17 +42,38 @@ export const listChats = async (req, res) => {
 export const getChat = async (req, res) => {
   const id = Number(req.params.id);
   try {
+    console.log('🔍 [chatController] getChat called for:', { id, userId: req.user.id });
+    
     const chat = await prisma.chat.findFirst({
       where: { id, owner_id: req.user.id },
       include: { messages: true },
     });
-    if (!chat) return res.status(404).json({ error: 'Not found' });
+    
+    if (!chat) {
+      console.log('❌ [chatController] Chat not found:', { id, userId: req.user.id });
+      return res.status(404).json({ error: 'Not found' });
+    }
+    
+    console.log('🔍 [chatController] Chat found:', {
+      chatId: chat.id,
+      messageCount: chat.messages?.length || 0,
+      firstMessageMetadata: chat.messages?.[0]?.message_metadata,
+      messagesWithMetadata: chat.messages?.filter(m => m.message_metadata)?.length || 0
+    });
     
     // Normalize response for frontend consistency
     const normalizedChat = normalizeChat(chat);
+    
+    console.log('🔍 [chatController] Normalized chat response:', {
+      chatId: normalizedChat.id,
+      messageCount: normalizedChat.messages?.length || 0,
+      firstMessageMetadata: normalizedChat.messages?.[0]?.messageMetadata,
+      messagesWithMetadata: normalizedChat.messages?.filter(m => m.messageMetadata)?.length || 0
+    });
+    
     res.json(normalizedChat);
   } catch (err) {
-    console.error('Error fetching chat:', err);
+    console.error('❌ [chatController] Error fetching chat:', err);
     res.status(500).json({ error: 'Failed to fetch chat' });
   }
 };
@@ -159,7 +180,15 @@ export const addMessage = async (req, res) => {
   const chatId = Number(req.params.id);
   const { role, text, metadata } = req.body;
 
-  console.log('📝 addMessage called with:', { chatId, role, textLength: text?.length, metadata });
+  console.log('🔍 [chatController] addMessage called with:', { 
+    chatId, 
+    role, 
+    textLength: text?.length, 
+    hasMetadata: !!metadata,
+    metadataKeys: metadata ? Object.keys(metadata) : [],
+    metadataValues: metadata,
+    requestBody: req.body
+  });
 
   try {
     // Validate required fields
@@ -191,6 +220,16 @@ export const addMessage = async (req, res) => {
       ...(metadata || {})
     };
 
+    console.log('🔍 [chatController] Message metadata to save:', {
+      originalMetadata: metadata,
+      combinedMetadata: messageMetadata,
+      metadataKeys: Object.keys(messageMetadata),
+      hasFeature: !!messageMetadata.feature,
+      featureValue: messageMetadata.feature,
+      hasType: !!messageMetadata.type,
+      typeValue: messageMetadata.type
+    });
+
     const msg = await prisma.message.create({
       data: { 
         chat_id: chatId, 
@@ -200,7 +239,13 @@ export const addMessage = async (req, res) => {
       },
     });
 
-    console.log('✅ Message created successfully:', { messageId: msg.id, chatId, role });
+    console.log('🔍 [chatController] Message created successfully:', { 
+      messageId: msg.id, 
+      chatId, 
+      role,
+      savedMetadata: msg.message_metadata,
+      hasSavedMetadata: !!msg.message_metadata
+    });
 
     await prisma.event.create({
       data: {
