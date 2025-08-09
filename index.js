@@ -97,14 +97,11 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Limit concurrent users
-app.use(concurrentLimiter);
-
-// Routes
+// Scope concurrency limiter to heavy chat routes only (avoid 429 on auth)
 console.log('Registering route: /api/auth (app.use)');
 app.use('/api/auth', authRoutes);
-console.log('Registering route: /api/chats (app.use)');
-app.use('/api/chats', chatRoutes);
+console.log('Registering route: /api/chats (app.use with concurrentLimiter)');
+app.use('/api/chats', concurrentLimiter, chatRoutes);
 
 console.log('Registering route: /api/health (app.get)');
 app.get('/api/health', (_req, res) => {
