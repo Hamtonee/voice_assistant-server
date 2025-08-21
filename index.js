@@ -6,7 +6,10 @@ import { PrismaClient } from '@prisma/client';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
+import feedRoutes from './routes/feedRoutes.js';
+import optimizedChatRoutes from './routes/optimizedChatRoutes.js';
 import concurrentLimiter from './middleware/concurrentLimiter.js';
+import feedScheduler from './services/feedScheduler.js';
 
 dotenv.config();
 
@@ -102,6 +105,10 @@ console.log('Registering route: /api/auth (app.use)');
 app.use('/api/auth', authRoutes);
 console.log('Registering route: /api/chats (app.use with concurrentLimiter)');
 app.use('/api/chats', concurrentLimiter, chatRoutes);
+console.log('Registering route: /api/feed (app.use)');
+app.use('/api/feed', feedRoutes);
+console.log('Registering route: /api/optimized-chat (app.use)');
+app.use('/api/optimized-chat', optimizedChatRoutes);
 
 console.log('Registering route: /api/health (app.get)');
 app.get('/api/health', (_req, res) => {
@@ -136,11 +143,28 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server listening on port ${PORT}`);
   console.log(`🔗 Environment: ${process.env.NODE_ENV || 'unknown'}`);
   console.log('✅ Health check endpoints available at /api/health and /health');
+  
+  // Start personalized feed scheduler for background tasks
+  try {
+    feedScheduler.start();
+    console.log('🎯 Personalized feed scheduler started successfully');
+  } catch (error) {
+    console.error('❌ Failed to start feed scheduler:', error);
+  }
 });
 
 // Graceful shutdown
 const shutdown = async () => {
   console.log('🛑 Shutting down server...');
+  
+  // Stop feed scheduler
+  try {
+    feedScheduler.stop();
+    console.log('🛑 Feed scheduler stopped');
+  } catch (error) {
+    console.error('❌ Error stopping feed scheduler:', error);
+  }
+  
   server.close(() => {
     console.log('HTTP server closed.');
     process.exit(0);

@@ -277,6 +277,68 @@ export const addMessage = async (req, res) => {
   }
 };
 
+// ✅ Update chat instance (general update)
+export const updateChat = async (req, res) => {
+  const id = Number(req.params.id);
+  const { scenarioKey, scenario_key, title, feature } = req.body;
+
+  try {
+    console.log('🔧 [chatController] updateChat called for:', { 
+      id, 
+      userId: req.user.id, 
+      scenarioKey, 
+      scenario_key,
+      title,
+      feature 
+    });
+
+    // Build update data object
+    const updateData = {};
+    if (scenarioKey !== undefined) updateData.scenario_key = scenarioKey;
+    if (scenario_key !== undefined) updateData.scenario_key = scenario_key;
+    if (title !== undefined) updateData.title = title;
+    if (feature !== undefined) updateData.feature = feature;
+
+    console.log('🔧 [chatController] Update data:', updateData);
+
+    const result = await prisma.chat.updateMany({
+      where: { id, owner_id: req.user.id },
+      data: updateData,
+    });
+
+    if (result.count === 0) {
+      console.log('❌ [chatController] Chat not found or not owned by user:', { id, userId: req.user.id });
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    await prisma.event.create({
+      data: {
+        user_id: req.user.id,
+        type: 'CHAT_UPDATED',
+        description: `Chat ${id} updated with scenario key: ${scenarioKey || scenario_key}`,
+      },
+    });
+
+    const updated = await prisma.chat.findUnique({
+      where: { id },
+      include: { messages: true },
+    });
+
+    console.log('✅ [chatController] Chat updated successfully:', {
+      chatId: updated.id,
+      scenarioKey: updated.scenario_key,
+      messageCount: updated.messages?.length || 0
+    });
+
+    // Normalize response for frontend consistency
+    const normalizedChat = normalizeChat(updated);
+    res.json(normalizedChat);
+  } catch (err) {
+    console.error('❌ [chatController] Error updating chat:', err);
+    res.status(500).json({ error: 'Failed to update chat' });
+  }
+};
+
 // ✅ Update chat title
 export const updateTitle = async (req, res) => {
   const id = Number(req.params.id);

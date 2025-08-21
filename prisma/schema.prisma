@@ -29,6 +29,8 @@ model AuthUser {
   events        Event[]
   messages      Message[]    // Relation to messages
   articles      Article[]    // Relation to articles
+  personalizedFeeds PersonalizedFeed[]  // Relation to personalized feeds
+  behaviorAnalytics UserBehaviorAnalytics[]  // Relation to user behavior analytics
 
   @@map("auth_users")
 }
@@ -103,18 +105,87 @@ model Article {
   is_favorite       Boolean  @default(false)
   article_metadata  Json?    // For additional article-specific data
   
+  // Personalized Feed Enhancement
+  is_pre_generated  Boolean  @default(false)
+  feed_priority     Int?     @default(0)
+  user_engagement_score Float @default(0)
+  content_tags      Json?    // AI-generated content tags for better matching
+  
   // Relations
   chat             Chat     @relation(fields: [chat_id], references: [id])
   user             AuthUser @relation(fields: [user_id], references: [id])
   
-  // Indexes for better query performance
+  // Enhanced indexes for feed performance
   @@index([chat_id])
   @@index([user_id])
   @@index([feature])
   @@index([category])
   @@index([created_at])
+  @@index([is_pre_generated])
+  @@index([feed_priority])
+  @@index([user_engagement_score])
   
   @@map("articles")
+}
+
+// New PersonalizedFeed model for efficient content delivery
+model PersonalizedFeed {
+  id              Int      @id @default(autoincrement())
+  user_id         Int      @map("user_id")
+  feed_type       String   @db.VarChar(50) // 'reading', 'chat', 'speech_coaching'
+  content_ids     Json     // Array of pre-generated content IDs
+  user_profile    Json     // Snapshot of user preferences when feed was generated
+  generated_at    DateTime @default(now())
+  expires_at      DateTime
+  last_accessed   DateTime?
+  access_count    Int      @default(0)
+  
+  // Performance tracking
+  avg_engagement  Float    @default(0)
+  content_consumed Int     @default(0)
+  
+  user            AuthUser @relation(fields: [user_id], references: [id])
+  
+  @@index([user_id])
+  @@index([feed_type])
+  @@index([expires_at])
+  @@index([generated_at])
+  
+  @@map("personalized_feeds")
+}
+
+// Enhanced User Behavior Analytics
+model UserBehaviorAnalytics {
+  id                    Int      @id @default(autoincrement())
+  user_id               Int      @map("user_id")
+  session_id            String   @db.VarChar(100)
+  
+  // Content Preferences
+  preferred_categories  Json     // Most accessed categories
+  preferred_difficulty  String   @db.VarChar(20)
+  content_consumption_rate Float @default(0) // Articles/hour
+  
+  // Usage Patterns
+  peak_usage_hours      Json     // Array of peak hours [14, 16, 20]
+  session_duration_avg  Float    @default(0) // Average session length in minutes
+  feature_usage_ratio   Json     // {reading: 0.6, chat: 0.3, speech: 0.1}
+  
+  // Engagement Metrics
+  article_completion_rate Float   @default(0)
+  interaction_frequency   Float   @default(0)
+  last_engagement_score   Float   @default(0)
+  
+  // Timestamps
+  last_updated          DateTime @default(now()) @updatedAt
+  created_at            DateTime @default(now())
+  
+  user                  AuthUser @relation(fields: [user_id], references: [id])
+  
+  @@index([user_id])
+  @@index([last_updated])
+  @@index([session_id])
+  
+  @@map("user_behavior_analytics")
 }
 
 model Event {

@@ -8,6 +8,7 @@ import {
   createScenarioChat,
   createFeatureChat, // ← for 'sema' or 'tusome'
   addMessage,
+  updateChat,
   updateTitle,
   deleteChat,
 } from '../controllers/chatController.js';
@@ -32,6 +33,9 @@ router.post('/chat-title', generateChatTitle);
 
 // 📩 Add new message
 router.post('/:id/messages', addMessage);
+
+// ✏️ Update chat instance (general update)
+router.put('/:id', updateChat);
 
 // ✏️ Update chat title
 router.put('/:id/rename', updateTitle);
