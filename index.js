@@ -55,6 +55,22 @@ prisma.$on('error', (e) => {
 // Request logger
 app.use((req, _res, next) => {
   console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
+  
+  // Add detailed logging for PUT requests to /api/chats
+  if (req.method === 'PUT' && req.originalUrl.includes('/api/chats/')) {
+    console.log('🔧 [Request Logger] PUT request to chats endpoint:', {
+      method: req.method,
+      originalUrl: req.originalUrl,
+      path: req.path,
+      params: req.params,
+      body: req.body,
+      headers: {
+        'content-type': req.headers['content-type'],
+        'authorization': req.headers.authorization ? 'Present' : 'Missing'
+      }
+    });
+  }
+  
   next();
 });
 

@@ -35,7 +35,15 @@ router.post('/chat-title', generateChatTitle);
 router.post('/:id/messages', addMessage);
 
 // ✏️ Update chat instance (general update)
-router.put('/:id', updateChat);
+router.put('/:id', (req, res, next) => {
+  console.log('🔧 [chatRoutes] PUT /:id route matched:', {
+    id: req.params.id,
+    method: req.method,
+    originalUrl: req.originalUrl,
+    body: req.body
+  });
+  next();
+}, updateChat);
 
 // ✏️ Update chat title
 router.put('/:id/rename', updateTitle);
