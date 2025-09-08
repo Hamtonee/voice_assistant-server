@@ -7,7 +7,7 @@
 
 import express from 'express';
 import { SmartAPIOrchestrator } from '../services/smartAPIOrchestrator.js';
-import { authenticateUser } from '../middleware/auth.js';
+import authenticateUser from '../middleware/auth.js';
 import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();

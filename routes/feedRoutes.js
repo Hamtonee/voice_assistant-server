@@ -7,7 +7,10 @@
 
 import express from 'express';
 import { PersonalizedFeedService } from '../services/personalizedFeedService.js';
-import { authenticateUser } from '../middleware/auth.js';
+import authenticateUser from '../middleware/auth.js';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 const router = express.Router();
 const feedService = new PersonalizedFeedService();
