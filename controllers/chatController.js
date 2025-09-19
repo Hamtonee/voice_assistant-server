@@ -40,7 +40,34 @@ export const listChats = async (req, res) => {
 
 // ✅ Get a single chat
 export const getChat = async (req, res) => {
-  const id = Number(req.params.id);
+  const idParam = req.params.id;
+  let id;
+  
+  // Handle both integer IDs and string session IDs
+  if (isNaN(Number(idParam))) {
+    // It's a string session ID, try to find by session_id in messages
+    console.log('🔍 [chatController] getChat called with string session ID:', { idParam, userId: req.user.id });
+    
+    // First, try to find a message with this session_id
+    const message = await prisma.message.findFirst({
+      where: { 
+        session_id: idParam,
+        user_id: req.user.id 
+      },
+      include: { chat: true }
+    });
+    
+    if (!message || !message.chat) {
+      console.log('❌ [chatController] Chat not found for session ID:', { idParam, userId: req.user.id });
+      return res.status(404).json({ error: 'Not found' });
+    }
+    
+    id = message.chat.id;
+  } else {
+    // It's a numeric ID
+    id = Number(idParam);
+  }
+  
   try {
     console.log('🔍 [chatController] getChat called for:', { id, userId: req.user.id });
     
@@ -177,7 +204,34 @@ export const createFeatureChat = async (req, res) => {
 
 // ✅ Add a message to a chat
 export const addMessage = async (req, res) => {
-  const chatId = Number(req.params.id);
+  const idParam = req.params.id;
+  let chatId;
+  
+  // Handle both integer IDs and string session IDs
+  if (isNaN(Number(idParam))) {
+    // It's a string session ID, try to find by session_id in messages
+    console.log('🔍 [chatController] addMessage called with string session ID:', { idParam, userId: req.user.id });
+    
+    // First, try to find a message with this session_id
+    const message = await prisma.message.findFirst({
+      where: { 
+        session_id: idParam,
+        user_id: req.user.id 
+      },
+      include: { chat: true }
+    });
+    
+    if (!message || !message.chat) {
+      console.log('❌ [chatController] Chat not found for session ID:', { idParam, userId: req.user.id });
+      return res.status(404).json({ error: 'Not found' });
+    }
+    
+    chatId = message.chat.id;
+  } else {
+    // It's a numeric ID
+    chatId = Number(idParam);
+  }
+  
   const { role, text, metadata } = req.body;
 
   console.log('🔍 [chatController] addMessage called with:', { 
@@ -279,7 +333,34 @@ export const addMessage = async (req, res) => {
 
 // ✅ Update chat instance (general update)
 export const updateChat = async (req, res) => {
-  const id = Number(req.params.id);
+  const idParam = req.params.id;
+  let id;
+  
+  // Handle both integer IDs and string session IDs
+  if (isNaN(Number(idParam))) {
+    // It's a string session ID, try to find by session_id in messages
+    console.log('🔧 [chatController] updateChat called with string session ID:', { idParam, userId: req.user.id });
+    
+    // First, try to find a message with this session_id
+    const message = await prisma.message.findFirst({
+      where: { 
+        session_id: idParam,
+        user_id: req.user.id 
+      },
+      include: { chat: true }
+    });
+    
+    if (!message || !message.chat) {
+      console.log('❌ [chatController] Chat not found for session ID:', { idParam, userId: req.user.id });
+      return res.status(404).json({ error: 'Not found' });
+    }
+    
+    id = message.chat.id;
+  } else {
+    // It's a numeric ID
+    id = Number(idParam);
+  }
+  
   const { scenarioKey, scenario_key, title, feature } = req.body;
 
   try {

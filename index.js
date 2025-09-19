@@ -8,6 +8,8 @@ import authRoutes from './routes/authRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import feedRoutes from './routes/feedRoutes.js';
 import optimizedChatRoutes from './routes/optimizedChatRoutes.js';
+import readingRoutes from './routes/readingRoutes.js';
+import usageRoutes from './routes/usageRoutes.js';
 import concurrentLimiter from './middleware/concurrentLimiter.js';
 import feedScheduler from './services/feedScheduler.js';
 
@@ -125,6 +127,10 @@ console.log('Registering route: /api/feed (app.use)');
 app.use('/api/feed', feedRoutes);
 console.log('Registering route: /api/optimized-chat (app.use)');
 app.use('/api/optimized-chat', optimizedChatRoutes);
+console.log('Registering route: /api/reading (app.use)');
+app.use('/api/reading', readingRoutes);
+console.log('Registering route: /api (app.use)');
+app.use('/api', usageRoutes);
 
 console.log('Registering route: /api/health (app.get)');
 app.get('/api/health', (_req, res) => {
