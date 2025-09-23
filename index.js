@@ -129,9 +129,7 @@ console.log('Registering route: /api/optimized-chat (app.use)');
 app.use('/api/optimized-chat', optimizedChatRoutes);
 console.log('Registering route: /api/reading (app.use)');
 app.use('/api/reading', readingRoutes);
-console.log('Registering route: /api (app.use)');
-app.use('/api', usageRoutes);
-
+// Health endpoints MUST be registered before any protected routes
 console.log('Registering route: /api/health (app.get)');
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -147,6 +145,9 @@ console.log('Registering route: /health (app.get)');
 app.get('/health', (_req, res) => {
   res.json({ status: 'healthy' });
 });
+
+console.log('Registering route: /api (app.use)');
+app.use('/api', usageRoutes);
 
 console.log('Registering route: / (app.get)');
 app.get('/', (_req, res) => {

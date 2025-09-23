@@ -19,25 +19,23 @@
 export function normalizeChat(chat) {
   if (!chat) return null;
   
-  return {
-    ...chat,
-    // Convert snake_case to camelCase
-    scenarioKey: chat.scenario_key,
-    ownerId: chat.owner_id,
-    createdAt: chat.created_at,
-    updatedAt: chat.updated_at,
-    isActive: chat.is_active,
+  // Create a clean, serializable object to prevent React error #130
+  const normalized = {
+    id: chat.id ? String(chat.id) : null,
+    title: chat.title ? String(chat.title) : '',
+    feature: chat.feature ? String(chat.feature) : 'chat',
+    scenarioKey: chat.scenario_key ? String(chat.scenario_key) : null,
+    ownerId: chat.owner_id ? String(chat.owner_id) : null,
+    createdAt: chat.created_at ? String(chat.created_at) : null,
+    updatedAt: chat.updated_at ? String(chat.updated_at) : null,
+    isActive: Boolean(chat.is_active),
+    messageCount: Number(chat.messageCount || 0),
     
-    // Remove snake_case versions to avoid confusion
-    scenario_key: undefined,
-    owner_id: undefined,
-    created_at: undefined,
-    updated_at: undefined,
-    is_active: undefined,
-    
-    // Normalize messages if they exist
-    messages: chat.messages ? chat.messages.map(normalizeMessage) : undefined
+    // Normalize messages if they exist - ensure they're serializable
+    messages: chat.messages ? chat.messages.map(normalizeMessage) : []
   };
+  
+  return normalized;
 }
 
 /**
@@ -48,18 +46,24 @@ export function normalizeChat(chat) {
 export function normalizeMessage(message) {
   if (!message) return null;
   
-  return {
-    ...message,
-    // Convert snake_case to camelCase
-    chatId: message.chat_id,
-    contentLength: message.content_length,
-    messageMetadata: message.message_metadata,
+  // Create a clean, serializable object to prevent React error #130
+  const normalized = {
+    id: message.id ? String(message.id) : null,
+    role: message.role ? String(message.role) : 'user',
+    content: message.content ? String(message.content) : '',
+    chatId: message.chat_id ? String(message.chat_id) : null,
+    contentLength: Number(message.content_length || 0),
+    timestamp: message.timestamp ? String(message.timestamp) : null,
     
-    // Remove snake_case versions to avoid confusion
-    chat_id: undefined,
-    content_length: undefined,
-    message_metadata: undefined
+    // Safely handle messageMetadata - ensure it's serializable
+    messageMetadata: message.message_metadata ? 
+      (typeof message.message_metadata === 'object' ? 
+        JSON.parse(JSON.stringify(message.message_metadata)) : 
+        String(message.message_metadata)) : 
+      null
   };
+  
+  return normalized;
 }
 
 /**
