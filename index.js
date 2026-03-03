@@ -10,6 +10,7 @@ import feedRoutes from './routes/feedRoutes.js';
 import optimizedChatRoutes from './routes/optimizedChatRoutes.js';
 import readingRoutes from './routes/readingRoutes.js';
 import usageRoutes from './routes/usageRoutes.js';
+import subscriptionRoutes from './routes/subscriptionRoutes.js';
 import concurrentLimiter from './middleware/concurrentLimiter.js';
 import feedScheduler from './services/feedScheduler.js';
 
@@ -35,17 +36,31 @@ const cleanUrl = (url) => {
 
 console.log('🔍 Raw FRONTEND_URLS:', JSON.stringify(process.env.FRONTEND_URLS));
 
-// Temporary fix: Allow all origins until environment variables are set
-const allowedOrigins = process.env.FRONTEND_URLS
+const defaultOrigins = [
+  'http://localhost:3000',
+  'http://192.168.100.122:3000',
+  'https://semanami-ai.com',
+  'https://www.semanami-ai.com',
+  // Temporary: Allow all origins for debugging
+  '*'
+];
+
+const envOrigins = process.env.FRONTEND_URLS
   ? process.env.FRONTEND_URLS.split(',').map(url => cleanUrl(url)).filter(url => url.length > 0)
-  : [
-      'http://localhost:3000', 
-      'http://192.168.100.122:3000',
-      'https://semanami-ai.com',
-      'https://www.semanami-ai.com',
-      // Temporary: Allow all origins for debugging
-      '*'
-    ];
+  : [];
+
+const allowedOrigins = (envOrigins.length > 0 ? envOrigins : defaultOrigins).slice();
+
+// Always allow local dev origins to prevent CORS blocking in production envs.
+const allowLocalhostCors = true;
+
+if (allowLocalhostCors) {
+  ['http://localhost:3000', 'http://127.0.0.1:3000'].forEach((origin) => {
+    if (!allowedOrigins.includes(origin)) {
+      allowedOrigins.push(origin);
+    }
+  });
+}
 
 console.log('🔧 Final Cleaned Origins:', allowedOrigins);
 
@@ -129,6 +144,8 @@ console.log('Registering route: /api/optimized-chat (app.use)');
 app.use('/api/optimized-chat', optimizedChatRoutes);
 console.log('Registering route: /api/reading (app.use)');
 app.use('/api/reading', readingRoutes);
+console.log('Registering route: /api/subscriptions (app.use)');
+app.use('/api/subscriptions', subscriptionRoutes);
 // Health endpoints MUST be registered before any protected routes
 console.log('Registering route: /api/health (app.get)');
 app.get('/api/health', (_req, res) => {

@@ -1,102 +1,56 @@
-// server/utils/apiResponseNormalizer.js
-
 /**
  * API Response Normalizer
- * 
- * Converts database field names (snake_case) to frontend field names (camelCase)
- * This ensures consistency between frontend expectations and API responses.
- * 
- * Database/Backend: scenario_key, owner_id, created_at
- * API Response:    scenarioKey, ownerId, createdAt
- * Frontend:        scenarioKey, ownerId, createdAt
+ *
+ * Converts database field names (snake_case) to frontend field names (camelCase).
  */
 
-/**
- * Normalize a single chat object
- * @param {Object} chat - Raw chat object from database
- * @returns {Object} - Normalized chat object for frontend
- */
 export function normalizeChat(chat) {
   if (!chat) return null;
-  
-  // Create a clean, serializable object to prevent React error #130
-  const normalized = {
-    id: chat.id ? String(chat.id) : null,
-    title: chat.title ? String(chat.title) : '',
-    feature: chat.feature ? String(chat.feature) : 'chat',
-    scenarioKey: chat.scenario_key ? String(chat.scenario_key) : null,
-    ownerId: chat.owner_id ? String(chat.owner_id) : null,
-    createdAt: chat.created_at ? String(chat.created_at) : null,
-    updatedAt: chat.updated_at ? String(chat.updated_at) : null,
-    isActive: Boolean(chat.is_active),
-    messageCount: Number(chat.messageCount || 0),
-    
-    // Normalize messages if they exist - ensure they're serializable
-    messages: chat.messages ? chat.messages.map(normalizeMessage) : []
+
+  return {
+    ...chat,
+    scenarioKey: chat.scenario_key,
+    ownerId: chat.owner_id,
+    createdAt: chat.created_at,
+    updatedAt: chat.updated_at,
+    isActive: chat.is_active,
+    scenario_key: undefined,
+    owner_id: undefined,
+    created_at: undefined,
+    updated_at: undefined,
+    is_active: undefined,
+    messages: chat.messages ? chat.messages.map(normalizeMessage) : undefined
   };
-  
-  return normalized;
 }
 
-/**
- * Normalize a single message object
- * @param {Object} message - Raw message object from database
- * @returns {Object} - Normalized message object for frontend
- */
 export function normalizeMessage(message) {
   if (!message) return null;
-  
-  // Create a clean, serializable object to prevent React error #130
-  const normalized = {
-    id: message.id ? String(message.id) : null,
-    role: message.role ? String(message.role) : 'user',
-    content: message.content ? String(message.content) : '',
-    chatId: message.chat_id ? String(message.chat_id) : null,
-    contentLength: Number(message.content_length || 0),
-    timestamp: message.timestamp ? String(message.timestamp) : null,
-    
-    // Safely handle messageMetadata - ensure it's serializable
-    messageMetadata: message.message_metadata ? 
-      (typeof message.message_metadata === 'object' ? 
-        JSON.parse(JSON.stringify(message.message_metadata)) : 
-        String(message.message_metadata)) : 
-      null
+
+  return {
+    ...message,
+    chatId: message.chat_id,
+    contentLength: message.content_length,
+    messageMetadata: message.message_metadata,
+    chat_id: undefined,
+    content_length: undefined,
+    message_metadata: undefined
   };
-  
-  return normalized;
 }
 
-/**
- * Normalize an array of chat objects
- * @param {Array} chats - Array of raw chat objects from database
- * @returns {Array} - Array of normalized chat objects for frontend
- */
 export function normalizeChats(chats) {
   if (!Array.isArray(chats)) return [];
   return chats.map(normalizeChat);
 }
 
-/**
- * Normalize an array of message objects
- * @param {Array} messages - Array of raw message objects from database
- * @returns {Array} - Array of normalized message objects for frontend
- */
 export function normalizeMessages(messages) {
   if (!Array.isArray(messages)) return [];
   return messages.map(normalizeMessage);
 }
 
-/**
- * Normalize any object with common database field patterns
- * @param {Object} obj - Raw object from database
- * @returns {Object} - Normalized object for frontend
- */
 export function normalizeObject(obj) {
   if (!obj || typeof obj !== 'object') return obj;
-  
+
   const normalized = { ...obj };
-  
-  // Common field mappings
   const fieldMappings = {
     scenario_key: 'scenarioKey',
     owner_id: 'ownerId',
@@ -134,27 +88,20 @@ export function normalizeObject(obj) {
     service_type: 'serviceType',
     client_id: 'clientId'
   };
-  
-  // Apply mappings
+
   Object.entries(fieldMappings).forEach(([snakeCase, camelCase]) => {
-    if (normalized.hasOwnProperty(snakeCase)) {
+    if (Object.prototype.hasOwnProperty.call(normalized, snakeCase)) {
       normalized[camelCase] = normalized[snakeCase];
       delete normalized[snakeCase];
     }
   });
-  
+
   return normalized;
 }
 
-/**
- * Normalize API response wrapper
- * @param {Object} response - Raw response object
- * @param {string} type - Type of normalization ('chat', 'message', 'user', etc.)
- * @returns {Object} - Normalized response object
- */
 export function normalizeResponse(response, type = 'object') {
   if (!response) return response;
-  
+
   switch (type) {
     case 'chat':
       return normalizeChat(response);
@@ -177,4 +124,4 @@ export default {
   normalizeMessages,
   normalizeObject,
   normalizeResponse
-}; 
+};

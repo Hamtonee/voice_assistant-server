@@ -4,35 +4,43 @@ import {
   login,
   forgotPassword,
   resetPassword,
+  verifyEmail,
+  resendVerification,
+  sendPhoneVerification,
+  verifyPhone,
   getMe,
   refresh,
   logout,
+  sessionCheck,
+  googleRedirect,
+  googleCallback
 } from '../controllers/authController.js';
-
-import auth from '../middleware/auth.js'; // 🔐 JWT auth middleware
+import auth from '../middleware/auth.js';
 
 const router = express.Router();
 
-//
-// 🚨 Health check
-//
+// Health check
 router.get('/ping', (_req, res) => {
   res.send('✅ Auth router is live');
 });
 
-//
-// 🧾 Public authentication routes
-//
-router.post('/register', register);               // Create new user
-router.post('/login', login);                     // Login and receive tokens
-router.post('/forgot-password', forgotPassword);  // Request password reset email
-router.post('/reset-password', resetPassword);    // Perform password reset
-router.post('/refresh', refresh);                 // 🔁 Get new access token from refresh token
+// Public authentication routes
+router.get('/google', googleRedirect);
+router.get('/google/callback', googleCallback);
+router.post('/register', register);
+router.post('/login', login);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
+router.post('/verify-email', verifyEmail);
+router.get('/verify-email', verifyEmail); // For link clicks: /verify-email?token=...
+router.post('/resend-verification', resendVerification);
+router.post('/send-phone-verification', sendPhoneVerification);
+router.post('/verify-phone', verifyPhone);
+router.post('/refresh', refresh);
 
-//
-// 🔒 Protected routes (require valid access token)
-//
-router.get('/me', auth, getMe);                   // Get current user from access token
-router.post('/logout', auth, logout);             // Logout and clear refresh token
+// Protected routes
+router.get('/me', auth, getMe);
+router.get('/session-check', auth, sessionCheck);
+router.post('/logout', auth, logout);
 
 export default router;
