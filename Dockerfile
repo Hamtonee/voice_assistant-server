@@ -17,7 +17,7 @@ RUN npm ci --only=production && npm cache clean --force
 COPY . .
 
 # Generate Prisma client
-RUN npx prisma generate
+RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs

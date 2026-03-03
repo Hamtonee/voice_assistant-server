@@ -7,8 +7,8 @@
   "scripts": {
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "db:migrate": "node -e \"require('dotenv').config(); const {execSync}=require('child_process'); execSync('npx prisma migrate deploy --schema=../prisma/schema.prisma', {stdio:'inherit', env:process.env})\"",
-    "db:generate": "node -e \"require('dotenv').config(); const {execSync}=require('child_process'); execSync('npx prisma generate --schema=../prisma/schema.prisma', {stdio:'inherit', env:process.env})\""
+    "db:migrate": "node -e \"require('dotenv').config(); const {execSync}=require('child_process'); execSync('npx prisma migrate deploy --schema=./prisma/schema.prisma', {stdio:'inherit', env:process.env})\"",
+    "db:generate": "node -e \"require('dotenv').config(); const {execSync}=require('child_process'); execSync('npx prisma generate --schema=./prisma/schema.prisma', {stdio:'inherit', env:process.env})\""
   },
   "keywords": [],
   "author": "",
